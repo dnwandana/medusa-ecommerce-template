@@ -1,0 +1,13 @@
+{
+  "name": "medusa-ecommerce-template",
+  "private": true,
+  "description": "A monorepo template for headless e-commerce with a Medusa backend and a Nuxt storefront.",
+  "engines": {
+    "node": ">=24.21.0"
+  },
+  "scripts": {
+    "dev": "pnpm -r --parallel run dev",
+    "test": "pnpm --filter @store/backend run test:unit && pnpm --filter @store/backend run test:integration:http && pnpm --filter @store/storefront run test"
+  },
+  "packageManager": "pnpm@10.11.1"
+}

@@ -1,0 +1,15 @@
+docs/superpowers/
+node_modules/
+.env
+.env.production
+!.env.example
+!.env.test
+.medusa/
+.nuxt/
+.output/
+dist/
+*.log
+.DS_Store
+
+# Local copies of the backups. See docs/deployment.md.
+backups/
