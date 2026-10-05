@@ -1,0 +1,161 @@
+# Production services for one server. See docs/deployment.md.
+# All values come from .env. Only caddy publishes ports.
+name: store
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-medusa-environment: &medusa-environment
+  NODE_ENV: production
+  DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/medusa-store
+  DATABASE_SSL: "false"
+  REDIS_URL: redis://redis:6379
+  STORE_CORS: https://${DOMAIN}
+  ADMIN_CORS: https://api.${DOMAIN}
+  AUTH_CORS: https://${DOMAIN},https://api.${DOMAIN}
+  STOREFRONT_URL: https://${DOMAIN}
+  MEDUSA_BACKEND_URL: https://api.${DOMAIN}
+  JWT_SECRET: ${JWT_SECRET}
+  COOKIE_SECRET: ${COOKIE_SECRET}
+  SHIPPING_RATE_PER_KG: ${SHIPPING_RATE_PER_KG}
+  BREVO_API_KEY: ${BREVO_API_KEY}
+  BREVO_SENDER_EMAIL: ${BREVO_SENDER_EMAIL}
+  BREVO_SENDER_NAME: ${BREVO_SENDER_NAME}
+  STORE_OWNER_EMAIL: ${STORE_OWNER_EMAIL}
+  MAYAR_API_URL: ${MAYAR_API_URL}
+  MAYAR_API_KEY: ${MAYAR_API_KEY}
+  S3_FILE_URL: https://assets.${DOMAIN}
+  S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
+  S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
+  S3_REGION: garage
+  S3_BUCKET: store-assets
+  S3_ENDPOINT: http://garage:3900
+
+x-medusa-depends-on: &medusa-depends-on
+  postgres:
+    condition: service_healthy
+  redis:
+    condition: service_healthy
+  garage:
+    condition: service_started
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: medusa-store
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d medusa-store"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging: *logging
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging: *logging
+
+  garage:
+    image: dxflrs/garage:v2.4.1
+    restart: unless-stopped
+    environment:
+      GARAGE_RPC_SECRET: ${GARAGE_RPC_SECRET}
+      GARAGE_ADMIN_TOKEN: ${GARAGE_ADMIN_TOKEN}
+      GARAGE_METRICS_TOKEN: ${GARAGE_METRICS_TOKEN}
+    volumes:
+      - ./garage.toml:/etc/garage.toml:ro
+      - garage-meta:/var/lib/garage/meta
+      - garage-data:/var/lib/garage/data
+    logging: *logging
+
+  medusa-server:
+    image: store-backend
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+      args:
+        MEDUSA_BACKEND_URL: https://api.${DOMAIN}
+    restart: unless-stopped
+    environment:
+      <<: *medusa-environment
+      MEDUSA_WORKER_MODE: server
+      DISABLE_MEDUSA_ADMIN: "false"
+    depends_on: *medusa-depends-on
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:9000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    logging: *logging
+
+  # The worker uses the image that the medusa-server build makes. It has no build block.
+  medusa-worker:
+    image: store-backend
+    pull_policy: never
+    restart: unless-stopped
+    environment:
+      <<: *medusa-environment
+      MEDUSA_WORKER_MODE: worker
+      DISABLE_MEDUSA_ADMIN: "true"
+    depends_on: *medusa-depends-on
+    logging: *logging
+
+  storefront:
+    image: store-storefront
+    build:
+      context: .
+      dockerfile: apps/storefront/Dockerfile
+    restart: unless-stopped
+    environment:
+      NUXT_PUBLIC_MEDUSA_BACKEND_URL: https://api.${DOMAIN}
+      NUXT_MEDUSA_BACKEND_URL: http://medusa-server:9000
+      NUXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY: ${MEDUSA_PUBLISHABLE_KEY:-}
+    depends_on:
+      - medusa-server
+    logging: *logging
+
+  caddy:
+    image: caddy:2.11
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: ${DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - storefront
+      - medusa-server
+      - garage
+    logging: *logging
+
+volumes:
+  postgres-data:
+  redis-data:
+  garage-meta:
+  garage-data:
+  caddy-data:
+  caddy-config:

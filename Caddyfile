@@ -1,0 +1,17 @@
+{
+	email {$ACME_EMAIL}
+}
+
+{$DOMAIN} {
+	encode zstd gzip
+	reverse_proxy storefront:3000
+}
+
+api.{$DOMAIN} {
+	reverse_proxy medusa-server:9000
+}
+
+# The Garage bucket has the global alias assets.<domain>. Garage finds the bucket by the Host header.
+assets.{$DOMAIN} {
+	reverse_proxy garage:3902
+}

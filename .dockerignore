@@ -1,0 +1,12 @@
+.git
+**/node_modules
+**/.medusa
+**/.nuxt
+**/.output
+**/dist
+**/.env
+**/.env.*
+!**/.env.example
+backups
+docs
+*.md
