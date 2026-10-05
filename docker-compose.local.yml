@@ -1,0 +1,57 @@
+# Development services: PostgreSQL, Redis, and Garage.
+# Use this file with -f: docker compose -f docker-compose.local.yml up -d --wait
+# docker-compose.yml is the production file.
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: medusa-store
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d medusa-store"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  # Garage stores the product images, as in production. Do the Garage step in
+  # docs/development.md one time after the first start.
+  garage:
+    image: dxflrs/garage:v2.4.1
+    environment:
+      # Development values only. They are not secret.
+      GARAGE_RPC_SECRET: 6465762d6465762d6465762d6465762d6465762d6465762d6465762d6465762d
+      GARAGE_ADMIN_TOKEN: dev-admin-token
+      GARAGE_METRICS_TOKEN: dev-metrics-token
+    ports:
+      - "127.0.0.1:3900:3900"
+      - "127.0.0.1:3902:3902"
+    volumes:
+      - ./garage.toml:/etc/garage.toml:ro
+      - garage-meta:/var/lib/garage/meta
+      - garage-data:/var/lib/garage/data
+    # The image has no shell, so the healthcheck runs the binary directly.
+    healthcheck:
+      test: ["CMD", "/garage", "status"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+volumes:
+  postgres-data:
+  garage-meta:
+  garage-data:
