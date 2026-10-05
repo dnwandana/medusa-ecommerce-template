@@ -1,0 +1,164 @@
+{
+  "common": {
+    "loading": "Memuat…",
+    "error": "Terjadi kesalahan. Coba lagi.",
+    "previous": "Sebelumnya",
+    "next": "Berikutnya",
+    "save": "Simpan",
+    "cancel": "Batal"
+  },
+  "nav": {
+    "home": "Beranda",
+    "products": "Produk",
+    "cart": "Keranjang",
+    "account": "Akun",
+    "login": "Masuk",
+    "language": "Bahasa"
+  },
+  "home": {
+    "title": "Selamat datang di toko kami",
+    "subtitle": "Kami mengirim ke seluruh Indonesia.",
+    "newProducts": "Produk baru",
+    "viewAll": "Lihat semua produk"
+  },
+  "products": {
+    "title": "Semua produk",
+    "empty": "Belum ada produk.",
+    "notFound": "Produk tidak ditemukan.",
+    "categories": "Kategori",
+    "addToCart": "Tambah ke keranjang",
+    "added": "Produk sudah ada di keranjang Anda.",
+    "outOfStock": "Stok habis",
+    "selectVariant": "Pilih opsi produk dahulu.",
+    "addFailed": "Produk tidak dapat ditambahkan. Coba lagi."
+  },
+  "categories": {
+    "notFound": "Kategori tidak ditemukan.",
+    "empty": "Kategori ini belum memiliki produk."
+  },
+  "cart": {
+    "title": "Keranjang",
+    "empty": "Keranjang Anda kosong.",
+    "continue": "Lanjut belanja",
+    "quantity": "Jumlah",
+    "decrease": "Kurangi jumlah",
+    "increase": "Tambah jumlah",
+    "remove": "Hapus",
+    "subtotal": "Subtotal",
+    "shipping": "Ongkos kirim",
+    "shippingAtCheckout": "Dihitung saat checkout",
+    "total": "Total",
+    "checkout": "Lanjut ke checkout"
+  },
+  "checkout": {
+    "title": "Checkout",
+    "contact": "Kontak",
+    "email": "Alamat email",
+    "phone": "Nomor ponsel",
+    "address": "Alamat pengiriman",
+    "firstName": "Nama depan",
+    "lastName": "Nama belakang",
+    "address1": "Alamat jalan",
+    "city": "Kota",
+    "province": "Provinsi",
+    "postalCode": "Kode pos",
+    "country": "Negara: Indonesia",
+    "continue": "Lanjut ke pengiriman",
+    "shippingOption": "Opsi pengiriman",
+    "payment": "Pembayaran",
+    "mayarHint": "Anda membayar di halaman aman Mayar. Lalu Anda kembali ke toko.",
+    "pay": "Bayar dengan Mayar",
+    "errors": {
+      "required": "Isi kolom ini.",
+      "email": "Masukkan alamat email yang benar.",
+      "phone": "Masukkan nomor ponsel Indonesia yang benar, misalnya 081234567890.",
+      "postalCode": "Masukkan kode pos 5 angka.",
+      "save": "Alamat tidak tersimpan. Coba lagi.",
+      "shipping": "Opsi pengiriman tidak tersimpan. Coba lagi.",
+      "payment": "Halaman pembayaran tidak tersedia. Keranjang Anda tidak berubah. Coba lagi."
+    }
+  },
+  "return": {
+    "confirming": "Kami sedang mengonfirmasi pembayaran Anda…",
+    "pendingTitle": "Pembayaran sedang dikonfirmasi",
+    "pendingBody": "Kami belum menerima konfirmasi. Jika Anda sudah membayar, email pesanan akan segera dikirim.",
+    "toCart": "Kembali ke keranjang",
+    "failedTitle": "Kami tidak dapat membuat pesanan Anda",
+    "failedBody": "Jika Anda sudah membayar, pembayaran Anda sudah kami terima dan kami akan menghubungi Anda lewat email.",
+    "noCart": "Tidak ada pembayaran untuk dikonfirmasi.",
+    "toHome": "Kembali ke beranda"
+  },
+  "order": {
+    "thanks": "Terima kasih atas pesanan Anda",
+    "number": "Pesanan #{id}",
+    "confirmationSent": "Kami mengirim konfirmasi ke {email}.",
+    "items": "Barang",
+    "shippingAddress": "Alamat pengiriman",
+    "notFound": "Pesanan tidak ditemukan."
+  },
+  "auth": {
+    "loginTitle": "Masuk",
+    "registerTitle": "Buat akun",
+    "email": "Alamat email",
+    "password": "Kata sandi",
+    "passwordHint": "Gunakan 8 karakter atau lebih.",
+    "firstName": "Nama depan",
+    "lastName": "Nama belakang",
+    "loginAction": "Masuk",
+    "registerAction": "Buat akun",
+    "noAccount": "Buat akun",
+    "haveAccount": "Masuk dengan akun yang sudah ada",
+    "forgotLink": "Lupa kata sandi?",
+    "loginFailed": "Alamat email atau kata sandi salah.",
+    "registerFailed": "Akun tidak dapat dibuat. Akun dengan alamat email ini mungkin sudah ada.",
+    "forgotTitle": "Atur ulang kata sandi",
+    "forgotIntro": "Masukkan alamat email Anda. Kami mengirim tautan untuk membuat kata sandi baru.",
+    "forgotAction": "Kirim tautan",
+    "forgotSent": "Jika ada akun dengan alamat email ini, kami sudah mengirim tautan atur ulang.",
+    "resetTitle": "Buat kata sandi baru",
+    "newPassword": "Kata sandi baru",
+    "resetAction": "Simpan kata sandi",
+    "resetDone": "Kata sandi Anda sudah diubah. Masuk dengan kata sandi baru.",
+    "resetFailed": "Tautan atur ulang tidak berlaku atau sudah kedaluwarsa. Minta tautan baru.",
+    "resetIncomplete": "Tautan atur ulang tidak lengkap. Minta tautan baru."
+  },
+  "account": {
+    "title": "Akun Anda",
+    "profile": "Profil",
+    "phone": "Nomor ponsel",
+    "saved": "Profil Anda tersimpan.",
+    "orders": "Pesanan",
+    "wishlist": "Wishlist",
+    "logout": "Keluar",
+    "noOrders": "Anda belum memiliki pesanan.",
+    "viewOrder": "Lihat pesanan"
+  },
+  "reviews": {
+    "title": "Ulasan",
+    "average": "{rating} dari 5",
+    "count": "Belum ada ulasan | 1 ulasan | {count} ulasan",
+    "empty": "Produk ini belum memiliki ulasan.",
+    "write": "Tulis ulasan",
+    "rating": "Penilaian",
+    "reviewTitle": "Judul (opsional)",
+    "content": "Ulasan Anda",
+    "submit": "Kirim ulasan",
+    "submitted": "Terima kasih. Ulasan Anda tampil setelah disetujui.",
+    "errors": {
+      "rating": "Pilih penilaian dari 1 sampai 5.",
+      "content": "Tulis ulasan Anda.",
+      "duplicate": "Anda sudah mengulas pembelian ini.",
+      "notAllowed": "Anda dapat mengulas barang ini setelah dikirim.",
+      "notFound": "Barang ini tidak ada di pesanan Anda.",
+      "generic": "Ulasan tidak terkirim. Coba lagi."
+    }
+  },
+  "wishlist": {
+    "title": "Wishlist",
+    "add": "Tambah ke wishlist",
+    "remove": "Hapus dari wishlist",
+    "empty": "Wishlist Anda kosong.",
+    "viewProduct": "Lihat produk",
+    "error": "Wishlist tidak berubah. Coba lagi."
+  }
+}

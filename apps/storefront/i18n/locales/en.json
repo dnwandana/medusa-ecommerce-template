@@ -1,0 +1,164 @@
+{
+  "common": {
+    "loading": "Loading…",
+    "error": "An error occurred. Try again.",
+    "previous": "Previous",
+    "next": "Next",
+    "save": "Save",
+    "cancel": "Cancel"
+  },
+  "nav": {
+    "home": "Home",
+    "products": "Products",
+    "cart": "Cart",
+    "account": "Account",
+    "login": "Log in",
+    "language": "Language"
+  },
+  "home": {
+    "title": "Welcome to the store",
+    "subtitle": "We ship to all of Indonesia.",
+    "newProducts": "New products",
+    "viewAll": "View all products"
+  },
+  "products": {
+    "title": "All products",
+    "empty": "No products are available.",
+    "notFound": "The product does not exist.",
+    "categories": "Categories",
+    "addToCart": "Add to cart",
+    "added": "The product is in your cart.",
+    "outOfStock": "Out of stock",
+    "selectVariant": "Select the options first.",
+    "addFailed": "The product was not added. Try again."
+  },
+  "categories": {
+    "notFound": "The category does not exist.",
+    "empty": "This category has no products."
+  },
+  "cart": {
+    "title": "Cart",
+    "empty": "Your cart is empty.",
+    "continue": "Continue shopping",
+    "quantity": "Quantity",
+    "decrease": "Decrease the quantity",
+    "increase": "Increase the quantity",
+    "remove": "Remove",
+    "subtotal": "Subtotal",
+    "shipping": "Shipping",
+    "shippingAtCheckout": "Calculated at checkout",
+    "total": "Total",
+    "checkout": "Go to checkout"
+  },
+  "checkout": {
+    "title": "Checkout",
+    "contact": "Contact",
+    "email": "Email address",
+    "phone": "Mobile number",
+    "address": "Shipping address",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "address1": "Street address",
+    "city": "City",
+    "province": "Province",
+    "postalCode": "Postal code",
+    "country": "Country: Indonesia",
+    "continue": "Continue to shipping",
+    "shippingOption": "Shipping option",
+    "payment": "Payment",
+    "mayarHint": "You pay on the secure page of Mayar. Then you come back to the store.",
+    "pay": "Pay with Mayar",
+    "errors": {
+      "required": "Fill in this field.",
+      "email": "Enter a valid email address.",
+      "phone": "Enter a valid Indonesian mobile number, for example 081234567890.",
+      "postalCode": "Enter a postal code of 5 digits.",
+      "save": "The address was not saved. Try again.",
+      "shipping": "The shipping option was not saved. Try again.",
+      "payment": "The payment page is not available. Your cart did not change. Try again."
+    }
+  },
+  "return": {
+    "confirming": "We are confirming your payment…",
+    "pendingTitle": "Payment is being confirmed",
+    "pendingBody": "We did not get the confirmation yet. If you paid, you will get the order email soon.",
+    "toCart": "Back to the cart",
+    "failedTitle": "We could not create your order",
+    "failedBody": "If you paid, we received your payment and will contact you by email.",
+    "noCart": "There is no payment to confirm.",
+    "toHome": "Back to the home page"
+  },
+  "order": {
+    "thanks": "Thank you for your order",
+    "number": "Order #{id}",
+    "confirmationSent": "We sent a confirmation to {email}.",
+    "items": "Items",
+    "shippingAddress": "Shipping address",
+    "notFound": "The order does not exist."
+  },
+  "auth": {
+    "loginTitle": "Log in",
+    "registerTitle": "Create an account",
+    "email": "Email address",
+    "password": "Password",
+    "passwordHint": "Use 8 characters or more.",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "loginAction": "Log in",
+    "registerAction": "Create account",
+    "noAccount": "Create an account",
+    "haveAccount": "Log in with an existing account",
+    "forgotLink": "Forgot your password?",
+    "loginFailed": "The email address or the password is not correct.",
+    "registerFailed": "The account was not created. An account with this email address can exist already.",
+    "forgotTitle": "Reset your password",
+    "forgotIntro": "Enter your email address. We send you a link to set a new password.",
+    "forgotAction": "Send the link",
+    "forgotSent": "If an account exists for this email address, we sent a reset link.",
+    "resetTitle": "Set a new password",
+    "newPassword": "New password",
+    "resetAction": "Save the password",
+    "resetDone": "Your password is changed. Log in with the new password.",
+    "resetFailed": "The reset link is not valid or it expired. Request a new link.",
+    "resetIncomplete": "The reset link is incomplete. Request a new link."
+  },
+  "account": {
+    "title": "Your account",
+    "profile": "Profile",
+    "phone": "Mobile number",
+    "saved": "Your profile is saved.",
+    "orders": "Orders",
+    "wishlist": "Wishlist",
+    "logout": "Log out",
+    "noOrders": "You have no orders.",
+    "viewOrder": "View the order"
+  },
+  "reviews": {
+    "title": "Reviews",
+    "average": "{rating} out of 5",
+    "count": "No reviews | 1 review | {count} reviews",
+    "empty": "This product has no reviews yet.",
+    "write": "Write a review",
+    "rating": "Rating",
+    "reviewTitle": "Title (optional)",
+    "content": "Your review",
+    "submit": "Send the review",
+    "submitted": "Thank you. Your review shows after approval.",
+    "errors": {
+      "rating": "Select a rating from 1 to 5.",
+      "content": "Write your review.",
+      "duplicate": "You already reviewed this purchase.",
+      "notAllowed": "You can review this item after it ships.",
+      "notFound": "This item is not in your orders.",
+      "generic": "The review was not sent. Try again."
+    }
+  },
+  "wishlist": {
+    "title": "Wishlist",
+    "add": "Add to wishlist",
+    "remove": "Remove from wishlist",
+    "empty": "Your wishlist is empty.",
+    "viewProduct": "View the product",
+    "error": "The wishlist did not change. Try again."
+  }
+}
