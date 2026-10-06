@@ -6,6 +6,11 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   modules: ["shadcn-nuxt", "@nuxtjs/i18n"],
   css: ["~/assets/css/tailwind.css"],
+  app: {
+    head: {
+      link: [{ rel: "icon", type: "image/svg+xml", href: "/favicon.svg" }],
+    },
+  },
   vite: {
     plugins: [tailwindcss()],
   },
