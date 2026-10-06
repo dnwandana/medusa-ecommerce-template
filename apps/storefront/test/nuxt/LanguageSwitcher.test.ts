@@ -1,5 +1,5 @@
 import { mockNuxtImport, mountSuspended } from "@nuxt/test-utils/runtime"
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { LanguageSwitcher } from "#components"
 
 const { i18n } = await vi.hoisted(async () => {
@@ -18,35 +18,59 @@ const { i18n } = await vi.hoisted(async () => {
 
 mockNuxtImport("useI18n", () => () => i18n)
 
+afterEach(() => {
+  document.body.innerHTML = ""
+})
+
 beforeEach(() => {
   i18n.locale.value = "en"
   i18n.setLocale.mockReset()
 })
 
-describe("LanguageSwitcher", () => {
-  it("shows one button for each language", async () => {
-    const wrapper = await mountSuspended(LanguageSwitcher)
+const open = async (wrapper: Awaited<ReturnType<typeof mountSuspended>>) => {
+  const trigger = wrapper.find("button")
+  await trigger.trigger("pointerdown", { button: 0, ctrlKey: false })
+  await trigger.trigger("click")
+}
 
-    expect(wrapper.findAll("button").map((button) => button.text())).toEqual([
-      "English",
-      "Bahasa Indonesia",
-    ])
+const radioItems = () => [...document.body.querySelectorAll('[role="menuitemradio"]')] as HTMLElement[]
+
+describe("LanguageSwitcher", () => {
+  it("shows the code of the current language in the header form", async () => {
+    const wrapper = await mountSuspended(LanguageSwitcher, { attachTo: document.body })
+
+    expect(wrapper.find("button").text()).toBe("EN")
+    expect(wrapper.find("button").attributes("aria-label")).toBe("Language")
   })
 
-  it("marks the active language", async () => {
-    i18n.locale.value = "id"
-    const wrapper = await mountSuspended(LanguageSwitcher)
+  it("shows one radio item for each language", async () => {
+    const wrapper = await mountSuspended(LanguageSwitcher, { attachTo: document.body })
+    await open(wrapper)
 
-    const [english, indonesian] = wrapper.findAll("button")
-    expect(english?.attributes("aria-current")).toBeUndefined()
-    expect(indonesian?.attributes("aria-current")).toBe("true")
+    expect(radioItems().map((item) => item.textContent?.trim())).toEqual(["English", "Bahasa Indonesia"])
+  })
+
+  it("checks the current language", async () => {
+    i18n.locale.value = "id"
+    const wrapper = await mountSuspended(LanguageSwitcher, { attachTo: document.body })
+    await open(wrapper)
+
+    expect(radioItems().map((item) => item.getAttribute("aria-checked"))).toEqual(["false", "true"])
   })
 
   it("changes the language through setLocale, which writes the cookie", async () => {
-    const wrapper = await mountSuspended(LanguageSwitcher)
+    const wrapper = await mountSuspended(LanguageSwitcher, { attachTo: document.body })
+    await open(wrapper)
 
-    await wrapper.findAll("button")[1]!.trigger("click")
+    radioItems()[1]!.click()
 
     expect(i18n.setLocale).toHaveBeenCalledWith("id")
+  })
+
+  it("shows the full-width outline form in the sheet", async () => {
+    const wrapper = await mountSuspended(LanguageSwitcher, { props: { variant: "sheet" }, attachTo: document.body })
+
+    expect(wrapper.find("button").classes()).toContain("w-full")
+    expect(wrapper.find("button").text()).toBe("English")
   })
 })
