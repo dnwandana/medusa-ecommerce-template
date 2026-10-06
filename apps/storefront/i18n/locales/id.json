@@ -5,7 +5,11 @@
     "previous": "Sebelumnya",
     "next": "Berikutnya",
     "save": "Simpan",
-    "cancel": "Batal"
+    "cancel": "Batal",
+    "securePayment": "Pembayaran aman dengan Mayar.",
+    "shipsIndonesia": "Kami mengirim ke seluruh Indonesia.",
+    "close": "Tutup",
+    "morePages": "Halaman lain"
   },
   "nav": {
     "home": "Beranda",
@@ -13,11 +17,18 @@
     "cart": "Keranjang",
     "account": "Akun",
     "login": "Masuk",
-    "language": "Bahasa"
+    "language": "Bahasa",
+    "menu": "Menu",
+    "breadcrumb": "Jejak navigasi",
+    "pagination": "Halaman"
+  },
+  "footer": {
+    "about": "Everyday adalah label pakaian untuk hari-hari biasa: potongan nyaman, warna tenang, harga wajar.",
+    "shop": "Belanja"
   },
   "home": {
-    "title": "Selamat datang di toko kami",
-    "subtitle": "Kami mengirim ke seluruh Indonesia.",
+    "title": "Pakaian untuk hari-hari Anda yang sebenarnya.",
+    "subtitle": "Dibuat untuk hampir setiap hari. Kemeja santai, chino lebar, dan pakaian yang selalu Anda pilih.",
     "newProducts": "Produk baru",
     "viewAll": "Lihat semua produk"
   },
@@ -30,7 +41,8 @@
     "added": "Produk sudah ada di keranjang Anda.",
     "outOfStock": "Stok habis",
     "selectVariant": "Pilih opsi produk dahulu.",
-    "addFailed": "Produk tidak dapat ditambahkan. Coba lagi."
+    "addFailed": "Produk tidak dapat ditambahkan. Coba lagi.",
+    "viewCart": "Lihat keranjang"
   },
   "categories": {
     "notFound": "Kategori tidak ditemukan.",
@@ -48,7 +60,9 @@
     "shipping": "Ongkos kirim",
     "shippingAtCheckout": "Dihitung saat checkout",
     "total": "Total",
-    "checkout": "Lanjut ke checkout"
+    "checkout": "Lanjut ke checkout",
+    "summary": "Ringkasan",
+    "emptyBody": "Temukan pakaian untuk keseharian Anda."
   },
   "checkout": {
     "title": "Checkout",
@@ -68,6 +82,13 @@
     "payment": "Pembayaran",
     "mayarHint": "Anda membayar di halaman aman Mayar. Lalu Anda kembali ke toko.",
     "pay": "Bayar dengan Mayar",
+    "steps": {
+      "address": "Alamat",
+      "shipping": "Pengiriman",
+      "payment": "Pembayaran"
+    },
+    "summary": "Ringkasan pesanan",
+    "shippingHint": "Simpan alamat untuk melihat opsi pengiriman.",
     "errors": {
       "required": "Isi kolom ini.",
       "email": "Masukkan alamat email yang benar.",
@@ -120,7 +141,11 @@
     "resetAction": "Simpan kata sandi",
     "resetDone": "Kata sandi Anda sudah diubah. Masuk dengan kata sandi baru.",
     "resetFailed": "Tautan atur ulang tidak berlaku atau sudah kedaluwarsa. Minta tautan baru.",
-    "resetIncomplete": "Tautan atur ulang tidak lengkap. Minta tautan baru."
+    "resetIncomplete": "Tautan atur ulang tidak lengkap. Minta tautan baru.",
+    "newHere": "Baru di sini?",
+    "haveAccountShort": "Sudah punya akun?",
+    "showPassword": "Tampilkan kata sandi",
+    "hidePassword": "Sembunyikan kata sandi"
   },
   "account": {
     "title": "Akun Anda",
@@ -151,7 +176,8 @@
       "notAllowed": "Anda dapat mengulas barang ini setelah dikirim.",
       "notFound": "Barang ini tidak ada di pesanan Anda.",
       "generic": "Ulasan tidak terkirim. Coba lagi."
-    }
+    },
+    "writeFor": "Tulis ulasan: {product}"
   },
   "wishlist": {
     "title": "Wishlist",

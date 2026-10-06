@@ -40,4 +40,30 @@ describe("locale messages", () => {
     expect(english["return.pendingTitle"]).toBe("Payment is being confirmed")
     expect(english["return.failedBody"]).toContain("we received your payment and will contact you")
   })
+
+  it.each([
+    ["nav.menu", "Menu", "Menu"],
+    ["footer.about", "Everyday is a clothing label for ordinary days: easy shapes, calm colours, fair prices.", "Everyday adalah label pakaian untuk hari-hari biasa: potongan nyaman, warna tenang, harga wajar."],
+    ["footer.shop", "Shop", "Belanja"],
+    ["common.securePayment", "Secure payment with Mayar.", "Pembayaran aman dengan Mayar."],
+    ["common.shipsIndonesia", "We ship to all of Indonesia.", "Kami mengirim ke seluruh Indonesia."],
+    ["products.viewCart", "View cart", "Lihat keranjang"],
+    ["cart.summary", "Summary", "Ringkasan"],
+    ["cart.emptyBody", "Find a piece for your everyday.", "Temukan pakaian untuk keseharian Anda."],
+    ["checkout.steps.address", "Address", "Alamat"],
+    ["checkout.steps.shipping", "Shipping", "Pengiriman"],
+    ["checkout.steps.payment", "Payment", "Pembayaran"],
+    ["checkout.summary", "Order summary", "Ringkasan pesanan"],
+    ["checkout.shippingHint", "Save the address to see the shipping options.", "Simpan alamat untuk melihat opsi pengiriman."],
+    ["reviews.writeFor", "Write a review: {product}", "Tulis ulasan: {product}"],
+    ["auth.newHere", "New here?", "Baru di sini?"],
+    ["auth.haveAccountShort", "Have an account?", "Sudah punya akun?"],
+    ["auth.showPassword", "Show the password", "Tampilkan kata sandi"],
+    ["auth.hidePassword", "Hide the password", "Sembunyikan kata sandi"],
+    ["home.title", "Clothes for the days you actually have.", "Pakaian untuk hari-hari Anda yang sebenarnya."],
+    ["home.subtitle", "Made for most days. Relaxed shirts, wide-leg chinos and the pieces you reach for without thinking.", "Dibuat untuk hampir setiap hari. Kemeja santai, chino lebar, dan pakaian yang selalu Anda pilih."],
+  ])("has the Everyday text for %s", (key, englishText, indonesianText) => {
+    expect(english[key]).toBe(englishText)
+    expect(indonesian[key]).toBe(indonesianText)
+  })
 })

@@ -5,7 +5,11 @@
     "previous": "Previous",
     "next": "Next",
     "save": "Save",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "securePayment": "Secure payment with Mayar.",
+    "shipsIndonesia": "We ship to all of Indonesia.",
+    "close": "Close",
+    "morePages": "More pages"
   },
   "nav": {
     "home": "Home",
@@ -13,11 +17,18 @@
     "cart": "Cart",
     "account": "Account",
     "login": "Log in",
-    "language": "Language"
+    "language": "Language",
+    "menu": "Menu",
+    "breadcrumb": "Breadcrumb",
+    "pagination": "Pages"
+  },
+  "footer": {
+    "about": "Everyday is a clothing label for ordinary days: easy shapes, calm colours, fair prices.",
+    "shop": "Shop"
   },
   "home": {
-    "title": "Welcome to the store",
-    "subtitle": "We ship to all of Indonesia.",
+    "title": "Clothes for the days you actually have.",
+    "subtitle": "Made for most days. Relaxed shirts, wide-leg chinos and the pieces you reach for without thinking.",
     "newProducts": "New products",
     "viewAll": "View all products"
   },
@@ -30,7 +41,8 @@
     "added": "The product is in your cart.",
     "outOfStock": "Out of stock",
     "selectVariant": "Select the options first.",
-    "addFailed": "The product was not added. Try again."
+    "addFailed": "The product was not added. Try again.",
+    "viewCart": "View cart"
   },
   "categories": {
     "notFound": "The category does not exist.",
@@ -48,7 +60,9 @@
     "shipping": "Shipping",
     "shippingAtCheckout": "Calculated at checkout",
     "total": "Total",
-    "checkout": "Go to checkout"
+    "checkout": "Go to checkout",
+    "summary": "Summary",
+    "emptyBody": "Find a piece for your everyday."
   },
   "checkout": {
     "title": "Checkout",
@@ -68,6 +82,13 @@
     "payment": "Payment",
     "mayarHint": "You pay on the secure page of Mayar. Then you come back to the store.",
     "pay": "Pay with Mayar",
+    "steps": {
+      "address": "Address",
+      "shipping": "Shipping",
+      "payment": "Payment"
+    },
+    "summary": "Order summary",
+    "shippingHint": "Save the address to see the shipping options.",
     "errors": {
       "required": "Fill in this field.",
       "email": "Enter a valid email address.",
@@ -120,7 +141,11 @@
     "resetAction": "Save the password",
     "resetDone": "Your password is changed. Log in with the new password.",
     "resetFailed": "The reset link is not valid or it expired. Request a new link.",
-    "resetIncomplete": "The reset link is incomplete. Request a new link."
+    "resetIncomplete": "The reset link is incomplete. Request a new link.",
+    "newHere": "New here?",
+    "haveAccountShort": "Have an account?",
+    "showPassword": "Show the password",
+    "hidePassword": "Hide the password"
   },
   "account": {
     "title": "Your account",
@@ -151,7 +176,8 @@
       "notAllowed": "You can review this item after it ships.",
       "notFound": "This item is not in your orders.",
       "generic": "The review was not sent. Try again."
-    }
+    },
+    "writeFor": "Write a review: {product}"
   },
   "wishlist": {
     "title": "Wishlist",
