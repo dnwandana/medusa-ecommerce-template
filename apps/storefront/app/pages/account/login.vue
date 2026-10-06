@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { Mail } from "@lucide/vue"
+
 const { t } = useI18n()
 const route = useRoute()
 const localePath = useLocalePath()
@@ -31,16 +33,21 @@ useHead({ title: () => t("auth.loginTitle") })
 </script>
 
 <template>
-  <section class="mx-auto flex max-w-sm flex-col gap-6 py-8">
-    <h1 class="text-2xl font-semibold">{{ $t("auth.loginTitle") }}</h1>
+  <AuthPanel :title="$t('auth.loginTitle')">
+    <template #before>
+      <Alert v-if="resetDone" variant="success" class="w-full">
+        <AlertDescription>{{ $t("auth.resetDone") }}</AlertDescription>
+      </Alert>
+    </template>
 
-    <p v-if="resetDone" role="status" class="text-sm">{{ $t("auth.resetDone") }}</p>
-
-    <Card class="p-6">
-      <form class="flex flex-col gap-4" @submit.prevent="submit">
-        <div class="flex flex-col gap-2">
-          <Label for="login-email">{{ $t("auth.email") }}</Label>
-          <Input
+    <form class="flex flex-col gap-5" @submit.prevent="submit">
+      <Field>
+        <FieldLabel for="login-email">{{ $t("auth.email") }}</FieldLabel>
+        <InputGroup>
+          <InputGroupAddon>
+            <Mail aria-hidden="true" />
+          </InputGroupAddon>
+          <InputGroupInput
             id="login-email"
             v-model="email"
             name="email"
@@ -48,34 +55,40 @@ useHead({ title: () => t("auth.loginTitle") })
             autocomplete="email"
             required
           />
+        </InputGroup>
+      </Field>
+      <Field>
+        <div class="flex items-center justify-between gap-2">
+          <FieldLabel for="login-password">{{ $t("auth.password") }}</FieldLabel>
+          <NuxtLinkLocale
+            to="/account/forgot-password"
+            class="text-body-sm text-link underline-offset-4 hover:underline"
+          >
+            {{ $t("auth.forgotLink") }}
+          </NuxtLinkLocale>
         </div>
-        <div class="flex flex-col gap-2">
-          <Label for="login-password">{{ $t("auth.password") }}</Label>
-          <Input
-            id="login-password"
-            v-model="password"
-            name="password"
-            type="password"
-            autocomplete="current-password"
-            required
-          />
-        </div>
+        <PasswordInput id="login-password" v-model="password" autocomplete="current-password" />
+      </Field>
 
-        <p v-if="failed" role="alert" class="text-sm text-destructive">
-          {{ $t("auth.loginFailed") }}
-        </p>
+      <Alert v-if="failed" variant="destructive">
+        <AlertDescription>{{ $t("auth.loginFailed") }}</AlertDescription>
+      </Alert>
 
-        <Button type="submit" :disabled="busy">{{ $t("auth.loginAction") }}</Button>
-      </form>
-    </Card>
+      <Button type="submit" size="lg" class="w-full" :disabled="busy">
+        <Spinner v-if="busy" />
+        {{ $t("auth.loginAction") }}
+      </Button>
+    </form>
 
-    <div class="flex flex-col gap-2 text-sm">
-      <NuxtLinkLocale to="/account/forgot-password" class="underline underline-offset-4">
-        {{ $t("auth.forgotLink") }}
-      </NuxtLinkLocale>
-      <NuxtLinkLocale to="/account/register" class="underline underline-offset-4">
-        {{ $t("auth.noAccount") }}
-      </NuxtLinkLocale>
-    </div>
-  </section>
+    <template #after>
+      <div class="flex w-full items-center gap-3">
+        <Separator class="flex-1" />
+        <span class="text-body-sm text-muted-foreground">{{ $t("auth.newHere") }}</span>
+        <Separator class="flex-1" />
+      </div>
+      <Button variant="outline" size="lg" class="w-full" as-child>
+        <NuxtLinkLocale to="/account/register">{{ $t("auth.noAccount") }}</NuxtLinkLocale>
+      </Button>
+    </template>
+  </AuthPanel>
 </template>

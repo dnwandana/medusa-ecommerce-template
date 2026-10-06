@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { Mail } from "@lucide/vue"
+
 const MIN_PASSWORD_LENGTH = 8
 
 const { t } = useI18n()
@@ -34,58 +36,76 @@ useHead({ title: () => t("auth.registerTitle") })
 </script>
 
 <template>
-  <section class="mx-auto flex max-w-sm flex-col gap-6 py-8">
-    <h1 class="text-2xl font-semibold">{{ $t("auth.registerTitle") }}</h1>
-
-    <Card class="p-6">
-      <form class="flex flex-col gap-4" novalidate @submit.prevent="submit">
-        <div class="flex flex-col gap-2">
-          <Label for="register-first-name">{{ $t("auth.firstName") }}</Label>
+  <AuthPanel :title="$t('auth.registerTitle')">
+    <form class="flex flex-col gap-5" novalidate @submit.prevent="submit">
+      <FieldGroup class="two-col">
+        <Field>
+          <FieldLabel for="register-first-name">{{ $t("auth.firstName") }}</FieldLabel>
           <Input
             id="register-first-name"
             v-model="form.first_name"
             name="first_name"
             autocomplete="given-name"
           />
-        </div>
-        <div class="flex flex-col gap-2">
-          <Label for="register-last-name">{{ $t("auth.lastName") }}</Label>
+        </Field>
+        <Field>
+          <FieldLabel for="register-last-name">{{ $t("auth.lastName") }}</FieldLabel>
           <Input
             id="register-last-name"
             v-model="form.last_name"
             name="last_name"
             autocomplete="family-name"
           />
-        </div>
-        <div class="flex flex-col gap-2">
-          <Label for="register-email">{{ $t("auth.email") }}</Label>
-          <Input
+        </Field>
+      </FieldGroup>
+      <Field>
+        <FieldLabel for="register-email">{{ $t("auth.email") }}</FieldLabel>
+        <InputGroup>
+          <InputGroupAddon>
+            <Mail aria-hidden="true" />
+          </InputGroupAddon>
+          <InputGroupInput
             id="register-email"
             v-model="form.email"
             name="email"
             type="email"
             autocomplete="email"
           />
-        </div>
-        <div class="flex flex-col gap-2">
-          <Label for="register-password">{{ $t("auth.password") }}</Label>
-          <Input
-            id="register-password"
-            v-model="form.password"
-            name="password"
-            type="password"
-            autocomplete="new-password"
-          />
-        </div>
+        </InputGroup>
+      </Field>
+      <Field>
+        <FieldLabel for="register-password">{{ $t("auth.password") }}</FieldLabel>
+        <PasswordInput
+          id="register-password"
+          v-model="form.password"
+          autocomplete="new-password"
+          describedby="register-password-hint"
+          :invalid="error === 'auth.passwordHint'"
+        />
+        <!-- The hint has no role="alert". Only the error is an alert. -->
+        <FieldDescription id="register-password-hint">{{ $t("auth.passwordHint") }}</FieldDescription>
+        <FieldError v-if="error === 'auth.passwordHint'">{{ $t("auth.passwordHint") }}</FieldError>
+      </Field>
 
-        <p v-if="error" role="alert" class="text-sm text-destructive">{{ $t(error) }}</p>
+      <Alert v-if="error && error !== 'auth.passwordHint'" variant="destructive">
+        <AlertDescription>{{ $t(error) }}</AlertDescription>
+      </Alert>
 
-        <Button type="submit" :disabled="busy">{{ $t("auth.registerAction") }}</Button>
-      </form>
-    </Card>
+      <Button type="submit" size="lg" class="w-full" :disabled="busy">
+        <Spinner v-if="busy" />
+        {{ $t("auth.registerAction") }}
+      </Button>
+    </form>
 
-    <NuxtLinkLocale to="/account/login" class="text-sm underline underline-offset-4">
-      {{ $t("auth.haveAccount") }}
-    </NuxtLinkLocale>
-  </section>
+    <template #after>
+      <div class="flex w-full items-center gap-3">
+        <Separator class="flex-1" />
+        <span class="text-body-sm text-muted-foreground">{{ $t("auth.haveAccountShort") }}</span>
+        <Separator class="flex-1" />
+      </div>
+      <Button variant="outline" size="lg" class="w-full" as-child>
+        <NuxtLinkLocale to="/account/login">{{ $t("auth.haveAccount") }}</NuxtLinkLocale>
+      </Button>
+    </template>
+  </AuthPanel>
 </template>

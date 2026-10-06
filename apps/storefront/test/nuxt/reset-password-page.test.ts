@@ -68,4 +68,29 @@ describe("reset password page", () => {
     )
     expect(navigateToMock).not.toHaveBeenCalled()
   })
+
+  it("shows the hint under the new password and links the hint to the input", async () => {
+    const wrapper = await mountSuspended(ResetPasswordPage, { route: link })
+
+    expect(wrapper.find("#reset-password-hint").text()).toBe("Use 8 characters or more.")
+    expect(wrapper.find('input[name="password"]').attributes("aria-describedby")).toBe("reset-password-hint")
+    expect(wrapper.find('button[aria-label="Show the password"]').exists()).toBe(true)
+  })
+
+  it("shows a destructive alert and an outline link for an incomplete link", async () => {
+    const wrapper = await mountSuspended(ResetPasswordPage, {
+      route: "/account/reset-password?token=tok_123",
+    })
+
+    expect(wrapper.find('[data-slot="alert"][role="alert"]').text()).toBe("The reset link is incomplete. Request a new link.")
+    expect(wrapper.find('a[href="/account/forgot-password"]').text()).toBe("Send the link")
+    expect(wrapper.find("form").exists()).toBe(false)
+  })
+
+  it("shows the forgot link after a reset error", async () => {
+    customer.resetPassword.mockRejectedValue(new Error("HTTP 401"))
+    const wrapper = await submit("new-secret-password")
+
+    expect(wrapper.find('a[href="/account/forgot-password"]').exists()).toBe(true)
+  })
 })

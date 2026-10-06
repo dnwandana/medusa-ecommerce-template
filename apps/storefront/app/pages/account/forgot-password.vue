@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { Mail, MailCheck } from "@lucide/vue"
+
 const { t } = useI18n()
 const { requestPasswordReset } = useCustomer()
 
@@ -22,18 +24,27 @@ useHead({ title: () => t("auth.forgotTitle") })
 </script>
 
 <template>
-  <section class="mx-auto flex max-w-sm flex-col gap-6 py-8">
-    <h1 class="text-2xl font-semibold">{{ $t("auth.forgotTitle") }}</h1>
+  <AuthPanel :title="$t('auth.forgotTitle')">
+    <!-- The card has its own padding, so the empty state needs less. -->
+    <Empty v-if="sent" class="px-0 py-4">
+      <EmptyHeader>
+        <EmptyMedia tone="success">
+          <MailCheck aria-hidden="true" />
+        </EmptyMedia>
+        <EmptyDescription role="status">{{ $t("auth.forgotSent") }}</EmptyDescription>
+      </EmptyHeader>
+    </Empty>
 
-    <p v-if="sent" role="status">{{ $t("auth.forgotSent") }}</p>
-
-    <template v-else>
-      <p class="text-sm text-muted-foreground">{{ $t("auth.forgotIntro") }}</p>
-      <Card class="p-6">
-        <form class="flex flex-col gap-4" @submit.prevent="submit">
-          <div class="flex flex-col gap-2">
-            <Label for="forgot-email">{{ $t("auth.email") }}</Label>
-            <Input
+    <div v-else class="flex flex-col gap-5">
+      <p class="text-body-sm text-muted-foreground">{{ $t("auth.forgotIntro") }}</p>
+      <form class="flex flex-col gap-5" @submit.prevent="submit">
+        <Field>
+          <FieldLabel for="forgot-email">{{ $t("auth.email") }}</FieldLabel>
+          <InputGroup>
+            <InputGroupAddon>
+              <Mail aria-hidden="true" />
+            </InputGroupAddon>
+            <InputGroupInput
               id="forgot-email"
               v-model="email"
               name="email"
@@ -41,14 +52,19 @@ useHead({ title: () => t("auth.forgotTitle") })
               autocomplete="email"
               required
             />
-          </div>
-          <Button type="submit" :disabled="busy">{{ $t("auth.forgotAction") }}</Button>
-        </form>
-      </Card>
-    </template>
+          </InputGroup>
+        </Field>
+        <Button type="submit" size="lg" class="w-full" :disabled="busy">
+          <Spinner v-if="busy" />
+          {{ $t("auth.forgotAction") }}
+        </Button>
+      </form>
+    </div>
 
-    <NuxtLinkLocale to="/account/login" class="text-sm underline underline-offset-4">
-      {{ $t("auth.loginAction") }}
-    </NuxtLinkLocale>
-  </section>
+    <template #after>
+      <Button variant="link" as-child>
+        <NuxtLinkLocale to="/account/login">{{ $t("auth.loginAction") }}</NuxtLinkLocale>
+      </Button>
+    </template>
+  </AuthPanel>
 </template>

@@ -40,43 +40,46 @@ useHead({ title: () => t("auth.resetTitle") })
 </script>
 
 <template>
-  <section class="mx-auto flex max-w-sm flex-col gap-6 py-8">
-    <h1 class="text-2xl font-semibold">{{ $t("auth.resetTitle") }}</h1>
+  <AuthPanel :title="$t('auth.resetTitle')">
+    <Alert v-if="!complete" variant="destructive">
+      <AlertDescription>{{ $t("auth.resetIncomplete") }}</AlertDescription>
+    </Alert>
 
-    <p v-if="!complete" role="alert" class="text-sm text-destructive">
-      {{ $t("auth.resetIncomplete") }}
-    </p>
+    <form v-else class="flex flex-col gap-5" novalidate @submit.prevent="submit">
+      <Field>
+        <FieldLabel for="reset-password">{{ $t("auth.newPassword") }}</FieldLabel>
+        <PasswordInput
+          id="reset-password"
+          v-model="password"
+          autocomplete="new-password"
+          describedby="reset-password-hint"
+          :invalid="error === 'auth.passwordHint'"
+        />
+        <!-- The hint has no role="alert". Only the error is an alert. -->
+        <FieldDescription id="reset-password-hint">{{ $t("auth.passwordHint") }}</FieldDescription>
+        <FieldError v-if="error === 'auth.passwordHint'">{{ $t("auth.passwordHint") }}</FieldError>
+      </Field>
 
-    <Card v-else class="p-6">
-      <form class="flex flex-col gap-4" novalidate @submit.prevent="submit">
-        <div class="flex flex-col gap-2">
-          <Label for="reset-password">{{ $t("auth.newPassword") }}</Label>
-          <Input
-            id="reset-password"
-            v-model="password"
-            name="password"
-            type="password"
-            autocomplete="new-password"
-            aria-describedby="reset-password-hint"
-          />
-          <!-- The hint has no role="alert". Only the error is an alert. -->
-          <p id="reset-password-hint" class="text-sm text-muted-foreground">
-            {{ $t("auth.passwordHint") }}
-          </p>
-        </div>
+      <Alert v-if="error === 'auth.resetFailed'" variant="destructive">
+        <AlertDescription>{{ $t("auth.resetFailed") }}</AlertDescription>
+      </Alert>
 
-        <p v-if="error" role="alert" class="text-sm text-destructive">{{ $t(error) }}</p>
+      <Button type="submit" size="lg" class="w-full" :disabled="busy">
+        <Spinner v-if="busy" />
+        {{ $t("auth.resetAction") }}
+      </Button>
+    </form>
 
-        <Button type="submit" :disabled="busy">{{ $t("auth.resetAction") }}</Button>
-      </form>
-    </Card>
-
-    <NuxtLinkLocale
-      v-if="!complete || error === 'auth.resetFailed'"
-      to="/account/forgot-password"
-      class="text-sm underline underline-offset-4"
-    >
-      {{ $t("auth.forgotAction") }}
-    </NuxtLinkLocale>
-  </section>
+    <template #after>
+      <Button
+        v-if="!complete || error === 'auth.resetFailed'"
+        variant="outline"
+        size="lg"
+        class="w-full"
+        as-child
+      >
+        <NuxtLinkLocale to="/account/forgot-password">{{ $t("auth.forgotAction") }}</NuxtLinkLocale>
+      </Button>
+    </template>
+  </AuthPanel>
 </template>

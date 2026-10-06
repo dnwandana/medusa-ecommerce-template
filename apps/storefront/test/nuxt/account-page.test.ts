@@ -1,6 +1,7 @@
 import { mockNuxtImport, mountSuspended } from "@nuxt/test-utils/runtime"
 import { flushPromises } from "@vue/test-utils"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { AccountNav } from "#components"
 import AccountPage from "~/pages/account/index.vue"
 
 const { customerState, navigateToMock } = await vi.hoisted(async () => {
@@ -80,5 +81,45 @@ describe("account page", () => {
 
     expect(customerState.logout).toHaveBeenCalledTimes(1)
     expect(navigateToMock).toHaveBeenCalledWith("/")
+  })
+
+  it("shows the profile card in the account nav with one logout button", async () => {
+    const wrapper = await mountSuspended(AccountPage)
+
+    expect(wrapper.findComponent(AccountNav).exists()).toBe(true)
+    expect(wrapper.findAll('[data-testid="logout"]')).toHaveLength(1)
+    expect(wrapper.find('[data-slot="card-title"]').text()).toBe("Profile")
+    expect(wrapper.find('input[name="email"]').exists()).toBe(false)
+  })
+
+  it("puts the names on one row and the phone in an input group", async () => {
+    const wrapper = await mountSuspended(AccountPage)
+
+    expect(wrapper.find('[data-slot="field-group"].two-col input[name="first_name"]').exists()).toBe(true)
+    expect(wrapper.find('[data-slot="field-group"].two-col input[name="last_name"]').exists()).toBe(true)
+    expect(wrapper.find('[data-slot="input-group"] input[name="phone"]').attributes("type")).toBe("tel")
+  })
+
+  it("shows the saved text next to the save button only after the save", async () => {
+    const wrapper = await mountSuspended(AccountPage)
+    const footer = () => wrapper.find('[data-slot="card-footer"]')
+
+    expect(footer().find('button[type="submit"]').text()).toBe("Save")
+    expect(footer().find('[role="status"]').exists()).toBe(false)
+
+    await wrapper.find("form").trigger("submit")
+    await flushPromises()
+
+    expect(footer().find('[role="status"]').text()).toBe("Your profile is saved.")
+  })
+
+  it("shows the save error in a destructive alert", async () => {
+    customerState.updateProfile.mockRejectedValue(new Error("HTTP 500"))
+    const wrapper = await mountSuspended(AccountPage)
+
+    await wrapper.find("form").trigger("submit")
+    await flushPromises()
+
+    expect(wrapper.find('[data-slot="alert"][role="alert"]').text()).toBe("An error occurred. Try again.")
   })
 })

@@ -18,6 +18,10 @@ const { customerState, wishlist, navigateToMock } = await vi.hoisted(async () =>
   }
 })
 
+const { toast } = vi.hoisted(() => ({ toast: { success: vi.fn(), error: vi.fn() } }))
+
+vi.mock("vue-sonner", () => ({ toast }))
+
 mockNuxtImport("useCustomer", () => () => customerState)
 mockNuxtImport("useWishlist", () => () => wishlist)
 mockNuxtImport("useLocalePath", () => () => (path: string) => path)
@@ -37,6 +41,7 @@ beforeEach(() => {
   wishlist.remove.mockReset().mockResolvedValue(undefined)
   wishlist.itemFor.mockReset().mockReturnValue(undefined)
   navigateToMock.mockReset()
+  toast.error.mockReset()
 })
 
 describe("WishlistButton", () => {
@@ -83,7 +88,7 @@ describe("WishlistButton", () => {
     await wrapper.find("button").trigger("click")
     await flushPromises()
 
-    expect(wrapper.text()).toContain("Select the options first.")
+    expect(toast.error).toHaveBeenCalledWith("Select the options first.")
     expect(wishlist.add).not.toHaveBeenCalled()
   })
 
@@ -94,6 +99,30 @@ describe("WishlistButton", () => {
     await wrapper.find("button").trigger("click")
     await flushPromises()
 
-    expect(wrapper.text()).toContain("The wishlist did not change. Try again.")
+    expect(toast.error).toHaveBeenCalledWith("The wishlist did not change. Try again.")
+  })
+
+  it("fills the heart when the variant is in the wishlist", async () => {
+    wishlist.itemFor.mockReturnValue({ id: "wi_1", product_variant_id: "variant_1" })
+    const wrapper = await mountButton("variant_1")
+
+    expect(wrapper.find("button svg").classes()).toContain("fill-current")
+  })
+
+  it("shows an empty heart when the variant is not in the wishlist", async () => {
+    const wrapper = await mountButton("variant_1")
+
+    expect(wrapper.find("button svg").classes()).not.toContain("fill-current")
+    expect(wrapper.find("button").classes()).toContain("w-full")
+  })
+
+  it("shows no inline message", async () => {
+    wishlist.add.mockRejectedValue(new Error("HTTP 500"))
+    const wrapper = await mountButton("variant_1")
+
+    await wrapper.find("button").trigger("click")
+    await flushPromises()
+
+    expect(wrapper.find('[role="status"]').exists()).toBe(false)
   })
 })

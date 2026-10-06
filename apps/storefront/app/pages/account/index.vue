@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import type { HttpTypes } from "@medusajs/types"
+import { Phone } from "@lucide/vue"
 
 definePageMeta({ middleware: "auth" })
 
 const { t } = useI18n()
-const localePath = useLocalePath()
-const { customer, updateProfile, logout } = useCustomer()
+const { customer, updateProfile } = useCustomer()
 
 const form = reactive({ first_name: "", last_name: "", phone: "" })
 const busy = ref(false)
@@ -36,63 +36,60 @@ async function save(): Promise<void> {
   }
 }
 
-// Logs out and opens the home page.
-async function leave(): Promise<void> {
-  await logout()
-  await navigateTo(localePath("/"))
-}
-
 useHead({ title: () => t("account.title") })
 </script>
 
 <template>
-  <div class="flex max-w-xl flex-col gap-6">
-    <h1 class="text-2xl font-semibold">{{ $t("account.title") }}</h1>
+  <AccountNav>
+    <!-- The form holds the whole Card, so the button in the Card footer submits it. -->
+    <form class="max-w-[640px]" @submit.prevent="save">
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            <h2>{{ $t("account.profile") }}</h2>
+          </CardTitle>
+        </CardHeader>
 
-    <nav class="flex gap-4">
-      <NuxtLinkLocale to="/account/orders" class="underline underline-offset-4">
-        {{ $t("account.orders") }}
-      </NuxtLinkLocale>
-      <NuxtLinkLocale to="/account/wishlist" class="underline underline-offset-4">
-        {{ $t("account.wishlist") }}
-      </NuxtLinkLocale>
-    </nav>
+        <CardContent class="flex flex-col gap-5">
+          <div class="flex flex-col gap-1">
+            <span class="text-body-sm font-semibold">{{ $t("auth.email") }}</span>
+            <span>{{ customer?.email }}</span>
+          </div>
 
-    <section class="flex flex-col gap-4">
-      <h2 class="text-xl font-semibold">{{ $t("account.profile") }}</h2>
+          <FieldGroup class="two-col">
+            <Field>
+              <FieldLabel for="account-first-name">{{ $t("auth.firstName") }}</FieldLabel>
+              <Input id="account-first-name" v-model="form.first_name" name="first_name" />
+            </Field>
+            <Field>
+              <FieldLabel for="account-last-name">{{ $t("auth.lastName") }}</FieldLabel>
+              <Input id="account-last-name" v-model="form.last_name" name="last_name" />
+            </Field>
+          </FieldGroup>
 
-      <div class="flex flex-col gap-1">
-        <span class="text-sm font-medium">{{ $t("auth.email") }}</span>
-        <span>{{ customer?.email }}</span>
-      </div>
+          <Field>
+            <FieldLabel for="account-phone">{{ $t("account.phone") }}</FieldLabel>
+            <InputGroup>
+              <InputGroupInput id="account-phone" v-model="form.phone" name="phone" type="tel" />
+              <InputGroupAddon>
+                <Phone aria-hidden="true" />
+              </InputGroupAddon>
+            </InputGroup>
+          </Field>
 
-      <form class="flex flex-col gap-4" @submit.prevent="save">
-        <div class="flex flex-col gap-1">
-          <Label for="account-first-name">{{ $t("auth.firstName") }}</Label>
-          <Input id="account-first-name" v-model="form.first_name" name="first_name" />
-        </div>
-        <div class="flex flex-col gap-1">
-          <Label for="account-last-name">{{ $t("auth.lastName") }}</Label>
-          <Input id="account-last-name" v-model="form.last_name" name="last_name" />
-        </div>
-        <div class="flex flex-col gap-1">
-          <Label for="account-phone">{{ $t("account.phone") }}</Label>
-          <Input id="account-phone" v-model="form.phone" name="phone" type="tel" />
-        </div>
+          <Alert v-if="failed" variant="destructive">
+            <AlertDescription>{{ $t("common.error") }}</AlertDescription>
+          </Alert>
+        </CardContent>
 
-        <p v-if="saved" role="status" class="text-sm">{{ $t("account.saved") }}</p>
-        <p v-if="failed" role="alert" class="text-sm text-destructive">{{ $t("common.error") }}</p>
-
-        <div>
-          <Button type="submit" :disabled="busy">{{ $t("common.save") }}</Button>
-        </div>
-      </form>
-    </section>
-
-    <div>
-      <Button type="button" variant="outline" data-testid="logout" @click="leave">
-        {{ $t("account.logout") }}
-      </Button>
-    </div>
-  </div>
+        <CardFooter class="flex items-center gap-4">
+          <Button type="submit" :disabled="busy">
+            <Spinner v-if="busy" />
+            {{ $t("common.save") }}
+          </Button>
+          <p v-if="saved" role="status" class="text-body-sm text-success">{{ $t("account.saved") }}</p>
+        </CardFooter>
+      </Card>
+    </form>
+  </AccountNav>
 </template>

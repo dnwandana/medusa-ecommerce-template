@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { Heart, Trash2 } from "@lucide/vue"
+
 definePageMeta({ middleware: "auth" })
 
 const { t } = useI18n()
@@ -40,48 +42,82 @@ useHead({ title: () => t("wishlist.title") })
 </script>
 
 <template>
-  <div class="flex flex-col gap-6">
-    <h1 class="text-2xl font-semibold">{{ $t("wishlist.title") }}</h1>
+  <AccountNav>
+    <section class="flex flex-col gap-6">
+      <h2 class="text-h2">{{ $t("wishlist.title") }}</h2>
 
-    <p v-if="!ready">{{ $t("common.loading") }}</p>
-    <template v-else>
-      <p v-if="loadFailed" role="alert" class="text-destructive">{{ $t("common.error") }}</p>
-      <p v-if="failed" role="alert" class="text-destructive">{{ $t("wishlist.error") }}</p>
+      <p v-if="!ready" role="status" class="text-muted-foreground">{{ $t("common.loading") }}</p>
+      <template v-else>
+        <Alert v-if="loadFailed" variant="destructive">
+          <AlertDescription>{{ $t("common.error") }}</AlertDescription>
+        </Alert>
+        <Alert v-if="failed" variant="destructive">
+          <AlertDescription>{{ $t("wishlist.error") }}</AlertDescription>
+        </Alert>
 
-      <p v-if="!loadFailed && items.length === 0">{{ $t("wishlist.empty") }}</p>
+        <Empty v-if="!loadFailed && items.length === 0" variant="outline">
+          <EmptyHeader>
+            <EmptyMedia>
+              <Heart class="size-6" aria-hidden="true" />
+            </EmptyMedia>
+            <EmptyTitle>{{ $t("wishlist.empty") }}</EmptyTitle>
+          </EmptyHeader>
+          <EmptyContent>
+            <Button as-child>
+              <NuxtLinkLocale to="/products">{{ $t("cart.continue") }}</NuxtLinkLocale>
+            </Button>
+          </EmptyContent>
+        </Empty>
 
-      <div v-else class="grid gap-4 sm:grid-cols-2">
-        <Card v-for="item in items" :key="item.id" class="flex flex-row items-center gap-4 p-4">
-          <img
-            v-if="item.product_variant.product.thumbnail"
-            :src="item.product_variant.product.thumbnail"
-            :alt="item.product_variant.product.title"
-            class="size-20 rounded-md object-cover"
-          >
-          <div class="flex flex-1 flex-col gap-1">
-            <p class="font-medium">{{ item.product_variant.product.title }}</p>
-            <p class="text-sm text-muted-foreground">{{ item.product_variant.title }}</p>
-            <!-- A variant with no price shows no price text. -->
-            <p v-if="item.product_variant.calculated_price !== null" class="text-sm">
-              {{ formatPrice(item.product_variant.calculated_price.calculated_amount) }}
-            </p>
-            <div class="flex flex-wrap items-center gap-2">
-              <NuxtLinkLocale
-                :to="`/products/${item.product_variant.product.handle}`"
-                class="text-sm underline underline-offset-4"
-              >{{ $t("wishlist.viewProduct") }}</NuxtLinkLocale>
-              <Button
-                variant="ghost"
-                :data-testid="`remove-${item.id}`"
-                :disabled="busy"
-                @click="removeItem(item.id)"
-              >
-                {{ $t("wishlist.remove") }}
+        <div v-else class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <Item v-for="item in items" :key="item.id" variant="outline" class="flex-nowrap">
+            <ItemMedia class="w-20 overflow-hidden rounded-sm">
+              <AspectRatio :ratio="3 / 4">
+                <img
+                  v-if="item.product_variant.product.thumbnail"
+                  :src="item.product_variant.product.thumbnail"
+                  :alt="item.product_variant.product.title"
+                  class="size-full object-cover"
+                />
+                <div v-else class="size-full bg-backdrop-sand" />
+              </AspectRatio>
+            </ItemMedia>
+
+            <ItemContent>
+              <ItemTitle>{{ item.product_variant.product.title }}</ItemTitle>
+              <ItemDescription>{{ item.product_variant.title }}</ItemDescription>
+              <!-- A variant with no price shows no price text. -->
+              <p v-if="item.product_variant.calculated_price !== null" class="text-price">
+                {{ formatPrice(item.product_variant.calculated_price.calculated_amount) }}
+              </p>
+              <Button variant="outline" size="sm" as-child class="mt-1 self-start">
+                <NuxtLinkLocale :to="`/products/${item.product_variant.product.handle}`">
+                  {{ $t("wishlist.viewProduct") }}
+                </NuxtLinkLocale>
               </Button>
-            </div>
-          </div>
-        </Card>
-      </div>
-    </template>
-  </div>
+            </ItemContent>
+
+            <ItemActions>
+              <!-- The sr-only text names the button. The Tooltip only repeats the name. -->
+              <Tooltip>
+                <TooltipTrigger as-child>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    :data-testid="`remove-${item.id}`"
+                    :disabled="busy"
+                    @click="removeItem(item.id)"
+                  >
+                    <Trash2 aria-hidden="true" />
+                    <span class="sr-only">{{ $t("wishlist.remove") }}</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{{ $t("wishlist.remove") }}</TooltipContent>
+              </Tooltip>
+            </ItemActions>
+          </Item>
+        </div>
+      </template>
+    </section>
+  </AccountNav>
 </template>

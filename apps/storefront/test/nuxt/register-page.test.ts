@@ -59,4 +59,42 @@ describe("register page", () => {
     )
     expect(navigateToMock).not.toHaveBeenCalled()
   })
+
+  it("puts the first name and the last name on one row", async () => {
+    const wrapper = await mountSuspended(RegisterPage, { route: "/account/register" })
+    const row = wrapper.find('[data-slot="field-group"]')
+
+    expect(row.classes()).toContain("two-col")
+    expect(row.find('input[name="first_name"]').exists()).toBe(true)
+    expect(row.find('input[name="last_name"]').exists()).toBe(true)
+  })
+
+  it("shows the hint under the password and links the hint to the input", async () => {
+    const wrapper = await mountSuspended(RegisterPage, { route: "/account/register" })
+
+    expect(wrapper.find("#register-password-hint").text()).toBe("Use 8 characters or more.")
+    expect(wrapper.find("#register-password-hint").attributes("role")).toBeUndefined()
+    expect(wrapper.find('input[name="password"]').attributes("aria-describedby")).toBe("register-password-hint")
+  })
+
+  it("marks the password invalid for a short password", async () => {
+    const wrapper = await submit("short")
+
+    expect(wrapper.find('input[name="password"]').attributes("aria-invalid")).toBe("true")
+    expect(wrapper.findAll('[role="alert"]')).toHaveLength(1)
+  })
+
+  it("shows the registration error in a destructive alert", async () => {
+    customer.register.mockRejectedValue(new Error("HTTP 422"))
+    const wrapper = await submit("secret-password")
+
+    expect(wrapper.find('[data-slot="alert"][role="alert"]').exists()).toBe(true)
+  })
+
+  it("links to the login page under the card", async () => {
+    const wrapper = await mountSuspended(RegisterPage, { route: "/account/register" })
+
+    expect(wrapper.text()).toContain("Have an account?")
+    expect(wrapper.find('a[href="/account/login"]').text()).toBe("Log in with an existing account")
+  })
 })
