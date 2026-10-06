@@ -7,7 +7,14 @@
   },
   "scripts": {
     "dev": "pnpm -r --parallel run dev",
-    "test": "pnpm --filter @store/backend run test:unit && pnpm --filter @store/backend run test:integration:http && pnpm --filter @store/storefront run test"
+    "test": "pnpm --filter @store/backend run test:unit && pnpm --filter @store/backend run test:integration:http && pnpm --filter @store/storefront run test",
+    "lint": "pnpm -r run lint",
+    "lint:fix": "pnpm -r run lint:fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
-  "packageManager": "pnpm@10.11.1"
+  "packageManager": "pnpm@10.11.1",
+  "devDependencies": {
+    "prettier": "3.9.9"
+  }
 }

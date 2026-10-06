@@ -1,0 +1,13 @@
+# Prettier also reads the root .gitignore, so the build output is already ignored.
+
+pnpm-lock.yaml
+
+# The shadcn-vue CLI generates these files. A format change makes a large diff on each update.
+apps/storefront/app/components/ui/
+
+# MikroORM generates the migrations and the snapshots.
+apps/backend/src/modules/*/migrations/
+
+# Test output and local file storage.
+apps/storefront/.vitest/
+apps/backend/static/
