@@ -1,119 +1,191 @@
-
-@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap');
-
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "@fontsource-variable/bricolage-grotesque";
+@import "@fontsource-variable/instrument-sans";
 @import "shadcn-vue/tailwind.css";
 
+/* The CLI components use dark: classes. The store has no dark theme, so no .dark block sets values. */
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-    --font-sans: 'Geist Variable', sans-serif;
-    --font-heading: var(--font-sans);
-    --color-sidebar-ring: var(--sidebar-ring);
-    --color-sidebar-border: var(--sidebar-border);
-    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-    --color-sidebar-accent: var(--sidebar-accent);
-    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-    --color-sidebar-primary: var(--sidebar-primary);
-    --color-sidebar-foreground: var(--sidebar-foreground);
-    --color-sidebar: var(--sidebar);
-    --color-chart-5: var(--chart-5);
-    --color-chart-4: var(--chart-4);
-    --color-chart-3: var(--chart-3);
-    --color-chart-2: var(--chart-2);
-    --color-chart-1: var(--chart-1);
-    --color-ring: var(--ring);
-    --color-input: var(--input);
-    --color-border: var(--border);
-    --color-destructive: var(--destructive);
-    --color-accent-foreground: var(--accent-foreground);
-    --color-accent: var(--accent);
-    --color-muted-foreground: var(--muted-foreground);
-    --color-muted: var(--muted);
-    --color-secondary-foreground: var(--secondary-foreground);
-    --color-secondary: var(--secondary);
-    --color-primary-foreground: var(--primary-foreground);
-    --color-primary: var(--primary);
-    --color-popover-foreground: var(--popover-foreground);
-    --color-popover: var(--popover);
-    --color-card-foreground: var(--card-foreground);
-    --color-card: var(--card);
-    --color-foreground: var(--foreground);
+    --font-sans: "Instrument Sans Variable", ui-sans-serif, system-ui, sans-serif;
+    --font-heading: "Bricolage Grotesque Variable", ui-sans-serif, system-ui, sans-serif;
     --color-background: var(--background);
-    --radius-sm: calc(var(--radius) - 4px);
-    --radius-md: calc(var(--radius) - 2px);
-    --radius-lg: var(--radius);
-    --radius-xl: calc(var(--radius) + 4px);
+    --color-foreground: var(--foreground);
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-primary-hover: var(--primary-hover);
+    --color-primary-soft: var(--primary-soft);
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-destructive: var(--destructive);
+    --color-destructive-foreground: var(--destructive-foreground);
+    --color-destructive-soft: var(--destructive-soft);
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+    --color-success: var(--success);
+    --color-success-soft: var(--success-soft);
+    --color-warning: var(--warning);
+    --color-warning-soft: var(--warning-soft);
+    --color-sale: var(--sale);
+    --color-star: var(--star);
+    --color-disabled: var(--disabled);
+    --color-disabled-foreground: var(--disabled-foreground);
+    --color-icon-subtle: var(--icon-subtle);
+    --color-scrim: var(--scrim);
+    --color-link: var(--link);
+    --color-backdrop-sand: var(--backdrop-sand);
+    --color-backdrop-stone: var(--backdrop-stone);
+    --color-backdrop-sage: var(--backdrop-sage);
+    --color-backdrop-clay: var(--backdrop-clay);
+    --color-backdrop-sky: var(--backdrop-sky);
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 10px;
+    --radius-xl: 14px;
+    --shadow-sm: 0 1px 2px #1f1b170f, 0 1px 3px #1f1b170d;
+    --shadow-md: 0 2px 4px #1f1b170d, 0 8px 20px #1f1b1717;
+    --shadow-lg: 0 4px 12px #1f1b1714, 0 24px 48px #1f1b1726;
+    --shadow-focus: 0 0 0 2px #faf8f5, 0 0 0 4px #24466f;
 }
 
 :root {
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
-    --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --radius: 0.625rem;
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0);
+    --background: #faf8f5;
+    --foreground: #1f1b17;
+    --card: #ffffff;
+    --card-foreground: #1f1b17;
+    --popover: #ffffff;
+    --popover-foreground: #1f1b17;
+    --primary: #24466f;
+    --primary-foreground: #ffffff;
+    --primary-hover: #1a3555;
+    --primary-soft: #e7edf5;
+    --secondary: #f2eee8;
+    --secondary-foreground: #1f1b17;
+    --muted: #f2eee8;
+    --muted-foreground: #5f574e;
+    --accent: #ece6dd;
+    --accent-foreground: #1f1b17;
+    --destructive: #b3261e;
+    --destructive-foreground: #ffffff;
+    --destructive-soft: #fbe8e6;
+    --border: #e6e0d7;
+    --input: #8a8177;
+    --ring: #24466f;
+    --success: #2d6a3e;
+    --success-soft: #e5f1e7;
+    --warning: #8a5300;
+    --warning-soft: #fbefd8;
+    --sale: #c0331f;
+    --star: #a86b0c;
+    --disabled: #ebe6df;
+    --disabled-foreground: #8f877d;
+    --icon-subtle: #9a9187;
+    --scrim: #1f1b1766;
+    --link: #24466f;
+    --backdrop-sand: #e9dfd0;
+    --backdrop-stone: #dedad3;
+    --backdrop-sage: #d7ddd0;
+    --backdrop-clay: #e7d4c7;
+    --backdrop-sky: #d8dee6;
+    --radius: 10px;
 }
 
-.dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
+/* The type scale. A responsive size gives the small size first, then the desktop size from md. */
+@utility text-display {
+    font-family: var(--font-heading);
+    font-size: 38px;
+    line-height: 42px;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    @variant md {
+        font-size: 56px;
+        line-height: 60px;
+    }
+}
+
+@utility text-h1 {
+    font-family: var(--font-heading);
+    font-size: 28px;
+    line-height: 34px;
+    font-weight: 650;
+    letter-spacing: -0.02em;
+    @variant md {
+        font-size: 40px;
+        line-height: 46px;
+    }
+}
+
+@utility text-h2 {
+    font-family: var(--font-heading);
+    font-size: 24px;
+    line-height: 30px;
+    font-weight: 650;
+    letter-spacing: -0.015em;
+    @variant md {
+        font-size: 30px;
+        line-height: 36px;
+    }
+}
+
+@utility text-h3 {
+    font-family: var(--font-heading);
+    font-size: 20px;
+    line-height: 26px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    @variant md {
+        font-size: 22px;
+        line-height: 28px;
+    }
+}
+
+@utility text-h4 {
+    font-family: var(--font-heading);
+    font-size: 18px;
+    line-height: 24px;
+    font-weight: 600;
+}
+
+@utility text-body-lg {
+    font-size: 18px;
+    line-height: 28px;
+}
+
+@utility text-body-sm {
+    font-size: 14px;
+    line-height: 20px;
+}
+
+@utility text-caption {
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+}
+
+/* Tabular numbers keep the digits of the prices in aligned columns. */
+@utility text-price {
+    font-size: 16px;
+    line-height: 24px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+@utility text-price-lg {
+    font-size: 24px;
+    line-height: 32px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
 }
 
 @layer base {
@@ -122,6 +194,10 @@
     }
   body {
     @apply bg-background text-foreground;
-    @apply font-sans;
+    font: 400 16px/24px var(--font-sans);
+    }
+  /* One rule sets the stroke of each Lucide icon, so no icon needs a stroke-width prop. */
+  .lucide {
+    stroke-width: 1.75;
     }
 }
