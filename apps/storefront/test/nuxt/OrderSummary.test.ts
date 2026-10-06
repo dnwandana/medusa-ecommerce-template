@@ -49,4 +49,25 @@ describe("OrderSummary", () => {
     expect(wrapper.text()).toContain("Bandung")
     expect(wrapper.text()).toContain("40111")
   })
+  it("shows the items, the totals, and the address in three cards in a grid of 3fr and 2fr", async () => {
+    const wrapper = await mountSuspended(OrderSummary, { props: { order } })
+
+    expect(wrapper.classes()).toEqual(expect.arrayContaining(["grid", "md:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]"]))
+    expect(wrapper.findAll('[data-slot="card"]')).toHaveLength(3)
+    expect(wrapper.find('[data-slot="card-title"]').text()).toBe("Order #12")
+  })
+
+  it("shows each line as an item", async () => {
+    const wrapper = await mountSuspended(OrderSummary, { props: { order } })
+
+    expect(wrapper.find('[data-slot="item"]').text()).toContain("Plain T-Shirt")
+  })
+
+  it("shows no address card when the order has no address", async () => {
+    const wrapper = await mountSuspended(OrderSummary, {
+      props: { order: { ...(order as object), shipping_address: null } as never },
+    })
+
+    expect(wrapper.findAll('[data-slot="card"]')).toHaveLength(2)
+  })
 })

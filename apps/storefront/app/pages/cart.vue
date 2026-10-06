@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { ShoppingBag } from "@lucide/vue"
+
 const { t } = useI18n()
 const { cart, load, updateItem, removeItem } = useCart()
 
@@ -34,46 +36,67 @@ useHead({ title: () => t("cart.title") })
 
 <template>
   <div class="flex flex-col gap-6">
-    <h1 class="text-2xl font-semibold">{{ $t("cart.title") }}</h1>
+    <h1 class="text-h1">{{ $t("cart.title") }}</h1>
 
-    <p v-if="!ready">{{ $t("common.loading") }}</p>
+    <p v-if="!ready" role="status">{{ $t("common.loading") }}</p>
     <template v-else>
-      <p v-if="failed" role="alert" class="text-destructive">{{ $t("common.error") }}</p>
+      <Alert v-if="failed" variant="destructive">
+        <AlertDescription>{{ $t("common.error") }}</AlertDescription>
+      </Alert>
 
-      <div v-if="!cart?.items?.length" class="flex flex-col items-start gap-2">
-        <p>{{ $t("cart.empty") }}</p>
-        <NuxtLinkLocale to="/products" class="underline underline-offset-4">
-          {{ $t("cart.continue") }}
-        </NuxtLinkLocale>
-      </div>
-
-      <template v-else>
-        <div>
-          <CartLineItem
-            v-for="item in cart.items"
-            :key="item.id"
-            :item="item"
-            :disabled="busy"
-            @update="(quantity) => change(() => updateItem(item.id, quantity))"
-            @remove="change(() => removeItem(item.id))"
-          />
-        </div>
-
-        <dl class="ml-auto grid w-full max-w-sm grid-cols-2 gap-2">
-          <dt>{{ $t("cart.subtotal") }}</dt>
-          <dd class="text-right">
-            <span data-testid="subtotal">{{ formatPrice(cart.item_subtotal) }}</span>
-          </dd>
-          <dt>{{ $t("cart.shipping") }}</dt>
-          <dd class="text-right text-muted-foreground">{{ $t("cart.shippingAtCheckout") }}</dd>
-        </dl>
-
-        <div class="flex justify-end">
+      <Empty v-if="!cart?.items?.length" variant="outline">
+        <EmptyHeader>
+          <EmptyMedia>
+            <ShoppingBag aria-hidden="true" />
+          </EmptyMedia>
+          <EmptyTitle>{{ $t("cart.empty") }}</EmptyTitle>
+          <EmptyDescription>{{ $t("cart.emptyBody") }}</EmptyDescription>
+        </EmptyHeader>
+        <EmptyContent>
           <Button as-child>
-            <NuxtLinkLocale to="/checkout">{{ $t("cart.checkout") }}</NuxtLinkLocale>
+            <NuxtLinkLocale to="/products">{{ $t("cart.continue") }}</NuxtLinkLocale>
           </Button>
+        </EmptyContent>
+      </Empty>
+
+      <div v-else class="grid items-start gap-6 md:grid-cols-[minmax(0,1fr)_380px] md:gap-12">
+        <div :class="{ 'opacity-60': busy }">
+          <template v-for="(item, index) in cart.items" :key="item.id">
+            <Separator v-if="index > 0" />
+            <CartLineItem
+              :item="item"
+              :disabled="busy"
+              @update="(quantity) => change(() => updateItem(item.id, quantity))"
+              @remove="change(() => removeItem(item.id))"
+            />
+          </template>
         </div>
-      </template>
+
+        <Card class="rounded-xl">
+          <CardHeader>
+            <CardTitle>{{ $t("cart.summary") }}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <dl class="grid grid-cols-2 gap-3">
+              <dt>{{ $t("cart.subtotal") }}</dt>
+              <dd class="text-right text-price">
+                <span data-testid="subtotal">{{ formatPrice(cart.item_subtotal) }}</span>
+              </dd>
+              <dt>{{ $t("cart.shipping") }}</dt>
+              <dd class="text-right text-body-sm text-muted-foreground">{{ $t("cart.shippingAtCheckout") }}</dd>
+            </dl>
+          </CardContent>
+          <CardFooter class="flex-col gap-3">
+            <Button size="lg" class="w-full" as-child>
+              <NuxtLinkLocale to="/checkout">{{ $t("cart.checkout") }}</NuxtLinkLocale>
+            </Button>
+            <Button variant="outline" size="lg" class="w-full" as-child>
+              <NuxtLinkLocale to="/products">{{ $t("cart.continue") }}</NuxtLinkLocale>
+            </Button>
+            <TrustLines class="self-start" />
+          </CardFooter>
+        </Card>
+      </div>
     </template>
   </div>
 </template>

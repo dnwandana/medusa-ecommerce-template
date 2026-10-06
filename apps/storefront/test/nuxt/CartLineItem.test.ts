@@ -40,4 +40,32 @@ describe("CartLineItem", () => {
 
     expect(wrapper.emitted("remove")).toHaveLength(1)
   })
+  it("uses icon buttons for the quantity", async () => {
+    const wrapper = await mountSuspended(CartLineItem, { props: { item } })
+
+    expect(buttonWithLabel(wrapper, "Decrease the quantity").find("svg").exists()).toBe(true)
+    expect(buttonWithLabel(wrapper, "Increase the quantity").find("svg").exists()).toBe(true)
+    expect(buttonWithLabel(wrapper, "Increase the quantity").text()).toBe("")
+  })
+
+  it("puts the remove text in an sr-only span of an icon button", async () => {
+    const wrapper = await mountSuspended(CartLineItem, { props: { item } })
+    const remove = wrapper.findAll("button").find((button) => button.text() === "Remove")!
+
+    expect(remove.find(".sr-only").text()).toBe("Remove")
+    expect(remove.find("svg").exists()).toBe(true)
+  })
+
+  it("disables the three buttons while the cart is busy", async () => {
+    const wrapper = await mountSuspended(CartLineItem, { props: { item, disabled: true } })
+
+    expect(wrapper.findAll("button").every((button) => button.attributes("disabled") !== undefined)).toBe(true)
+  })
+
+  it("shows a placeholder when the line has no thumbnail", async () => {
+    const wrapper = await mountSuspended(CartLineItem, { props: { item } })
+
+    expect(wrapper.find("img").exists()).toBe(false)
+    expect(wrapper.find(".bg-backdrop-sand svg").exists()).toBe(true)
+  })
 })

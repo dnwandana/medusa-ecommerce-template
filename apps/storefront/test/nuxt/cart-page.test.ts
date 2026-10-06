@@ -2,6 +2,7 @@ import { mockNuxtImport, mountSuspended } from "@nuxt/test-utils/runtime"
 import { flushPromises } from "@vue/test-utils"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import CartPage from "~/pages/cart.vue"
+import { TrustLines } from "#components"
 
 const { cart } = await vi.hoisted(async () => {
   const { ref } = await import("vue")
@@ -87,5 +88,42 @@ describe("cart page", () => {
     await flushPromises()
 
     expect(wrapper.text()).toContain("An error occurred. Try again.")
+  })
+  it("shows an empty state with a link to the products", async () => {
+    const wrapper = await mountPage()
+    const empty = wrapper.find('[data-slot="empty"]')
+
+    expect(empty.text()).toContain("Your cart is empty.")
+    expect(empty.text()).toContain("Find a piece for your everyday.")
+    expect(empty.find('a[href="/products"]').text()).toBe("Continue shopping")
+  })
+
+  it("shows the summary card with the trust lines", async () => {
+    cart.cart.value = filledCart
+    const wrapper = await mountPage()
+    const summary = wrapper.find('[data-slot="card"]')
+
+    expect(summary.text()).toContain("Summary")
+    expect(summary.find('[data-testid="subtotal"]').exists()).toBe(true)
+    expect(summary.find('a[href="/products"]').text()).toBe("Continue shopping")
+    expect(wrapper.findComponent(TrustLines).exists()).toBe(true)
+  })
+
+  it("uses a column of 380px for the summary from md", async () => {
+    cart.cart.value = filledCart
+    const wrapper = await mountPage()
+
+    expect(wrapper.find(".grid").classes()).toContain("md:grid-cols-[minmax(0,1fr)_380px]")
+  })
+
+  it("shows the change error in a destructive alert", async () => {
+    cart.cart.value = filledCart
+    cart.removeItem.mockRejectedValue(new Error("HTTP 500"))
+    const wrapper = await mountPage()
+
+    await wrapper.findAll("button").find((button) => button.text() === "Remove")!.trigger("click")
+    await flushPromises()
+
+    expect(wrapper.find('[role="alert"]').text()).toBe("An error occurred. Try again.")
   })
 })

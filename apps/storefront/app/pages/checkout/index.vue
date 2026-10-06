@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { CreditCard, ShoppingBag } from "@lucide/vue"
 import type { HttpTypes } from "@medusajs/types"
 import type { ShippingChoice } from "~/composables/useCheckout"
 import type { CheckoutFormValues } from "~/utils/checkoutForm"
@@ -68,6 +69,9 @@ watch(values, () => {
   options.value = []
   selectedOptionId.value = null
 })
+
+// The stepper shows the progress only. The form state gives the step.
+const currentStep = computed<1 | 2 | 3>(() => (selectedOptionId.value ? 3 : options.value.length ? 2 : 1))
 
 // Checks the form, saves the address, and loads the shipping options.
 async function submitAddress(): Promise<void> {
@@ -149,104 +153,151 @@ useHead({ title: () => t("checkout.title") })
 
 <template>
   <div class="flex flex-col gap-6">
-    <h1 class="text-2xl font-semibold">{{ $t("checkout.title") }}</h1>
+    <h1 class="text-h1">{{ $t("checkout.title") }}</h1>
 
-    <p v-if="!ready">{{ $t("common.loading") }}</p>
+    <p v-if="!ready" role="status">{{ $t("common.loading") }}</p>
 
-    <div v-else-if="!cart?.items?.length" class="flex flex-col items-start gap-2">
-      <p>{{ $t("cart.empty") }}</p>
-      <NuxtLinkLocale to="/products" class="underline underline-offset-4">
-        {{ $t("cart.continue") }}
-      </NuxtLinkLocale>
+    <Empty v-else-if="!cart?.items?.length" variant="outline">
+      <EmptyHeader>
+        <EmptyMedia>
+          <ShoppingBag aria-hidden="true" />
+        </EmptyMedia>
+        <EmptyTitle>{{ $t("cart.empty") }}</EmptyTitle>
+        <EmptyDescription>{{ $t("cart.emptyBody") }}</EmptyDescription>
+      </EmptyHeader>
+      <EmptyContent>
+        <Button as-child>
+          <NuxtLinkLocale to="/products">{{ $t("cart.continue") }}</NuxtLinkLocale>
+        </Button>
+      </EmptyContent>
+    </Empty>
+
+    <div v-else class="grid items-start gap-6 md:grid-cols-[minmax(0,1fr)_400px] md:gap-12">
+      <div class="flex min-w-0 flex-col gap-6">
+        <CheckoutStepper :current="currentStep" />
+
+        <form novalidate class="flex flex-col gap-6" @submit.prevent="submitAddress">
+          <Card>
+            <CardHeader>
+              <CardTitle><h2>{{ $t("checkout.contact") }}</h2></CardTitle>
+            </CardHeader>
+            <CardContent>
+              <FieldGroup class="two-col">
+                <Field v-for="field in contactFields" :key="field.name">
+                  <FieldLabel :for="`checkout-${field.name}`">{{ $t(field.label) }}</FieldLabel>
+                  <Input
+                    :id="`checkout-${field.name}`"
+                    v-model="values[field.name]"
+                    :name="field.name"
+                    :type="field.type"
+                    :autocomplete="field.autocomplete"
+                    :aria-invalid="errors[field.name] ? true : undefined"
+                  />
+                  <FieldError v-if="errors[field.name]">{{ $t(errors[field.name]!) }}</FieldError>
+                </Field>
+              </FieldGroup>
+            </CardContent>
+
+            <CardHeader class="pt-0 md:pt-0">
+              <CardTitle><h2>{{ $t("checkout.address") }}</h2></CardTitle>
+            </CardHeader>
+            <CardContent>
+              <FieldGroup class="two-col">
+                <!-- The street address is long, so it uses the full width of the grid. -->
+                <Field
+                  v-for="field in addressFields"
+                  :key="field.name"
+                  :class="{ 'md:col-span-2': field.name === 'address_1' }"
+                >
+                  <FieldLabel :for="`checkout-${field.name}`">{{ $t(field.label) }}</FieldLabel>
+                  <Input
+                    :id="`checkout-${field.name}`"
+                    v-model="values[field.name]"
+                    :name="field.name"
+                    :type="field.type"
+                    :autocomplete="field.autocomplete"
+                    :aria-invalid="errors[field.name] ? true : undefined"
+                  />
+                  <FieldError v-if="errors[field.name]">{{ $t(errors[field.name]!) }}</FieldError>
+                </Field>
+                <Field class="justify-end">
+                  <p class="text-body-sm text-muted-foreground">{{ $t("checkout.country") }}</p>
+                </Field>
+              </FieldGroup>
+            </CardContent>
+
+            <CardFooter>
+              <Button type="submit" variant="outline" size="lg" :disabled="busy">
+                <Spinner v-if="busy" />
+                {{ $t("checkout.continue") }}
+              </Button>
+            </CardFooter>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle><h2>{{ $t("checkout.shippingOption") }}</h2></CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p v-if="!options.length" class="text-body-sm text-muted-foreground">
+                {{ $t("checkout.shippingHint") }}
+              </p>
+              <RadioGroup
+                v-else
+                name="shipping_option"
+                :model-value="selectedOptionId ?? undefined"
+                :disabled="busy"
+                @update:model-value="(value) => chooseOption(String(value))"
+              >
+                <label
+                  v-for="option in options"
+                  :key="option.id"
+                  class="flex cursor-pointer items-center gap-3 rounded-lg border border-border bg-card px-4 py-3.5 has-data-[state=checked]:border-primary has-data-[state=checked]:bg-primary-soft has-data-[state=checked]:shadow-[inset_0_0_0_1px_var(--color-primary)]"
+                >
+                  <RadioGroupItem :id="`shipping-${option.id}`" :value="option.id" />
+                  <span class="grow font-medium">{{ option.name }}</span>
+                  <span class="text-price">{{ formatPrice(option.amount) }}</span>
+                </label>
+              </RadioGroup>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle><h2>{{ $t("checkout.payment") }}</h2></CardTitle>
+            </CardHeader>
+            <CardContent class="flex flex-col gap-4">
+              <Item variant="outline">
+                <ItemMedia class="size-11 rounded-full bg-muted">
+                  <CreditCard aria-hidden="true" class="size-5" />
+                </ItemMedia>
+                <ItemContent>
+                  <ItemTitle>Mayar</ItemTitle>
+                  <ItemDescription>{{ $t("checkout.mayarHint") }}</ItemDescription>
+                </ItemContent>
+              </Item>
+              <Button
+                type="button"
+                data-testid="pay"
+                size="lg"
+                class="w-full"
+                :disabled="busy || !selectedOptionId"
+                @click="pay"
+              >
+                {{ $t("checkout.pay") }}
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Alert v-if="message" variant="destructive">
+            <AlertDescription>{{ $t(message) }}</AlertDescription>
+          </Alert>
+        </form>
+      </div>
+
+      <aside class="order-first md:order-none md:sticky md:top-6">
+        <CheckoutSummary :cart="cart" :show-shipping="!!selectedOptionId" />
+      </aside>
     </div>
-
-    <form v-else novalidate class="flex flex-col gap-6" @submit.prevent="submitAddress">
-      <Card class="px-4">
-        <h2 class="text-lg font-semibold">{{ $t("checkout.contact") }}</h2>
-        <div v-for="field in contactFields" :key="field.name" class="flex flex-col gap-2">
-          <Label :for="`checkout-${field.name}`">{{ $t(field.label) }}</Label>
-          <Input
-            :id="`checkout-${field.name}`"
-            v-model="values[field.name]"
-            :name="field.name"
-            :type="field.type"
-            :autocomplete="field.autocomplete"
-            :aria-invalid="errors[field.name] ? true : undefined"
-          />
-          <p v-if="errors[field.name]" role="alert" class="text-sm text-destructive">
-            {{ $t(errors[field.name]!) }}
-          </p>
-        </div>
-
-        <h2 class="text-lg font-semibold">{{ $t("checkout.address") }}</h2>
-        <div v-for="field in addressFields" :key="field.name" class="flex flex-col gap-2">
-          <Label :for="`checkout-${field.name}`">{{ $t(field.label) }}</Label>
-          <Input
-            :id="`checkout-${field.name}`"
-            v-model="values[field.name]"
-            :name="field.name"
-            :type="field.type"
-            :autocomplete="field.autocomplete"
-            :aria-invalid="errors[field.name] ? true : undefined"
-          />
-          <p v-if="errors[field.name]" role="alert" class="text-sm text-destructive">
-            {{ $t(errors[field.name]!) }}
-          </p>
-        </div>
-        <p class="text-sm text-muted-foreground">{{ $t("checkout.country") }}</p>
-
-        <div>
-          <Button type="submit" :disabled="busy">{{ $t("checkout.continue") }}</Button>
-        </div>
-      </Card>
-
-      <Card class="px-4">
-        <h2 class="text-lg font-semibold">{{ $t("checkout.shippingOption") }}</h2>
-        <label
-          v-for="option in options"
-          :key="option.id"
-          class="flex items-center gap-2 text-sm"
-        >
-          <input
-            type="radio"
-            name="shipping_option"
-            :value="option.id"
-            :checked="selectedOptionId === option.id"
-            :disabled="busy"
-            @change="chooseOption(option.id)"
-          >
-          <span>{{ option.name }}</span>
-          <span class="ml-auto">{{ formatPrice(option.amount) }}</span>
-        </label>
-
-        <dl class="grid w-full max-w-sm grid-cols-2 gap-2">
-          <dt>{{ $t("cart.subtotal") }}</dt>
-          <dd class="text-right">{{ formatPrice(cart.item_subtotal) }}</dd>
-          <template v-if="selectedOptionId">
-            <dt>{{ $t("cart.shipping") }}</dt>
-            <dd class="text-right">{{ formatPrice(cart.shipping_total) }}</dd>
-            <dt class="font-semibold">{{ $t("cart.total") }}</dt>
-            <dd class="text-right font-semibold">{{ formatPrice(cart.total) }}</dd>
-          </template>
-        </dl>
-      </Card>
-
-      <Card class="px-4">
-        <h2 class="text-lg font-semibold">{{ $t("checkout.payment") }}</h2>
-        <p class="text-sm text-muted-foreground">{{ $t("checkout.mayarHint") }}</p>
-        <div>
-          <Button
-            type="button"
-            data-testid="pay"
-            :disabled="busy || !selectedOptionId"
-            @click="pay"
-          >
-            {{ $t("checkout.pay") }}
-          </Button>
-        </div>
-      </Card>
-
-      <p v-if="message" role="alert" class="text-destructive">{{ $t(message) }}</p>
-    </form>
   </div>
 </template>

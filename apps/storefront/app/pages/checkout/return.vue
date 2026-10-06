@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { CircleAlert, Clock, ShoppingBag } from "@lucide/vue"
+
 type ReturnState = "confirming" | "noCart" | "pending" | "failed"
 
 const { t, locale, locales, defaultLocale } = useI18n()
@@ -49,26 +51,57 @@ useHead({ title: () => t(state.value === "pending" ? "return.pendingTitle" : "ch
 </script>
 
 <template>
-  <section class="mx-auto max-w-xl space-y-4 py-12 text-center">
-    <p v-if="state === 'confirming'" role="status">{{ $t("return.confirming") }}</p>
+  <Empty class="mx-auto max-w-xl">
+    <EmptyHeader v-if="state === 'confirming'">
+      <EmptyMedia tone="muted">
+        <Spinner class="size-6" />
+      </EmptyMedia>
+      <EmptyTitle role="status"><h1>{{ $t("return.confirming") }}</h1></EmptyTitle>
+    </EmptyHeader>
 
     <template v-else-if="state === 'noCart'">
-      <p>{{ $t("return.noCart") }}</p>
-      <NuxtLinkLocale to="/" class="underline">{{ $t("return.toHome") }}</NuxtLinkLocale>
+      <EmptyHeader>
+        <EmptyMedia tone="muted">
+          <ShoppingBag aria-hidden="true" class="size-6" />
+        </EmptyMedia>
+        <EmptyTitle><h1>{{ $t("return.noCart") }}</h1></EmptyTitle>
+      </EmptyHeader>
+      <EmptyContent>
+        <Button variant="outline" as-child>
+          <NuxtLinkLocale to="/">{{ $t("return.toHome") }}</NuxtLinkLocale>
+        </Button>
+      </EmptyContent>
     </template>
 
     <template v-else-if="state === 'pending'">
-      <h1 class="text-2xl font-semibold">{{ $t("return.pendingTitle") }}</h1>
-      <p>{{ $t("return.pendingBody") }}</p>
-      <NuxtLinkLocale to="/cart" class="underline">{{ $t("return.toCart") }}</NuxtLinkLocale>
+      <EmptyHeader>
+        <EmptyMedia tone="warning">
+          <Clock aria-hidden="true" class="size-6" />
+        </EmptyMedia>
+        <EmptyTitle><h1>{{ $t("return.pendingTitle") }}</h1></EmptyTitle>
+        <EmptyDescription>{{ $t("return.pendingBody") }}</EmptyDescription>
+      </EmptyHeader>
+      <EmptyContent>
+        <Button variant="outline" as-child>
+          <NuxtLinkLocale to="/cart">{{ $t("return.toCart") }}</NuxtLinkLocale>
+        </Button>
+      </EmptyContent>
     </template>
 
     <template v-else>
-      <div role="alert">
-        <h1 class="text-2xl font-semibold">{{ $t("return.failedTitle") }}</h1>
-      </div>
-      <p>{{ $t("return.failedBody") }}</p>
-      <NuxtLinkLocale to="/" class="underline">{{ $t("return.toHome") }}</NuxtLinkLocale>
+      <EmptyHeader>
+        <EmptyMedia tone="destructive">
+          <CircleAlert aria-hidden="true" class="size-6" />
+        </EmptyMedia>
+        <EmptyTitle role="alert"><h1>{{ $t("return.failedTitle") }}</h1></EmptyTitle>
+        <EmptyDescription>{{ $t("return.failedBody") }}</EmptyDescription>
+      </EmptyHeader>
+      <EmptyContent>
+        <!-- The page keeps the cart in this state, so the customer can try the payment again. -->
+        <Button as-child>
+          <NuxtLinkLocale to="/cart">{{ $t("return.toCart") }}</NuxtLinkLocale>
+        </Button>
+      </EmptyContent>
     </template>
-  </section>
+  </Empty>
 </template>

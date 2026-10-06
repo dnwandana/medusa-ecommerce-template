@@ -2,6 +2,7 @@ import { mockNuxtImport, mountSuspended } from "@nuxt/test-utils/runtime"
 import { flushPromises } from "@vue/test-utils"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import CheckoutPage from "~/pages/checkout/index.vue"
+import { CheckoutStepper, CheckoutSummary } from "#components"
 
 const { cart, customerState, checkout, navigateToMock } = await vi.hoisted(async () => {
   const { ref } = await import("vue")
@@ -167,5 +168,57 @@ describe("checkout page", () => {
 
     expect(wrapper.text()).toContain("The address was not saved. Try again.")
     expect(checkout.loadShippingOptions).not.toHaveBeenCalled()
+  })
+  it("shows step 1 and the shipping hint before the address is saved", async () => {
+    const wrapper = await mountPage()
+
+    expect(wrapper.findComponent(CheckoutStepper).props("current")).toBe(1)
+    expect(wrapper.text()).toContain("Save the address to see the shipping options.")
+    expect(wrapper.findComponent(CheckoutSummary).props("showShipping")).toBe(false)
+  })
+
+  it("shows step 3, the selected radio, and the shipping in the summary after the only option", async () => {
+    const wrapper = await mountPage()
+    await submitAddress(wrapper)
+
+    expect(wrapper.findComponent(CheckoutStepper).props("current")).toBe(3)
+    expect(wrapper.text()).not.toContain("Save the address to see the shipping options.")
+    expect(wrapper.find('[role="radio"][aria-checked="true"]').exists()).toBe(true)
+    expect(wrapper.findComponent(CheckoutSummary).props("showShipping")).toBe(true)
+  })
+
+  it("saves the option that the customer selects in the radio group", async () => {
+    checkout.loadShippingOptions.mockResolvedValue([
+      { id: "so_1", name: "Standard Shipping", amount: 18000 },
+      { id: "so_2", name: "Express Shipping", amount: 35000 },
+    ])
+    const wrapper = await mountPage()
+    await submitAddress(wrapper)
+
+    expect(wrapper.findComponent(CheckoutStepper).props("current")).toBe(2)
+    await wrapper.findAll('[role="radio"]')[1]!.trigger("click")
+    await flushPromises()
+
+    expect(checkout.selectShippingOption).toHaveBeenCalledWith("so_2")
+    expect(wrapper.find('[data-testid="pay"]').attributes("disabled")).toBeUndefined()
+  })
+
+  it("shows the payment error in a destructive alert", async () => {
+    checkout.startPayment.mockRejectedValue(new Error("Mayar is down"))
+    const wrapper = await mountPage()
+    await submitAddress(wrapper)
+
+    await pay(wrapper)
+
+    expect(wrapper.find('[data-slot="alert"][role="alert"]').text()).toBe(
+      "The payment page is not available. Your cart did not change. Try again."
+    )
+  })
+
+  it("puts the summary above the form below md and in a column of 400px from md", async () => {
+    const wrapper = await mountPage()
+
+    expect(wrapper.find(".grid").classes()).toContain("md:grid-cols-[minmax(0,1fr)_400px]")
+    expect(wrapper.find("aside").classes()).toEqual(expect.arrayContaining(["order-first", "md:order-none", "md:sticky"]))
   })
 })

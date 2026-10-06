@@ -29,6 +29,8 @@ const mountPage = async () => {
   return wrapper
 }
 
+const media = (wrapper: Awaited<ReturnType<typeof mountSuspended>>) => wrapper.find('[data-slot="empty-media"]')
+
 beforeEach(() => {
   cartId.value = "cart_1"
   cart.clear.mockReset()
@@ -96,5 +98,38 @@ describe("payment return page", () => {
 
     expect(navigateToMock).toHaveBeenCalledWith("/id/checkout/return", { replace: true })
     expect(completeMock).not.toHaveBeenCalled()
+  })
+  it("shows a spinner and a status text while the payment is confirmed", async () => {
+    completeMock.mockReturnValue(new Promise(() => {}))
+    const wrapper = await mountPage()
+
+    expect(media(wrapper).find("svg.animate-spin").exists()).toBe(true)
+    expect(wrapper.find('[role="status"]').text()).toBe("We are confirming your payment…")
+    expect(wrapper.find("h1").text()).toBe("We are confirming your payment…")
+  })
+
+  it("shows the pending state in warning colours", async () => {
+    completeMock.mockResolvedValue({ status: "pending" })
+    const wrapper = await mountPage()
+
+    expect(media(wrapper).classes()).toContain("bg-warning-soft")
+    expect(wrapper.find('[data-slot="empty-title"]').text()).toBe("Payment is being confirmed")
+  })
+
+  it("shows the failed state in destructive colours with a link to the cart", async () => {
+    completeMock.mockResolvedValue({ status: "failed" })
+    const wrapper = await mountPage()
+
+    expect(media(wrapper).classes()).toContain("bg-destructive-soft")
+    expect(wrapper.find('[role="alert"]').text()).toContain("We could not create your order")
+    expect(wrapper.find('a[href="/cart"]').text()).toBe("Back to the cart")
+  })
+
+  it("shows the no-cart state in muted colours with a link to the home page", async () => {
+    cartId.value = null
+    const wrapper = await mountPage()
+
+    expect(media(wrapper).classes()).toContain("bg-muted")
+    expect(wrapper.find('a[href="/"]').text()).toBe("Back to the home page")
   })
 })
