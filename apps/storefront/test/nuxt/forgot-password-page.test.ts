@@ -44,7 +44,9 @@ describe("forgot password page", () => {
   it("shows the intro, an email input group, and the send button", async () => {
     const wrapper = await mountSuspended(ForgotPasswordPage, { route: "/account/forgot-password" })
 
-    expect(wrapper.text()).toContain("Enter your email address. We send you a link to set a new password.")
+    expect(wrapper.text()).toContain(
+      "Enter your email address. We send you a link to set a new password."
+    )
     expect(wrapper.find('[data-slot="input-group"] input[name="email"]').exists()).toBe(true)
     expect(wrapper.find('button[type="submit"]').text()).toBe("Send the link")
   })

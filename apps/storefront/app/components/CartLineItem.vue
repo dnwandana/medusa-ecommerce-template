@@ -10,7 +10,9 @@ const emit = defineEmits<{ update: [quantity: number]; remove: [] }>()
   <div
     class="grid grid-cols-[80px_minmax(0,1fr)_auto] items-start gap-x-3.5 gap-y-3 py-5 [grid-template-areas:'thumb_info_price'_'thumb_qty_remove'] md:grid-cols-[96px_minmax(0,1fr)_auto_128px_44px] md:items-center md:gap-6 md:py-6 md:[grid-template-areas:'thumb_info_qty_price_remove']"
   >
-    <div class="flex aspect-[3/4] items-center justify-center overflow-hidden rounded-sm bg-backdrop-sand [grid-area:thumb]">
+    <div
+      class="flex aspect-[3/4] items-center justify-center overflow-hidden rounded-sm bg-backdrop-sand [grid-area:thumb]"
+    >
       <img
         v-if="props.item.thumbnail"
         :src="props.item.thumbnail"

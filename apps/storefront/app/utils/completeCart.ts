@@ -5,9 +5,7 @@ export const RETURN_RETRIES = 5
 export const RETURN_DELAY_MS = 2000
 
 export type CompletionResult =
-  | { status: "order"; order: HttpTypes.StoreOrder }
-  | { status: "pending" }
-  | { status: "failed" }
+  { status: "order"; order: HttpTypes.StoreOrder } | { status: "pending" } | { status: "failed" }
 
 export type CompletionOptions = {
   complete: () => Promise<HttpTypes.StoreCompleteCartResponse>
@@ -17,9 +15,7 @@ export type CompletionOptions = {
 }
 
 // Completes the cart and tries again while the webhook can still arrive.
-export async function completeCartWithRetry(
-  options: CompletionOptions
-): Promise<CompletionResult> {
+export async function completeCartWithRetry(options: CompletionOptions): Promise<CompletionResult> {
   const retries = options.retries ?? RETURN_RETRIES
   const delayMs = options.delayMs ?? RETURN_DELAY_MS
 

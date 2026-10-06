@@ -80,7 +80,10 @@ describe("password-reset subscriber", () => {
   })
 
   it("logs an error and sends nothing when the storefront URL is absent", async () => {
-    const { container, createNotifications, logger } = makeContainer({ ...admin, storefrontUrl: undefined })
+    const { container, createNotifications, logger } = makeContainer({
+      ...admin,
+      storefrontUrl: undefined,
+    })
     await run(container, { entity_id: "buyer@example.com", actor_type: "customer", token: "tok_1" })
     expect(createNotifications).not.toHaveBeenCalled()
     expect(logger.error).toHaveBeenCalledWith(

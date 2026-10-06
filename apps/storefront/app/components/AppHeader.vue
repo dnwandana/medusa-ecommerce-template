@@ -11,7 +11,10 @@ const { brand } = useAppConfig()
   <header class="border-b border-border bg-background">
     <div class="mx-auto flex h-14 max-w-[1280px] items-center gap-2 pr-2 pl-4 md:h-[72px] md:px-6">
       <div class="flex items-center gap-6">
-        <NuxtLinkLocale to="/" class="font-heading text-2xl font-bold tracking-[-0.02em] text-foreground">
+        <NuxtLinkLocale
+          to="/"
+          class="font-heading text-2xl font-bold tracking-[-0.02em] text-foreground"
+        >
           {{ brand.name }}
         </NuxtLinkLocale>
         <Button as-child variant="ghost" class="hidden lg:inline-flex">

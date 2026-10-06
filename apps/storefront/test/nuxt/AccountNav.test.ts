@@ -37,7 +37,9 @@ describe("AccountNav", () => {
     const wrapper = await mountNav()
 
     expect(wrapper.find('nav a[href="/account/orders"]').attributes("aria-current")).toBe("page")
-    expect(wrapper.find('nav a[href="/account/wishlist"]').attributes("aria-current")).toBeUndefined()
+    expect(
+      wrapper.find('nav a[href="/account/wishlist"]').attributes("aria-current")
+    ).toBeUndefined()
   })
 
   it("has one logout button", async () => {

@@ -13,7 +13,9 @@ useHead({ title: () => t("home.title") })
 <template>
   <div>
     <!-- The design hero is text only, with no image. -->
-    <section class="flex flex-col items-start gap-4 rounded-xl bg-backdrop-sand px-5 py-10 md:px-16 md:py-24">
+    <section
+      class="flex flex-col items-start gap-4 rounded-xl bg-backdrop-sand px-5 py-10 md:px-16 md:py-24"
+    >
       <h1 class="text-display max-w-[16ch]">{{ $t("home.title") }}</h1>
       <p class="text-body-lg max-w-[52ch] text-muted-foreground">{{ $t("home.subtitle") }}</p>
       <Button as-child size="lg">

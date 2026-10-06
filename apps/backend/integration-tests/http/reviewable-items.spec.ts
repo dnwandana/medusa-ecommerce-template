@@ -39,7 +39,9 @@ medusaIntegrationTestRunner({
       afterEach(() => mock.restore())
 
       const get = (requestHeaders = headers) =>
-        api.get("/store/customers/me/reviewable-items", { headers: requestHeaders }).catch((e: any) => e.response)
+        api
+          .get("/store/customers/me/reviewable-items", { headers: requestHeaders })
+          .catch((e: any) => e.response)
 
       it("lists only the shipped item of an order that ships in parts", async () => {
         const response = await get()

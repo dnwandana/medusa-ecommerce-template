@@ -48,12 +48,18 @@ const { data: categories } = await useAsyncData(
             </NuxtLinkLocale>
           </li>
           <li>
-            <NuxtLinkLocale to="/account/orders" class="text-muted-foreground hover:text-foreground">
+            <NuxtLinkLocale
+              to="/account/orders"
+              class="text-muted-foreground hover:text-foreground"
+            >
               {{ $t("account.orders") }}
             </NuxtLinkLocale>
           </li>
           <li>
-            <NuxtLinkLocale to="/account/wishlist" class="text-muted-foreground hover:text-foreground">
+            <NuxtLinkLocale
+              to="/account/wishlist"
+              class="text-muted-foreground hover:text-foreground"
+            >
               {{ $t("account.wishlist") }}
             </NuxtLinkLocale>
           </li>

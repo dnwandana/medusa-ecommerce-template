@@ -24,7 +24,10 @@ medusaIntegrationTestRunner({
         const container = getContainer()
         const seed = await runSeed(container)
         mock = installMayarMock()
-        customer = await createCustomerWithToken(container, { first_name: "Budi", last_name: "Santoso" })
+        customer = await createCustomerWithToken(container, {
+          first_name: "Budi",
+          last_name: "Santoso",
+        })
         publishableKey = seed.publishableKey
         headers = { "x-publishable-api-key": publishableKey, ...customer.headers }
         const order = await placePaidOrder({ api, headers, regionId: seed.regionId }, mock, [
@@ -43,9 +46,16 @@ medusaIntegrationTestRunner({
         api.post("/store/reviews", body, { headers: requestHeaders }).catch((e: any) => e.response)
 
       const savedReviews = () =>
-        (getContainer().resolve(PRODUCT_REVIEW_MODULE) as ProductReviewModuleService).listReviews({})
+        (getContainer().resolve(PRODUCT_REVIEW_MODULE) as ProductReviewModuleService).listReviews(
+          {}
+        )
 
-      const valid = () => ({ order_line_item_id: shirt.id, rating: 5, title: "Good", content: "Soft cotton." })
+      const valid = () => ({
+        order_line_item_id: shirt.id,
+        rating: 5,
+        title: "Good",
+        content: "Soft cotton.",
+      })
 
       it("saves a pending review for a shipped item", async () => {
         const response = await post(valid())
@@ -110,7 +120,10 @@ medusaIntegrationTestRunner({
       it("answers 404 for an item of a different customer", async () => {
         const other = await createCustomerWithToken(getContainer())
 
-        const response = await post(valid(), { "x-publishable-api-key": publishableKey, ...other.headers })
+        const response = await post(valid(), {
+          "x-publishable-api-key": publishableKey,
+          ...other.headers,
+        })
 
         expect(response.status).toBe(404)
         expect(response.data.type).toBe("not_found")

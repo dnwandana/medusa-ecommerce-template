@@ -57,9 +57,7 @@ function shippingRatePerKg(env: Env): number {
     return DEFAULT_SHIPPING_RATE_PER_KG
   }
   if (!/^[1-9]\d*$/.test(value)) {
-    throw new Error(
-      `SHIPPING_RATE_PER_KG must be a positive whole number. Value: ${value}`
-    )
+    throw new Error(`SHIPPING_RATE_PER_KG must be a positive whole number. Value: ${value}`)
   }
   return Number(value)
 }
@@ -157,10 +155,7 @@ function paymentModule(env: Env): ModuleEntry {
 
 // Returns the custom modules that have their own data models.
 function customModules(): ModuleEntry[] {
-  return [
-    { resolve: "./src/modules/product-review" },
-    { resolve: "./src/modules/wishlist" },
-  ]
+  return [{ resolve: "./src/modules/product-review" }, { resolve: "./src/modules/wishlist" }]
 }
 
 // Returns the Translation Module. The Store API uses it to return product content in the locale

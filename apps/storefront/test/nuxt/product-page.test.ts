@@ -68,6 +68,8 @@ describe("product page", () => {
   it("uses two columns with a gap of 64px from md", async () => {
     const wrapper = await mountPage()
 
-    expect(wrapper.find(".grid").classes()).toEqual(expect.arrayContaining(["md:grid-cols-2", "md:gap-16"]))
+    expect(wrapper.find(".grid").classes()).toEqual(
+      expect.arrayContaining(["md:grid-cols-2", "md:gap-16"])
+    )
   })
 })

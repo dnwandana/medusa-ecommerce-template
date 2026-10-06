@@ -21,7 +21,9 @@ useHead({ title: () => t("order.thanks") })
 <template>
   <div v-if="order" class="flex flex-col gap-8">
     <div class="flex flex-col items-center gap-3 text-center">
-      <div class="flex size-14 items-center justify-center rounded-full bg-success-soft text-success">
+      <div
+        class="flex size-14 items-center justify-center rounded-full bg-success-soft text-success"
+      >
         <CircleCheck aria-hidden="true" class="size-7" />
       </div>
       <h1 class="text-h1">{{ $t("order.thanks") }}</h1>

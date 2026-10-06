@@ -83,7 +83,9 @@ useHead({ title: () => t("cart.title") })
                 <span data-testid="subtotal">{{ formatPrice(cart.item_subtotal) }}</span>
               </dd>
               <dt>{{ $t("cart.shipping") }}</dt>
-              <dd class="text-right text-body-sm text-muted-foreground">{{ $t("cart.shippingAtCheckout") }}</dd>
+              <dd class="text-right text-body-sm text-muted-foreground">
+                {{ $t("cart.shippingAtCheckout") }}
+              </dd>
             </dl>
           </CardContent>
           <CardFooter class="flex-col gap-3">

@@ -13,10 +13,20 @@ mockNuxtImport("useCatalog", () => () => catalog)
 beforeEach(() => {
   clearNuxtData()
   catalog.listProducts.mockReset().mockResolvedValue({
-    products: [{ id: "prod_1", title: "Plain T-Shirt", handle: "plain-t-shirt", thumbnail: null, variants: [] }],
+    products: [
+      {
+        id: "prod_1",
+        title: "Plain T-Shirt",
+        handle: "plain-t-shirt",
+        thumbnail: null,
+        variants: [],
+      },
+    ],
     count: 30,
   })
-  catalog.listCategories.mockReset().mockResolvedValue([{ id: "pcat_1", name: "Shirts", handle: "shirts" }])
+  catalog.listCategories
+    .mockReset()
+    .mockResolvedValue([{ id: "pcat_1", name: "Shirts", handle: "shirts" }])
 })
 
 describe("products page", () => {
@@ -39,7 +49,11 @@ describe("products page", () => {
     expect(wrapper.findComponent(CategoryFilter).props("categories")).toHaveLength(1)
     expect(wrapper.findComponent(CategoryFilter).props("currentHandle")).toBeUndefined()
     expect(wrapper.findComponent(ProductGrid).props("loading")).toBe(false)
-    expect(wrapper.findComponent(CatalogPagination).props()).toMatchObject({ page: 2, count: 30, path: "/products" })
+    expect(wrapper.findComponent(CatalogPagination).props()).toMatchObject({
+      page: 2,
+      count: 30,
+      path: "/products",
+    })
   })
 
   it("shows a destructive alert when the products do not load", async () => {

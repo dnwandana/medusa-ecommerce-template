@@ -33,7 +33,8 @@ const open = async (wrapper: Awaited<ReturnType<typeof mountSuspended>>) => {
   await trigger.trigger("click")
 }
 
-const radioItems = () => [...document.body.querySelectorAll('[role="menuitemradio"]')] as HTMLElement[]
+const radioItems = () =>
+  [...document.body.querySelectorAll('[role="menuitemradio"]')] as HTMLElement[]
 
 describe("LanguageSwitcher", () => {
   it("shows the code of the current language in the header form", async () => {
@@ -47,7 +48,10 @@ describe("LanguageSwitcher", () => {
     const wrapper = await mountSuspended(LanguageSwitcher, { attachTo: document.body })
     await open(wrapper)
 
-    expect(radioItems().map((item) => item.textContent?.trim())).toEqual(["English", "Bahasa Indonesia"])
+    expect(radioItems().map((item) => item.textContent?.trim())).toEqual([
+      "English",
+      "Bahasa Indonesia",
+    ])
   })
 
   it("checks the current language", async () => {
@@ -68,7 +72,10 @@ describe("LanguageSwitcher", () => {
   })
 
   it("shows the full-width outline form in the sheet", async () => {
-    const wrapper = await mountSuspended(LanguageSwitcher, { props: { variant: "sheet" }, attachTo: document.body })
+    const wrapper = await mountSuspended(LanguageSwitcher, {
+      props: { variant: "sheet" },
+      attachTo: document.body,
+    })
 
     expect(wrapper.find("button").classes()).toContain("w-full")
     expect(wrapper.find("button").text()).toBe("English")

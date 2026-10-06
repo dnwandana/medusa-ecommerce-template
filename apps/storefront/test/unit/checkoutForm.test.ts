@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest"
-import {
-  normalizePhone,
-  toMayarCustomer,
-  validateCheckoutForm,
-} from "../../app/utils/checkoutForm"
+import { normalizePhone, toMayarCustomer, validateCheckoutForm } from "../../app/utils/checkoutForm"
 
 const valid = {
   email: "buyer@example.com",
@@ -41,7 +37,14 @@ describe("validateCheckoutForm", () => {
 
   // Review Focus: letters, a short number, and a number that is not a mobile number.
   it("rejects a phone number that is not an Indonesian mobile number", () => {
-    for (const phone of ["08abc", "12345", "0812345", "+15551234567", "0211234567", "08123456789012345"]) {
+    for (const phone of [
+      "08abc",
+      "12345",
+      "0812345",
+      "+15551234567",
+      "0211234567",
+      "08123456789012345",
+    ]) {
       expect(validateCheckoutForm({ ...valid, phone })).toEqual({ phone: "checkout.errors.phone" })
     }
   })
@@ -87,10 +90,12 @@ describe("validateCheckoutForm", () => {
 describe("toMayarCustomer", () => {
   // Review Focus: Mayar gets the clean number, not the text that the customer typed.
   it("builds the customer data with the full name and the clean number", () => {
-    expect(toMayarCustomer({ ...valid, phone: "+62 812-3456-7890", first_name: " Sari " })).toEqual({
-      name: "Sari Dewi",
-      email: "buyer@example.com",
-      mobile: "+6281234567890",
-    })
+    expect(toMayarCustomer({ ...valid, phone: "+62 812-3456-7890", first_name: " Sari " })).toEqual(
+      {
+        name: "Sari Dewi",
+        email: "buyer@example.com",
+        mobile: "+6281234567890",
+      }
+    )
   })
 })

@@ -20,7 +20,10 @@ medusaIntegrationTestRunner({
           product_variant_id: "variant_1",
         })
 
-        const [found] = await service.listWishlists({ customer_id: "cus_1" }, { relations: ["items"] })
+        const [found] = await service.listWishlists(
+          { customer_id: "cus_1" },
+          { relations: ["items"] }
+        )
 
         expect(found.id).toBe(wishlist.id)
         expect(found.items.map((i) => i.id)).toEqual([item.id])
@@ -46,8 +49,14 @@ medusaIntegrationTestRunner({
       it("accepts the same variant in the wishlists of two customers", async () => {
         const first = await service.createWishlists({ customer_id: "cus_1" })
         const second = await service.createWishlists({ customer_id: "cus_2" })
-        await service.createWishlistItems({ wishlist_id: first.id, product_variant_id: "variant_1" })
-        await service.createWishlistItems({ wishlist_id: second.id, product_variant_id: "variant_1" })
+        await service.createWishlistItems({
+          wishlist_id: first.id,
+          product_variant_id: "variant_1",
+        })
+        await service.createWishlistItems({
+          wishlist_id: second.id,
+          product_variant_id: "variant_1",
+        })
 
         expect(await service.listWishlistItems({})).toHaveLength(2)
       })

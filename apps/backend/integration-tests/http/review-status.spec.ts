@@ -15,7 +15,8 @@ medusaIntegrationTestRunner({
       let toteId: string
       let counter = 0
 
-      const service = (): ProductReviewModuleService => getContainer().resolve(PRODUCT_REVIEW_MODULE)
+      const service = (): ProductReviewModuleService =>
+        getContainer().resolve(PRODUCT_REVIEW_MODULE)
 
       const add = (status: "pending" | "approved" | "rejected" = "pending") =>
         service().createReviews({
@@ -33,7 +34,9 @@ medusaIntegrationTestRunner({
         api.post("/admin/reviews/status", body, { headers }).catch((e: any) => e.response)
 
       const shownIds = async () => {
-        const response = await api.get(`/store/products/${toteId}/reviews`, { headers: storeHeaders })
+        const response = await api.get(`/store/products/${toteId}/reviews`, {
+          headers: storeHeaders,
+        })
         return response.data.reviews.map((r: any) => r.id)
       }
 

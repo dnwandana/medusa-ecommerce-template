@@ -8,7 +8,14 @@ const cart = {
   shipping_total: 18000,
   total: 318000,
   items: [
-    { id: "item_1", product_title: "Plain T-Shirt", variant_title: "M", thumbnail: null, quantity: 2, unit_price: 150000 },
+    {
+      id: "item_1",
+      product_title: "Plain T-Shirt",
+      variant_title: "M",
+      thumbnail: null,
+      quantity: 2,
+      unit_price: 150000,
+    },
   ],
 } as never
 

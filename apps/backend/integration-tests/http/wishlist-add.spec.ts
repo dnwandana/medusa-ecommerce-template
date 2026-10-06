@@ -124,7 +124,10 @@ medusaIntegrationTestRunner({
       })
 
       it("answers 401 with no customer token", async () => {
-        const response = await post({ variant_id: toteId }, { "x-publishable-api-key": publishableKey })
+        const response = await post(
+          { variant_id: toteId },
+          { "x-publishable-api-key": publishableKey }
+        )
 
         expect(response.status).toBe(401)
         expect(await service().listWishlists({})).toHaveLength(0)

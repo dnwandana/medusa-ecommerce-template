@@ -10,10 +10,17 @@ describe("AuthPanel", () => {
     })
 
     expect(wrapper.find("h1").text()).toBe("Log in")
-    expect(wrapper.find("h1").classes()).toEqual(expect.arrayContaining(["text-[24px]", "md:text-[26px]"]))
+    expect(wrapper.find("h1").classes()).toEqual(
+      expect.arrayContaining(["text-[24px]", "md:text-[26px]"])
+    )
     expect(wrapper.find(".max-w-\\[400px\\]").exists()).toBe(true)
     expect(wrapper.find('[data-slot="card"]').text()).toBe("form")
     // Vue removes the white space between elements, so the test reads the order of the elements.
-    expect(wrapper.findAll("p, h1").map((node) => node.text())).toEqual(["before", "Log in", "form", "after"])
+    expect(wrapper.findAll("p, h1").map((node) => node.text())).toEqual([
+      "before",
+      "Log in",
+      "form",
+      "after",
+    ])
   })
 })

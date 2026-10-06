@@ -50,8 +50,6 @@ describe("renderPaidCartAlert", () => {
 
 describe("renderTemplate", () => {
   it("renders the paid-cart-alert template", () => {
-    expect(renderTemplate("paid-cart-alert", data).subject).toBe(
-      "Paid cart with no order: cart_01"
-    )
+    expect(renderTemplate("paid-cart-alert", data).subject).toBe("Paid cart with no order: cart_01")
   })
 })

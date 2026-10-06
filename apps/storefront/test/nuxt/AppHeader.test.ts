@@ -38,7 +38,9 @@ beforeEach(() => {
 })
 
 const badges = (wrapper: Awaited<ReturnType<typeof mountSuspended>>) =>
-  wrapper.findAll('a[href="/cart"] [data-slot="badge"]').map((badge: DOMWrapper<Element>) => badge.text())
+  wrapper
+    .findAll('a[href="/cart"] [data-slot="badge"]')
+    .map((badge: DOMWrapper<Element>) => badge.text())
 
 describe("AppHeader", () => {
   it("shows the cart count in the desktop badge and in the mobile dot badge", async () => {

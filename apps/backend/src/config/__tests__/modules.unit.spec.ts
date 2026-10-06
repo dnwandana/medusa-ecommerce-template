@@ -13,9 +13,7 @@ describe("buildModules: Redis modules", () => {
   })
 
   it("adds no Redis module when REDIS_URL is an empty string", () => {
-    expect(resolves({ REDIS_URL: "" })).not.toContain(
-      "@medusajs/medusa/event-bus-redis"
-    )
+    expect(resolves({ REDIS_URL: "" })).not.toContain("@medusajs/medusa/event-bus-redis")
   })
 
   it("adds the four Redis modules when REDIS_URL has a value", () => {
@@ -88,9 +86,7 @@ describe("buildModules: fulfillment module", () => {
 
 describe("buildModules: notification module", () => {
   const providers = (env: Record<string, string | undefined>) => {
-    const entry = buildModules(env).find(
-      (m) => m.resolve === "@medusajs/medusa/notification"
-    )
+    const entry = buildModules(env).find((m) => m.resolve === "@medusajs/medusa/notification")
     return (entry?.options as any)?.providers
   }
 

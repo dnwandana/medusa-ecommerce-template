@@ -44,7 +44,9 @@ function initials(first: string | null | undefined, last: string | null | undefi
               {{ $t("reviews.average", { rating: data.average_rating.toFixed(1) }) }}
             </span>
           </template>
-          <span class="text-body-sm text-muted-foreground">{{ $t("reviews.count", data.count) }}</span>
+          <span class="text-body-sm text-muted-foreground">{{
+            $t("reviews.count", data.count)
+          }}</span>
         </div>
 
         <div class="flex flex-col gap-6">
@@ -57,7 +59,9 @@ function initials(first: string | null | undefined, last: string | null | undefi
               <div class="flex min-w-0 flex-col gap-1">
                 <p class="font-semibold">{{ review.first_name }}</p>
                 <StarRating :rating="review.rating" />
-                <p class="text-caption text-muted-foreground">{{ review.created_at.slice(0, 10) }}</p>
+                <p class="text-caption text-muted-foreground">
+                  {{ review.created_at.slice(0, 10) }}
+                </p>
                 <h3 v-if="review.title" class="mt-1 text-h4">{{ review.title }}</h3>
                 <p class="whitespace-pre-line">{{ review.content }}</p>
               </div>

@@ -20,20 +20,24 @@ medusaIntegrationTestRunner({
         status: "pending" | "approved" | "rejected",
         content = "Text"
       ) =>
-        (getContainer().resolve(PRODUCT_REVIEW_MODULE) as ProductReviewModuleService).createReviews({
-          product_id: productId,
-          customer_id: "cus_secret",
-          order_line_item_id: `ordli_${++counter}`,
-          rating,
-          title: null,
-          content,
-          first_name: "Budi",
-          last_name: "Santoso",
-          status,
-        })
+        (getContainer().resolve(PRODUCT_REVIEW_MODULE) as ProductReviewModuleService).createReviews(
+          {
+            product_id: productId,
+            customer_id: "cus_secret",
+            order_line_item_id: `ordli_${++counter}`,
+            rating,
+            title: null,
+            content,
+            first_name: "Budi",
+            last_name: "Santoso",
+            status,
+          }
+        )
 
       const get = (productId: string, query = "") =>
-        api.get(`/store/products/${productId}/reviews${query}`, { headers }).catch((e: any) => e.response)
+        api
+          .get(`/store/products/${productId}/reviews${query}`, { headers })
+          .catch((e: any) => e.response)
 
       beforeEach(async () => {
         const container = getContainer()
@@ -52,7 +56,13 @@ medusaIntegrationTestRunner({
         const response = await get(toteId)
 
         expect(response.status).toBe(200)
-        expect(response.data).toEqual({ reviews: [], count: 0, limit: 10, offset: 0, average_rating: 0 })
+        expect(response.data).toEqual({
+          reviews: [],
+          count: 0,
+          limit: 10,
+          offset: 0,
+          average_rating: 0,
+        })
       })
 
       it("returns only the approved reviews of the product", async () => {

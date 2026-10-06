@@ -64,13 +64,18 @@ useHead({ title: () => t("account.orders") })
         <Card v-for="order in orders" :key="order.id" :data-testid="`order-${order.id}`">
           <CardHeader class="flex flex-row flex-wrap items-center gap-x-4 gap-y-1">
             <h3 class="text-h4">{{ $t("order.number", { id: order.display_id }) }}</h3>
-            <span class="text-body-sm text-muted-foreground">{{ $d(new Date(order.created_at)) }}</span>
+            <span class="text-body-sm text-muted-foreground">{{
+              $d(new Date(order.created_at))
+            }}</span>
             <span class="text-body-sm text-muted-foreground">
-              {{ $t("order.items") }}: {{ (order.items ?? []).reduce((sum, line) => sum + line.quantity, 0) }}
+              {{ $t("order.items") }}:
+              {{ (order.items ?? []).reduce((sum, line) => sum + line.quantity, 0) }}
             </span>
             <span class="text-price">{{ formatPrice(order.total) }}</span>
             <Button variant="outline" size="sm" class="ml-auto" as-child>
-              <NuxtLinkLocale :to="`/orders/${order.id}`">{{ $t("account.viewOrder") }}</NuxtLinkLocale>
+              <NuxtLinkLocale :to="`/orders/${order.id}`">{{
+                $t("account.viewOrder")
+              }}</NuxtLinkLocale>
             </Button>
           </CardHeader>
 
@@ -86,7 +91,9 @@ useHead({ title: () => t("account.orders") })
               </ItemMedia>
               <ItemContent>
                 <ItemTitle>{{ line.product_title }}</ItemTitle>
-                <ItemDescription v-if="line.variant_title">{{ line.variant_title }}</ItemDescription>
+                <ItemDescription v-if="line.variant_title">{{
+                  line.variant_title
+                }}</ItemDescription>
                 <span class="text-body-sm">× {{ line.quantity }}</span>
               </ItemContent>
             </Item>

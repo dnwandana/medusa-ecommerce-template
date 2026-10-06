@@ -42,7 +42,9 @@ defineProps<{ cart: HttpTypes.StoreCart; showShipping: boolean }>()
           <dd class="text-right">{{ formatPrice(cart.shipping_total) }}</dd>
           <!-- A border and not a Separator, because a dl can hold only dt, dd, and div elements. -->
           <dt class="border-t border-border pt-2 font-semibold">{{ $t("cart.total") }}</dt>
-          <dd class="border-t border-border pt-2 text-right text-price-lg">{{ formatPrice(cart.total) }}</dd>
+          <dd class="border-t border-border pt-2 text-right text-price-lg">
+            {{ formatPrice(cart.total) }}
+          </dd>
         </template>
       </dl>
     </CardContent>

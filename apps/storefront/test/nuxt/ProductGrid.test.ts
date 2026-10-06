@@ -8,7 +8,9 @@ const products = [
 ] as never[]
 
 const mountGrid = (props: Record<string, unknown>) =>
-  mountSuspended(ProductGrid, { props: { products, emptyText: "No products are available.", ...props } })
+  mountSuspended(ProductGrid, {
+    props: { products, emptyText: "No products are available.", ...props },
+  })
 
 describe("ProductGrid", () => {
   it("shows one card for each product in the responsive grid", async () => {
@@ -16,7 +18,14 @@ describe("ProductGrid", () => {
 
     expect(wrapper.findAllComponents(ProductCard)).toHaveLength(2)
     expect(wrapper.find(".grid").classes()).toEqual(
-      expect.arrayContaining(["grid-cols-2", "gap-3", "md:grid-cols-3", "md:gap-6", "lg:grid-cols-4"]))
+      expect.arrayContaining([
+        "grid-cols-2",
+        "gap-3",
+        "md:grid-cols-3",
+        "md:gap-6",
+        "lg:grid-cols-4",
+      ])
+    )
   })
 
   it("shows the skeleton cards while the page loads", async () => {

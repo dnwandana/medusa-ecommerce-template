@@ -9,9 +9,12 @@ const route = useRoute()
 const open = ref(false)
 
 // A click on a link does not close a reka-ui Sheet. Close it when the route changes.
-watch(() => route.fullPath, () => {
-  open.value = false
-})
+watch(
+  () => route.fullPath,
+  () => {
+    open.value = false
+  }
+)
 
 // The key is the same as on the products page and in the footer, so they share one request.
 const { data: categories } = useAsyncData(
@@ -51,7 +54,9 @@ const accountLinks = [
         </Button>
 
         <template v-if="categories?.length">
-          <p class="mt-4 px-3 pb-1 text-caption text-muted-foreground">{{ $t("products.categories") }}</p>
+          <p class="mt-4 px-3 pb-1 text-caption text-muted-foreground">
+            {{ $t("products.categories") }}
+          </p>
           <Button
             v-for="category in categories"
             :key="category.id"
@@ -59,14 +64,22 @@ const accountLinks = [
             variant="ghost"
             class="w-full justify-start"
           >
-            <NuxtLinkLocale :to="`/categories/${category.handle}`">{{ category.name }}</NuxtLinkLocale>
+            <NuxtLinkLocale :to="`/categories/${category.handle}`">{{
+              category.name
+            }}</NuxtLinkLocale>
           </Button>
         </template>
 
         <Separator class="my-4" />
 
         <template v-if="customer">
-          <Button v-for="link in accountLinks" :key="link.to" as-child variant="ghost" class="w-full justify-start">
+          <Button
+            v-for="link in accountLinks"
+            :key="link.to"
+            as-child
+            variant="ghost"
+            class="w-full justify-start"
+          >
             <NuxtLinkLocale :to="link.to">
               <component :is="link.icon" aria-hidden="true" />
               {{ $t(link.label) }}

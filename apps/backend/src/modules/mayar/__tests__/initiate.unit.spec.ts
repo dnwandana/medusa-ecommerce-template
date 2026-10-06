@@ -115,7 +115,10 @@ describe("MayarPaymentProviderService: initiatePayment", () => {
     const { service, client } = makeService()
 
     await expect(
-      service.initiatePayment({ ...input, data: { session_id: "payses_1", customer: partial } } as any)
+      service.initiatePayment({
+        ...input,
+        data: { session_id: "payses_1", customer: partial },
+      } as any)
     ).rejects.toThrow(`The Mayar payment needs the ${field} of the customer.`)
     expect(client.createInvoice).not.toHaveBeenCalled()
   })
@@ -139,9 +142,7 @@ describe("MayarPaymentProviderService: initiatePayment", () => {
   it("lets an error of the Mayar API pass through", async () => {
     const { service, client } = makeService()
     client.createInvoice.mockRejectedValue(new Error("The Mayar request failed."))
-    await expect(service.initiatePayment(input as any)).rejects.toThrow(
-      "The Mayar request failed."
-    )
+    await expect(service.initiatePayment(input as any)).rejects.toThrow("The Mayar request failed.")
   })
 })
 

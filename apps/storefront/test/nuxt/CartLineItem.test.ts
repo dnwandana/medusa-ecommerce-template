@@ -36,7 +36,10 @@ describe("CartLineItem", () => {
   it("emits remove for the remove button", async () => {
     const wrapper = await mountSuspended(CartLineItem, { props: { item } })
 
-    await wrapper.findAll("button").find((button) => button.text() === "Remove")!.trigger("click")
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text() === "Remove")!
+      .trigger("click")
 
     expect(wrapper.emitted("remove")).toHaveLength(1)
   })
@@ -59,7 +62,9 @@ describe("CartLineItem", () => {
   it("disables the three buttons while the cart is busy", async () => {
     const wrapper = await mountSuspended(CartLineItem, { props: { item, disabled: true } })
 
-    expect(wrapper.findAll("button").every((button) => button.attributes("disabled") !== undefined)).toBe(true)
+    expect(
+      wrapper.findAll("button").every((button) => button.attributes("disabled") !== undefined)
+    ).toBe(true)
   })
 
   it("shows a placeholder when the line has no thumbnail", async () => {

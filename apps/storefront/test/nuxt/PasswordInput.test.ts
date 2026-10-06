@@ -53,7 +53,8 @@ describe("PasswordInput", () => {
     const onSubmit = vi.fn((event: Event) => event.preventDefault())
     const Form = defineComponent(() => {
       const value = ref("")
-      return () => h("form", { onSubmit }, [h(PasswordInput, { ...props, modelValue: value.value })])
+      return () =>
+        h("form", { onSubmit }, [h(PasswordInput, { ...props, modelValue: value.value })])
     })
     const wrapper = await mountSuspended(Form, { attachTo: document.body })
 

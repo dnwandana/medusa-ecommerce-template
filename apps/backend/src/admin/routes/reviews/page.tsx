@@ -65,7 +65,10 @@ const ReviewsPage = () => {
   const [rowSelection, setRowSelection] = useState<DataTableRowSelectionState>({})
   const [status, setStatus] = useState<ReviewStatus | "all">("all")
 
-  const query = useMemo(() => listQuery(pagination.pageIndex, status), [pagination.pageIndex, status])
+  const query = useMemo(
+    () => listQuery(pagination.pageIndex, status),
+    [pagination.pageIndex, status]
+  )
 
   const { data, isLoading, refetch } = useQuery<ReviewList>({
     queryKey: ["reviews", query],
@@ -73,7 +76,10 @@ const ReviewsPage = () => {
   })
 
   // Sends the new status for the selected rows, then loads the list again.
-  const setReviewStatus = async (selection: DataTableRowSelectionState, next: "approved" | "rejected") => {
+  const setReviewStatus = async (
+    selection: DataTableRowSelectionState,
+    next: "approved" | "rejected"
+  ) => {
     try {
       await sdk.client.fetch("/admin/reviews/status", {
         method: "POST",

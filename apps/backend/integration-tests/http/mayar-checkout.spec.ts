@@ -83,9 +83,7 @@ medusaIntegrationTestRunner({
       })
 
       it("returns the same order for a second completion", async () => {
-        const { cartId, invoiceId } = await createCartWithPaymentSession(ctx, [
-          ["TOTE-DEFAULT", 1],
-        ])
+        const { cartId, invoiceId } = await createCartWithPaymentSession(ctx, [["TOTE-DEFAULT", 1]])
         mock.setInvoiceStatus(invoiceId, "paid")
 
         const first = await complete(cartId)
@@ -98,9 +96,7 @@ medusaIntegrationTestRunner({
       })
 
       it("keeps the cart when the invoice is not paid, and completes it after the payment", async () => {
-        const { cartId, invoiceId } = await createCartWithPaymentSession(ctx, [
-          ["TOTE-DEFAULT", 1],
-        ])
+        const { cartId, invoiceId } = await createCartWithPaymentSession(ctx, [["TOTE-DEFAULT", 1]])
 
         const unpaid = await complete(cartId)
 
@@ -118,9 +114,7 @@ medusaIntegrationTestRunner({
 
       // Review Focus: a paid invoice with a different amount must not create an order.
       it("creates no order when the paid amount is different from the cart total", async () => {
-        const { cartId, invoiceId } = await createCartWithPaymentSession(ctx, [
-          ["TOTE-DEFAULT", 1],
-        ])
+        const { cartId, invoiceId } = await createCartWithPaymentSession(ctx, [["TOTE-DEFAULT", 1]])
         mock.setInvoiceAmount(invoiceId, 1)
         mock.setInvoiceStatus(invoiceId, "paid")
 
@@ -131,10 +125,9 @@ medusaIntegrationTestRunner({
       })
 
       it("closes the invoice when the cart changes, and uses a new invoice", async () => {
-        const { cartId, invoiceId, paymentCollectionId } = await createCartWithPaymentSession(
-          ctx,
-          [["TOTE-DEFAULT", 1]]
-        )
+        const { cartId, invoiceId, paymentCollectionId } = await createCartWithPaymentSession(ctx, [
+          ["TOTE-DEFAULT", 1],
+        ])
         const cart = await api.get(`/store/carts/${cartId}`, { headers: ctx.headers })
 
         await api.post(
@@ -150,7 +143,11 @@ medusaIntegrationTestRunner({
           {
             provider_id: "pp_mayar_mayar",
             data: {
-              customer: { name: "Budi Santoso", email: "buyer@example.com", mobile: "081234567890" },
+              customer: {
+                name: "Budi Santoso",
+                email: "buyer@example.com",
+                mobile: "081234567890",
+              },
             },
           },
           { headers: ctx.headers }

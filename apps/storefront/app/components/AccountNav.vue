@@ -34,7 +34,13 @@ async function leave(): Promise<void> {
     <h1 class="text-h1 [grid-area:title] md:mb-6">{{ $t("account.title") }}</h1>
 
     <nav :aria-label="$t('account.title')" class="hidden gap-1 [grid-area:nav] md:flex md:flex-col">
-      <Button v-for="link in links" :key="link.to" as-child variant="ghost" class="w-full justify-start">
+      <Button
+        v-for="link in links"
+        :key="link.to"
+        as-child
+        variant="ghost"
+        class="w-full justify-start"
+      >
         <NuxtLinkLocale :to="link.to" :aria-current="current(link.to)">
           <component :is="link.icon" aria-hidden="true" />
           {{ $t(link.label) }}

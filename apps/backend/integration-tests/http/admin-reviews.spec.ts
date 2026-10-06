@@ -15,16 +15,18 @@ medusaIntegrationTestRunner({
       let counter = 0
 
       const add = (status: "pending" | "approved" | "rejected", content = "Text") =>
-        (getContainer().resolve(PRODUCT_REVIEW_MODULE) as ProductReviewModuleService).createReviews({
-          product_id: tote.id,
-          customer_id: "cus_1",
-          order_line_item_id: `ordli_${++counter}`,
-          rating: 4,
-          content,
-          first_name: "Budi",
-          last_name: "Santoso",
-          status,
-        })
+        (getContainer().resolve(PRODUCT_REVIEW_MODULE) as ProductReviewModuleService).createReviews(
+          {
+            product_id: tote.id,
+            customer_id: "cus_1",
+            order_line_item_id: `ordli_${++counter}`,
+            rating: 4,
+            content,
+            first_name: "Budi",
+            last_name: "Santoso",
+            status,
+          }
+        )
 
       const get = (query = "", headers: Record<string, string> = admin.headers) =>
         api.get(`/admin/reviews${query}`, { headers }).catch((e: any) => e.response)

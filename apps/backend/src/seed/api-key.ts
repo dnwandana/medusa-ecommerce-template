@@ -49,7 +49,9 @@ export async function seedPublishableKey(
     })
   }
 
-  const linked = (apiKey.sales_channels ?? []).some((channel) => channel.id === input.salesChannelId)
+  const linked = (apiKey.sales_channels ?? []).some(
+    (channel) => channel.id === input.salesChannelId
+  )
   if (!linked) {
     await linkSalesChannelsToApiKeyWorkflow(container).run({
       input: { id: apiKey.id, add: [input.salesChannelId] },

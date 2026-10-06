@@ -10,7 +10,11 @@ medusaIntegrationTestRunner({
       let service: ProductReviewModuleService
       let counter = 0
 
-      const add = (productId: string, rating: number, status: "pending" | "approved" | "rejected") =>
+      const add = (
+        productId: string,
+        rating: number,
+        status: "pending" | "approved" | "rejected"
+      ) =>
         service.createReviews({
           product_id: productId,
           customer_id: "cus_1",

@@ -52,9 +52,7 @@ medusaIntegrationTestRunner({
       })
 
       it("completes the cart of a paid invoice", async () => {
-        const { cartId, invoiceId } = await createCartWithPaymentSession(ctx, [
-          ["TOTE-DEFAULT", 1],
-        ])
+        const { cartId, invoiceId } = await createCartWithPaymentSession(ctx, [["TOTE-DEFAULT", 1]])
         mock.setInvoiceStatus(invoiceId, "paid")
 
         await checkPaidCartsJob(getContainer())
@@ -75,9 +73,7 @@ medusaIntegrationTestRunner({
       })
 
       it("sends one alert to the store owner when the paid cart does not complete", async () => {
-        const { cartId, invoiceId } = await createCartWithPaymentSession(ctx, [
-          ["TOTE-DEFAULT", 1],
-        ])
+        const { cartId, invoiceId } = await createCartWithPaymentSession(ctx, [["TOTE-DEFAULT", 1]])
         // A paid invoice with a different amount fails the completion.
         mock.setInvoiceAmount(invoiceId, 1)
         mock.setInvoiceStatus(invoiceId, "paid")

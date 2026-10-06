@@ -28,7 +28,9 @@ const variant = (id: string, size: string, amount: number, stock: number) => ({
 const product = {
   id: "prod_1",
   title: "Plain T-Shirt",
-  options: [{ id: "opt_size", title: "Size", values: [{ value: "S" }, { value: "M" }, { value: "L" }] }],
+  options: [
+    { id: "opt_size", title: "Size", values: [{ value: "S" }, { value: "M" }, { value: "L" }] },
+  ],
   variants: [
     variant("variant_s", "S", 150000, 5),
     variant("variant_m", "M", 160000, 5),

@@ -58,7 +58,12 @@ const pay = async (wrapper: Page) => {
 }
 
 beforeEach(() => {
-  cart.cart.value = { id: "cart_1", items: [{ id: "item_1" }], item_subtotal: 150000, total: 150000 }
+  cart.cart.value = {
+    id: "cart_1",
+    items: [{ id: "item_1" }],
+    item_subtotal: 150000,
+    total: 150000,
+  }
   cart.load.mockReset().mockResolvedValue(undefined)
   customerState.customer.value = null
   checkout.saveContact.mockReset().mockResolvedValue(undefined)
@@ -219,6 +224,8 @@ describe("checkout page", () => {
     const wrapper = await mountPage()
 
     expect(wrapper.find(".grid").classes()).toContain("md:grid-cols-[minmax(0,1fr)_400px]")
-    expect(wrapper.find("aside").classes()).toEqual(expect.arrayContaining(["order-first", "md:order-none", "md:sticky"]))
+    expect(wrapper.find("aside").classes()).toEqual(
+      expect.arrayContaining(["order-first", "md:order-none", "md:sticky"])
+    )
   })
 })

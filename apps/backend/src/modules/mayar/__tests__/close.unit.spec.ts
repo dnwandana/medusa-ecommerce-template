@@ -45,7 +45,10 @@ describe("MayarPaymentProviderService: updatePayment", () => {
   it("closes the old invoice and creates a new one for the new amount", async () => {
     const { service, client } = makeService()
     client.closeInvoice.mockResolvedValue(undefined)
-    client.createInvoice.mockResolvedValue({ id: "inv_2", link: "https://store.myr.id/invoices/def" })
+    client.createInvoice.mockResolvedValue({
+      id: "inv_2",
+      link: "https://store.myr.id/invoices/def",
+    })
 
     const output = await service.updatePayment({
       amount: 180000,
@@ -77,7 +80,10 @@ describe("MayarPaymentProviderService: updatePayment", () => {
   it("creates the new invoice also when the close fails", async () => {
     const { service, client } = makeService()
     client.closeInvoice.mockRejectedValue(new Error("The Mayar request failed."))
-    client.createInvoice.mockResolvedValue({ id: "inv_2", link: "https://store.myr.id/invoices/def" })
+    client.createInvoice.mockResolvedValue({
+      id: "inv_2",
+      link: "https://store.myr.id/invoices/def",
+    })
 
     const output = await service.updatePayment({
       amount: 180000,

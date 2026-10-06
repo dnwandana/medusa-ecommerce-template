@@ -75,7 +75,13 @@ async function addToCart(): Promise<void> {
     </div>
 
     <div class="flex flex-col gap-3">
-      <Button data-testid="add-to-cart" size="lg" class="w-full" :disabled="!canBuy || busy" @click="addToCart">
+      <Button
+        data-testid="add-to-cart"
+        size="lg"
+        class="w-full"
+        :disabled="!canBuy || busy"
+        @click="addToCart"
+      >
         <Spinner v-if="busy" />
         <template v-if="variant === null">{{ $t("products.selectVariant") }}</template>
         <template v-else-if="!canBuy">{{ $t("products.outOfStock") }}</template>

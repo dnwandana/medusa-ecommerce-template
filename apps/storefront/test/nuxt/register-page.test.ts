@@ -74,7 +74,9 @@ describe("register page", () => {
 
     expect(wrapper.find("#register-password-hint").text()).toBe("Use 8 characters or more.")
     expect(wrapper.find("#register-password-hint").attributes("role")).toBeUndefined()
-    expect(wrapper.find('input[name="password"]').attributes("aria-describedby")).toBe("register-password-hint")
+    expect(wrapper.find('input[name="password"]').attributes("aria-describedby")).toBe(
+      "register-password-hint"
+    )
   })
 
   it("marks the password invalid for a short password", async () => {

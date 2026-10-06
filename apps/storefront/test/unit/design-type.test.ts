@@ -5,7 +5,8 @@ const css = readFileSync(new URL("../../app/assets/css/tailwind.css", import.met
 const pkg = JSON.parse(readFileSync(new URL("../../package.json", import.meta.url), "utf8"))
 
 // Returns the body of one @utility block.
-const utility = (name: string) => css.match(new RegExp(`@utility ${name} \\{([\\s\\S]*?)\\n\\}`))?.[1] ?? ""
+const utility = (name: string) =>
+  css.match(new RegExp(`@utility ${name} \\{([\\s\\S]*?)\\n\\}`))?.[1] ?? ""
 
 describe("design type", () => {
   it("loads the two fonts from fontsource and not from Google", () => {
@@ -26,7 +27,9 @@ describe("design type", () => {
     expect(body).toContain(`font-size: ${smallSize}`)
     expect(body).toContain(`line-height: ${smallLine}`)
     expect(body).toContain(`font-weight: ${weight}`)
-    expect(body).toMatch(new RegExp(`@variant md \\{[\\s\\S]*font-size: ${size};[\\s\\S]*line-height: ${line};`))
+    expect(body).toMatch(
+      new RegExp(`@variant md \\{[\\s\\S]*font-size: ${size};[\\s\\S]*line-height: ${line};`)
+    )
     expect(body).toContain("font-family: var(--font-heading)")
   })
 

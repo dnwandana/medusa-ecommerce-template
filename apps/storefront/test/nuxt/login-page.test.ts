@@ -76,8 +76,12 @@ describe("login page", () => {
     customer.login.mockRejectedValue(Object.assign(new Error("HTTP 401"), { status: 401 }))
     const wrapper = await submit("/account/login?reset=1")
 
-    expect(wrapper.find('[role="status"]').text()).toBe("Your password is changed. Log in with the new password.")
-    expect(wrapper.find('[role="alert"]').text()).toBe("The email address or the password is not correct.")
+    expect(wrapper.find('[role="status"]').text()).toBe(
+      "Your password is changed. Log in with the new password."
+    )
+    expect(wrapper.find('[role="alert"]').text()).toBe(
+      "The email address or the password is not correct."
+    )
   })
 
   it("uses an email input group and the password input", async () => {
@@ -90,7 +94,9 @@ describe("login page", () => {
   it("puts the forgot link next to the password label and the register link under the card", async () => {
     const wrapper = await mountSuspended(LoginPage, { route: "/account/login" })
 
-    expect(wrapper.find('[data-slot="card"] a[href="/account/forgot-password"]').text()).toBe("Forgot your password?")
+    expect(wrapper.find('[data-slot="card"] a[href="/account/forgot-password"]').text()).toBe(
+      "Forgot your password?"
+    )
     expect(wrapper.text()).toContain("New here?")
     expect(wrapper.find('a[href="/account/register"]').classes()).toContain("w-full")
   })

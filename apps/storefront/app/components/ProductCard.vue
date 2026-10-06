@@ -14,7 +14,10 @@ const lowestPrice = computed<number | null>(() => {
 </script>
 
 <template>
-  <NuxtLinkLocale :to="`/products/${product.handle}`" class="group block rounded-lg focus-visible:shadow-focus">
+  <NuxtLinkLocale
+    :to="`/products/${product.handle}`"
+    class="group block rounded-lg focus-visible:shadow-focus"
+  >
     <Card class="h-full overflow-hidden">
       <AspectRatio :ratio="3 / 4" class="bg-muted">
         <img

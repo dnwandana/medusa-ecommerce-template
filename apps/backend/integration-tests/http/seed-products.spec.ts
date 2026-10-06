@@ -81,9 +81,7 @@ medusaIntegrationTestRunner({
         expect(bySku["TOTE-DEFAULT"].prices[0].amount).toBe(85000)
         expect(bySku["PAN-DEFAULT"].prices[0].amount).toBe(350000)
         for (const variant of variants) {
-          expect(
-            variant.inventory_items[0].inventory.location_levels[0].stocked_quantity
-          ).toBe(100)
+          expect(variant.inventory_items[0].inventory.location_levels[0].stocked_quantity).toBe(100)
         }
       })
 

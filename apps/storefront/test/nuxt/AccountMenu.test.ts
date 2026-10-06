@@ -46,8 +46,9 @@ describe("AccountMenu", () => {
   it("logs out and opens the home page", async () => {
     const wrapper = await mountSuspended(AccountMenu, { attachTo: document.body })
     await open(wrapper)
-    const logout = [...document.body.querySelectorAll('[role="menuitem"]')]
-      .find((item) => item.textContent?.includes("Log out")) as HTMLElement
+    const logout = [...document.body.querySelectorAll('[role="menuitem"]')].find((item) =>
+      item.textContent?.includes("Log out")
+    ) as HTMLElement
 
     logout.click()
     await flushPromises()

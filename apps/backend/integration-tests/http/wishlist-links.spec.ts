@@ -26,7 +26,10 @@ medusaIntegrationTestRunner({
           filters: { sku: "TOTE-DEFAULT" },
         })
         const wishlist = await service.createWishlists({ customer_id: customer.id })
-        await service.createWishlistItems({ wishlist_id: wishlist.id, product_variant_id: variant.id })
+        await service.createWishlistItems({
+          wishlist_id: wishlist.id,
+          product_variant_id: variant.id,
+        })
 
         const { data } = await query.graph({
           entity: "wishlist",

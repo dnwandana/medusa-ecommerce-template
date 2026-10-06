@@ -32,7 +32,9 @@ describe("media components", () => {
 
   it("gives the outline Empty a dashed border", async () => {
     const wrapper = await mountSuspended(Empty, { props: { variant: "outline" } })
-    const title = await mountSuspended(EmptyTitle, { slots: { default: () => "Your cart is empty." } })
+    const title = await mountSuspended(EmptyTitle, {
+      slots: { default: () => "Your cart is empty." },
+    })
 
     expect(wrapper.classes()).toContain("border-dashed")
     expect(title.classes()).toContain("text-h3")

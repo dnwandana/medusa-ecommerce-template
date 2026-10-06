@@ -121,7 +121,11 @@ describe("listReviewableItems", () => {
       order("order_1", 1, [item("a", 1)]),
     ]
 
-    expect(listReviewableItems(orders, []).map((i) => i.order_line_item_id)).toEqual(["c", "d", "a"])
+    expect(listReviewableItems(orders, []).map((i) => i.order_line_item_id)).toEqual([
+      "c",
+      "d",
+      "a",
+    ])
   })
 
   it("returns an empty list for no orders, and for an order with no items", () => {

@@ -44,7 +44,17 @@ describe("default layout", () => {
     const wrapper = await mountLayout()
     const main = wrapper.find("main").classes()
 
-    expect(main).toEqual(expect.arrayContaining(["max-w-[1280px]", "px-4", "md:px-6", "pt-6", "pb-16", "md:pt-12", "md:pb-24"]))
+    expect(main).toEqual(
+      expect.arrayContaining([
+        "max-w-[1280px]",
+        "px-4",
+        "md:px-6",
+        "pt-6",
+        "pb-16",
+        "md:pt-12",
+        "md:pb-24",
+      ])
+    )
   })
 
   it("loads the cart and the customer after the mount", async () => {

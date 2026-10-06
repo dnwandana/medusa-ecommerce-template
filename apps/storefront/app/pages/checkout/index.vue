@@ -71,7 +71,9 @@ watch(values, () => {
 })
 
 // The stepper shows the progress only. The form state gives the step.
-const currentStep = computed<1 | 2 | 3>(() => (selectedOptionId.value ? 3 : options.value.length ? 2 : 1))
+const currentStep = computed<1 | 2 | 3>(() =>
+  selectedOptionId.value ? 3 : options.value.length ? 2 : 1
+)
 
 // Checks the form, saves the address, and loads the shipping options.
 async function submitAddress(): Promise<void> {
@@ -179,7 +181,9 @@ useHead({ title: () => t("checkout.title") })
         <form novalidate class="flex flex-col gap-6" @submit.prevent="submitAddress">
           <Card>
             <CardHeader>
-              <CardTitle><h2>{{ $t("checkout.contact") }}</h2></CardTitle>
+              <CardTitle
+                ><h2>{{ $t("checkout.contact") }}</h2></CardTitle
+              >
             </CardHeader>
             <CardContent>
               <FieldGroup class="two-col">
@@ -199,7 +203,9 @@ useHead({ title: () => t("checkout.title") })
             </CardContent>
 
             <CardHeader class="pt-0 md:pt-0">
-              <CardTitle><h2>{{ $t("checkout.address") }}</h2></CardTitle>
+              <CardTitle
+                ><h2>{{ $t("checkout.address") }}</h2></CardTitle
+              >
             </CardHeader>
             <CardContent>
               <FieldGroup class="two-col">
@@ -236,7 +242,9 @@ useHead({ title: () => t("checkout.title") })
 
           <Card>
             <CardHeader>
-              <CardTitle><h2>{{ $t("checkout.shippingOption") }}</h2></CardTitle>
+              <CardTitle
+                ><h2>{{ $t("checkout.shippingOption") }}</h2></CardTitle
+              >
             </CardHeader>
             <CardContent>
               <p v-if="!options.length" class="text-body-sm text-muted-foreground">
@@ -264,7 +272,9 @@ useHead({ title: () => t("checkout.title") })
 
           <Card>
             <CardHeader>
-              <CardTitle><h2>{{ $t("checkout.payment") }}</h2></CardTitle>
+              <CardTitle
+                ><h2>{{ $t("checkout.payment") }}</h2></CardTitle
+              >
             </CardHeader>
             <CardContent class="flex flex-col gap-4">
               <Item variant="outline">

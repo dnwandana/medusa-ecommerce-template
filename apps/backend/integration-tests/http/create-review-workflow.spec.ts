@@ -40,7 +40,8 @@ medusaIntegrationTestRunner({
       const run = (input: Record<string, unknown>) =>
         createReviewWorkflow(getContainer()).run({ input: input as any, throwOnError: false })
 
-      const service = (): ProductReviewModuleService => getContainer().resolve(PRODUCT_REVIEW_MODULE)
+      const service = (): ProductReviewModuleService =>
+        getContainer().resolve(PRODUCT_REVIEW_MODULE)
 
       it("creates a pending review for a shipped item", async () => {
         const customer = await buyer({ first_name: "Budi", last_name: "Santoso" })
@@ -196,10 +197,19 @@ medusaIntegrationTestRunner({
         const customer = await buyer()
         const first = await buy(customer, [["TOTE-DEFAULT", 1]])
         const second = await buy(customer, [["TOTE-DEFAULT", 1]])
-        await shipOrderItems(getContainer(), first.order.id, [{ id: first.items[0].id, quantity: 1 }])
-        await shipOrderItems(getContainer(), second.order.id, [{ id: second.items[0].id, quantity: 1 }])
+        await shipOrderItems(getContainer(), first.order.id, [
+          { id: first.items[0].id, quantity: 1 },
+        ])
+        await shipOrderItems(getContainer(), second.order.id, [
+          { id: second.items[0].id, quantity: 1 },
+        ])
 
-        await run({ customer_id: customer.id, order_line_item_id: first.items[0].id, rating: 5, content: "A" })
+        await run({
+          customer_id: customer.id,
+          order_line_item_id: first.items[0].id,
+          rating: 5,
+          content: "A",
+        })
         const { errors } = await run({
           customer_id: customer.id,
           order_line_item_id: second.items[0].id,
@@ -208,7 +218,9 @@ medusaIntegrationTestRunner({
         })
 
         expect(errors).toEqual([])
-        expect(await service().listReviews({ product_id: first.items[0].product_id })).toHaveLength(2)
+        expect(await service().listReviews({ product_id: first.items[0].product_id })).toHaveLength(
+          2
+        )
       })
     })
   },

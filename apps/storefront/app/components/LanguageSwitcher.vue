@@ -17,7 +17,12 @@ const choose = (code: AcceptableValue) => setLocale(code as typeof locale.value)
   <DropdownMenu>
     <DropdownMenuTrigger as-child>
       <!-- "EN" alone does not name the control, so the header button has an aria-label. -->
-      <Button v-if="variant === 'header'" variant="ghost" size="sm" :aria-label="$t('nav.language')">
+      <Button
+        v-if="variant === 'header'"
+        variant="ghost"
+        size="sm"
+        :aria-label="$t('nav.language')"
+      >
         <Languages aria-hidden="true" />
         {{ locale.toUpperCase() }}
       </Button>
@@ -28,10 +33,7 @@ const choose = (code: AcceptableValue) => setLocale(code as typeof locale.value)
     </DropdownMenuTrigger>
     <DropdownMenuContent align="end">
       <DropdownMenuLabel>{{ $t("nav.language") }}</DropdownMenuLabel>
-      <DropdownMenuRadioGroup
-        :model-value="locale"
-        @update:model-value="choose"
-      >
+      <DropdownMenuRadioGroup :model-value="locale" @update:model-value="choose">
         <DropdownMenuRadioItem v-for="item in locales" :key="item.code" :value="item.code">
           {{ item.name }}
         </DropdownMenuRadioItem>

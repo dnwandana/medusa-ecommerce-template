@@ -141,7 +141,9 @@ describe("wishlist page", () => {
     await wrapper.find('[data-testid="remove-wi_1"]').trigger("click")
     await flushPromises()
 
-    expect(wrapper.find('[data-slot="alert"][role="alert"]').text()).toBe("The wishlist did not change. Try again.")
+    expect(wrapper.find('[data-slot="alert"][role="alert"]').text()).toBe(
+      "The wishlist did not change. Try again."
+    )
     expect(wrapper.find('[data-slot="item"]').exists()).toBe(true)
   })
 })

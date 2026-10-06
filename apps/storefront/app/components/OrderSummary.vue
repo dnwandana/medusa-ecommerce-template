@@ -8,7 +8,9 @@ defineProps<{ order: HttpTypes.StoreOrder }>()
   <div class="grid items-start gap-6 md:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
     <Card>
       <CardHeader>
-        <CardTitle><h2>{{ $t("order.number", { id: order.display_id }) }}</h2></CardTitle>
+        <CardTitle
+          ><h2>{{ $t("order.number", { id: order.display_id }) }}</h2></CardTitle
+        >
       </CardHeader>
       <CardContent class="pt-2 md:pt-2">
         <h3 class="sr-only">{{ $t("order.items") }}</h3>
@@ -50,7 +52,9 @@ defineProps<{ order: HttpTypes.StoreOrder }>()
 
       <Card v-if="order.shipping_address">
         <CardHeader>
-          <CardTitle><h2>{{ $t("order.shippingAddress") }}</h2></CardTitle>
+          <CardTitle
+            ><h2>{{ $t("order.shippingAddress") }}</h2></CardTitle
+          >
         </CardHeader>
         <CardContent class="flex flex-col gap-1">
           <p>{{ order.shipping_address.first_name }} {{ order.shipping_address.last_name }}</p>

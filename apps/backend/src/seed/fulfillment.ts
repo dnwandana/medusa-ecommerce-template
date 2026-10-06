@@ -67,9 +67,7 @@ async function findOrCreateShippingProfile(container: MedusaContainer): Promise<
   return result[0].id
 }
 
-async function findOrCreateStockLocation(
-  container: MedusaContainer
-): Promise<StockLocationRecord> {
+async function findOrCreateStockLocation(container: MedusaContainer): Promise<StockLocationRecord> {
   const query = container.resolve(ContainerRegistrationKeys.QUERY)
   const { data: locations } = await query.graph({
     entity: "stock_location",

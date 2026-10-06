@@ -11,7 +11,15 @@ mockNuxtImport("useCatalog", () => () => catalog)
 beforeEach(() => {
   clearNuxtData()
   catalog.listProducts.mockReset().mockResolvedValue({
-    products: [{ id: "prod_1", title: "Plain T-Shirt", handle: "plain-t-shirt", thumbnail: null, variants: [] }],
+    products: [
+      {
+        id: "prod_1",
+        title: "Plain T-Shirt",
+        handle: "plain-t-shirt",
+        thumbnail: null,
+        variants: [],
+      },
+    ],
     count: 1,
   })
 })

@@ -29,7 +29,8 @@ const mountPage = async () => {
   return wrapper
 }
 
-const media = (wrapper: Awaited<ReturnType<typeof mountSuspended>>) => wrapper.find('[data-slot="empty-media"]')
+const media = (wrapper: Awaited<ReturnType<typeof mountSuspended>>) =>
+  wrapper.find('[data-slot="empty-media"]')
 
 beforeEach(() => {
   cartId.value = "cart_1"

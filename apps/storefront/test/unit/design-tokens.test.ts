@@ -3,23 +3,45 @@ import { describe, expect, it } from "vitest"
 
 const css = readFileSync(new URL("../../app/assets/css/tailwind.css", import.meta.url), "utf8")
 const components = JSON.parse(
-  readFileSync(new URL("../../components.json", import.meta.url), "utf8"),
+  readFileSync(new URL("../../components.json", import.meta.url), "utf8")
 )
 
 describe("design tokens", () => {
   it.each([
-    ["--background", "#faf8f5"], ["--foreground", "#1f1b17"], ["--card", "#ffffff"],
-    ["--popover", "#ffffff"], ["--primary", "#24466f"], ["--primary-foreground", "#ffffff"],
-    ["--primary-hover", "#1a3555"], ["--primary-soft", "#e7edf5"], ["--secondary", "#f2eee8"],
-    ["--muted", "#f2eee8"], ["--muted-foreground", "#5f574e"], ["--accent", "#ece6dd"],
-    ["--destructive", "#b3261e"], ["--destructive-foreground", "#ffffff"],
-    ["--destructive-soft", "#fbe8e6"], ["--border", "#e6e0d7"], ["--input", "#8a8177"],
-    ["--ring", "#24466f"], ["--success", "#2d6a3e"], ["--success-soft", "#e5f1e7"],
-    ["--warning", "#8a5300"], ["--warning-soft", "#fbefd8"], ["--sale", "#c0331f"],
-    ["--star", "#a86b0c"], ["--disabled", "#ebe6df"], ["--disabled-foreground", "#8f877d"],
-    ["--icon-subtle", "#9a9187"], ["--scrim", "#1f1b1766"], ["--link", "#24466f"],
-    ["--backdrop-sand", "#e9dfd0"], ["--backdrop-stone", "#dedad3"],
-    ["--backdrop-sage", "#d7ddd0"], ["--backdrop-clay", "#e7d4c7"], ["--backdrop-sky", "#d8dee6"],
+    ["--background", "#faf8f5"],
+    ["--foreground", "#1f1b17"],
+    ["--card", "#ffffff"],
+    ["--popover", "#ffffff"],
+    ["--primary", "#24466f"],
+    ["--primary-foreground", "#ffffff"],
+    ["--primary-hover", "#1a3555"],
+    ["--primary-soft", "#e7edf5"],
+    ["--secondary", "#f2eee8"],
+    ["--muted", "#f2eee8"],
+    ["--muted-foreground", "#5f574e"],
+    ["--accent", "#ece6dd"],
+    ["--destructive", "#b3261e"],
+    ["--destructive-foreground", "#ffffff"],
+    ["--destructive-soft", "#fbe8e6"],
+    ["--border", "#e6e0d7"],
+    ["--input", "#8a8177"],
+    ["--ring", "#24466f"],
+    ["--success", "#2d6a3e"],
+    ["--success-soft", "#e5f1e7"],
+    ["--warning", "#8a5300"],
+    ["--warning-soft", "#fbefd8"],
+    ["--sale", "#c0331f"],
+    ["--star", "#a86b0c"],
+    ["--disabled", "#ebe6df"],
+    ["--disabled-foreground", "#8f877d"],
+    ["--icon-subtle", "#9a9187"],
+    ["--scrim", "#1f1b1766"],
+    ["--link", "#24466f"],
+    ["--backdrop-sand", "#e9dfd0"],
+    ["--backdrop-stone", "#dedad3"],
+    ["--backdrop-sage", "#d7ddd0"],
+    ["--backdrop-clay", "#e7d4c7"],
+    ["--backdrop-sky", "#d8dee6"],
   ])("sets %s to %s in :root", (name, value) => {
     expect(css).toMatch(new RegExp(`${name}:\\s*${value};`))
   })

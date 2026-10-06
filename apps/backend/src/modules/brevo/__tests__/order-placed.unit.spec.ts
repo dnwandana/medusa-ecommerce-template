@@ -63,7 +63,12 @@ describe("renderOrderPlaced", () => {
       order: {
         ...data.order,
         items: [
-          { title: "<script>alert(1)</script>", variant_title: "A&B", quantity: 1, unit_price: 1000 },
+          {
+            title: "<script>alert(1)</script>",
+            variant_title: "A&B",
+            quantity: 1,
+            unit_price: 1000,
+          },
         ],
         shipping_address: { ...data.order.shipping_address, first_name: "<b>Budi</b>" },
       },
@@ -92,12 +97,8 @@ describe("renderTemplate", () => {
   })
 
   it("stops for an unknown template", () => {
-    expect(() => renderTemplate("newsletter", {})).toThrow(
-      "Unknown email template: newsletter"
-    )
-    expect(() => renderTemplate("constructor", {})).toThrow(
-      "Unknown email template: constructor"
-    )
+    expect(() => renderTemplate("newsletter", {})).toThrow("Unknown email template: newsletter")
+    expect(() => renderTemplate("constructor", {})).toThrow("Unknown email template: constructor")
     expect(() => renderTemplate("toString", {})).toThrow("Unknown email template: toString")
   })
 })

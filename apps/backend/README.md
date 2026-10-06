@@ -8,27 +8,27 @@ this document from the repository root.
 
 ## Commands
 
-| Command                                                  | Function                                                         |
-| -------------------------------------------------------- | ---------------------------------------------------------------- |
-| `pnpm --filter @store/backend dev`                       | Starts the backend in development mode (`medusa develop`).       |
-| `pnpm --filter @store/backend build`                     | Builds the server and the admin into `.medusa/server`.           |
-| `pnpm --filter @store/backend start`                     | Starts the built server.                                         |
-| `pnpm --filter @store/backend exec medusa db:migrate`    | Runs the database migrations. Run it again after you pull new migrations. |
-| `pnpm --filter @store/backend seed`                      | Creates the store data. The last output line is `PUBLISHABLE_KEY=pk_...`. |
-| `pnpm --filter @store/backend exec medusa user -e <email> -p <password>` | Creates an admin user.                          |
-| `pnpm --filter @store/backend mayar:check`               | Creates and closes one Mayar sandbox invoice to verify the key.  |
-| `pnpm --filter @store/backend test:unit`                 | Runs the unit tests.                                             |
-| `pnpm --filter @store/backend test:integration:http`     | Runs the HTTP integration tests. They need PostgreSQL.           |
+| Command                                                                  | Function                                                                  |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------------- |
+| `pnpm --filter @store/backend dev`                                       | Starts the backend in development mode (`medusa develop`).                |
+| `pnpm --filter @store/backend build`                                     | Builds the server and the admin into `.medusa/server`.                    |
+| `pnpm --filter @store/backend start`                                     | Starts the built server.                                                  |
+| `pnpm --filter @store/backend exec medusa db:migrate`                    | Runs the database migrations. Run it again after you pull new migrations. |
+| `pnpm --filter @store/backend seed`                                      | Creates the store data. The last output line is `PUBLISHABLE_KEY=pk_...`. |
+| `pnpm --filter @store/backend exec medusa user -e <email> -p <password>` | Creates an admin user.                                                    |
+| `pnpm --filter @store/backend mayar:check`                               | Creates and closes one Mayar sandbox invoice to verify the key.           |
+| `pnpm --filter @store/backend test:unit`                                 | Runs the unit tests.                                                      |
+| `pnpm --filter @store/backend test:integration:http`                     | Runs the HTTP integration tests. They need PostgreSQL.                    |
 
 ## Addresses
 
-| Address                                       | Use                         |
-| --------------------------------------------- | --------------------------- |
-| http://localhost:9000/app                     | Admin dashboard             |
-| http://localhost:9000/health                  | Health check                |
-| http://localhost:9000/store/...               | Store API. Send the header `x-publishable-api-key`. |
-| http://localhost:9000/admin/...               | Admin API                   |
-| http://localhost:9000/hooks/payment/mayar_mayar | Mayar webhook             |
+| Address                                         | Use                                                 |
+| ----------------------------------------------- | --------------------------------------------------- |
+| http://localhost:9000/app                       | Admin dashboard                                     |
+| http://localhost:9000/health                    | Health check                                        |
+| http://localhost:9000/store/...                 | Store API. Send the header `x-publishable-api-key`. |
+| http://localhost:9000/admin/...                 | Admin API                                           |
+| http://localhost:9000/hooks/payment/mayar_mayar | Mayar webhook                                       |
 
 ## Environment keys
 
@@ -66,23 +66,23 @@ The backend does not start in these conditions:
 
 ## Source layout
 
-| Path                   | Content                                                                   |
-| ---------------------- | ------------------------------------------------------------------------- |
-| `medusa-config.ts`     | Project configuration. Module list comes from `src/config/modules.ts`.    |
-| `src/config/`          | Pure functions that build the module list and the database options from the environment. |
-| `src/api/`             | Custom HTTP routes. `middlewares.ts` adds validation and authentication.  |
-| `src/modules/mayar/`   | Mayar payment provider                                                    |
-| `src/modules/weight-shipping/` | Fulfillment provider that calculates the price from the weight    |
-| `src/modules/brevo/`   | Brevo email provider and the email templates                              |
-| `src/modules/product-review/` | Review data module                                                 |
-| `src/modules/wishlist/` | Wishlist data module                                                     |
-| `src/links/`           | Read-only links from reviews and wishlists to products, variants, and customers |
-| `src/workflows/`       | Workflows for reviews and the wishlist                                    |
-| `src/subscribers/`     | Email for `order.placed` and `auth.password_reset`                        |
-| `src/jobs/`, `src/recovery/` | The `check-paid-carts` job and its logic                            |
-| `src/seed/`, `src/scripts/seed.ts` | The seed steps and the seed command                           |
-| `src/admin/`           | Admin dashboard extension: the **Reviews** page                           |
-| `integration-tests/http/` | HTTP integration tests and their helpers                               |
+| Path                               | Content                                                                                  |
+| ---------------------------------- | ---------------------------------------------------------------------------------------- |
+| `medusa-config.ts`                 | Project configuration. Module list comes from `src/config/modules.ts`.                   |
+| `src/config/`                      | Pure functions that build the module list and the database options from the environment. |
+| `src/api/`                         | Custom HTTP routes. `middlewares.ts` adds validation and authentication.                 |
+| `src/modules/mayar/`               | Mayar payment provider                                                                   |
+| `src/modules/weight-shipping/`     | Fulfillment provider that calculates the price from the weight                           |
+| `src/modules/brevo/`               | Brevo email provider and the email templates                                             |
+| `src/modules/product-review/`      | Review data module                                                                       |
+| `src/modules/wishlist/`            | Wishlist data module                                                                     |
+| `src/links/`                       | Read-only links from reviews and wishlists to products, variants, and customers          |
+| `src/workflows/`                   | Workflows for reviews and the wishlist                                                   |
+| `src/subscribers/`                 | Email for `order.placed` and `auth.password_reset`                                       |
+| `src/jobs/`, `src/recovery/`       | The `check-paid-carts` job and its logic                                                 |
+| `src/seed/`, `src/scripts/seed.ts` | The seed steps and the seed command                                                      |
+| `src/admin/`                       | Admin dashboard extension: the **Reviews** page                                          |
+| `integration-tests/http/`          | HTTP integration tests and their helpers                                                 |
 
 ## Seed data
 
@@ -114,11 +114,11 @@ The provider id is `weight-shipping_weight-shipping`.
 
 The backend sends three emails:
 
-| Template          | Event                                                       |
-| ----------------- | ----------------------------------------------------------- |
-| `order-placed`    | A customer places an order.                                 |
-| `password-reset`  | A customer or an admin user asks for a password reset.      |
-| `paid-cart-alert` | The recovery job cannot complete a paid cart.               |
+| Template          | Event                                                  |
+| ----------------- | ------------------------------------------------------ |
+| `order-placed`    | A customer places an order.                            |
+| `password-reset`  | A customer or an admin user asks for a password reset. |
+| `paid-cart-alert` | The recovery job cannot complete a paid cart.          |
 
 In development, `BREVO_API_KEY` is empty, and the backend writes each email to its log. To send
 real email, set the three `BREVO_` keys and start the backend again. A failed email does not stop
@@ -234,7 +234,7 @@ Errors of `POST /store/reviews`:
 | ------ | ----------------- | --------------------------------------------------------------------- |
 | 400    | `invalid_data`    | The body is not valid. The rating must be a whole number from 1 to 5. |
 | 400    | `not_allowed`     | The store did not ship the item.                                      |
-| 401    | `unauthorized`    | The request has no customer session or token.                        |
+| 401    | `unauthorized`    | The request has no customer session or token.                         |
 | 404    | `not_found`       | The item is not in an order of the customer.                          |
 | 422    | `duplicate_error` | The item already has a review.                                        |
 
@@ -253,10 +253,10 @@ A customer with no wishlist gets `{ "wishlist": { "id": null, "items": [] } }`.
 
 ## Tests
 
-| Command                                              | Files                                    | Needs      |
-| ---------------------------------------------------- | ---------------------------------------- | ---------- |
-| `pnpm --filter @store/backend test:unit`             | `src/**/__tests__/**/*.unit.spec.ts`     | Nothing    |
-| `pnpm --filter @store/backend test:integration:http` | `integration-tests/http/*.spec.ts`       | PostgreSQL |
+| Command                                              | Files                                | Needs      |
+| ---------------------------------------------------- | ------------------------------------ | ---------- |
+| `pnpm --filter @store/backend test:unit`             | `src/**/__tests__/**/*.unit.spec.ts` | Nothing    |
+| `pnpm --filter @store/backend test:integration:http` | `integration-tests/http/*.spec.ts`   | PostgreSQL |
 
 - The tests read `.env.test`. The values in `.env.test` win over the values in `.env`.
 - `.env.test` sets an empty `REDIS_URL`. Thus the tests do not need Redis.

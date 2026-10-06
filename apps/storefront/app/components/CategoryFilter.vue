@@ -14,7 +14,9 @@ const linkClass = buttonVariants({ variant: "outline", size: "sm" })
 <template>
   <nav :aria-label="$t('products.categories')">
     <!-- Below md, the row scrolls to the side, so a long list of categories does not wrap. -->
-    <div class="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:flex-wrap md:overflow-visible md:px-0">
+    <div
+      class="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:flex-wrap md:overflow-visible md:px-0"
+    >
       <NuxtLinkLocale
         to="/products"
         :class="linkClass"

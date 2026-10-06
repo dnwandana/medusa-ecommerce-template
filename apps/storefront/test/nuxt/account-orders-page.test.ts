@@ -32,7 +32,15 @@ const shirtItem = {
 
 const orderWithLines = {
   ...order("order_1", 12, 300000),
-  items: [{ id: "ordli_1", product_title: "Plain T-Shirt", variant_title: "M", thumbnail: null, quantity: 2 }],
+  items: [
+    {
+      id: "ordli_1",
+      product_title: "Plain T-Shirt",
+      variant_title: "M",
+      thumbnail: null,
+      quantity: 2,
+    },
+  ],
 }
 
 const mountPage = async () => {
@@ -145,6 +153,8 @@ describe("order history page", () => {
     orders.listOrders.mockRejectedValue(new Error("HTTP 500"))
     const wrapper = await mountPage()
 
-    expect(wrapper.find('[data-slot="alert"][role="alert"]').text()).toBe("An error occurred. Try again.")
+    expect(wrapper.find('[data-slot="alert"][role="alert"]').text()).toBe(
+      "An error occurred. Try again."
+    )
   })
 })

@@ -10,7 +10,10 @@ describe("Alert", () => {
     ["info", "status"],
     ["default", "status"],
   ] as const)("gives the %s variant role=%s", async (variant, role) => {
-    const wrapper = await mountSuspended(Alert, { props: { variant }, slots: { default: () => "Text" } })
+    const wrapper = await mountSuspended(Alert, {
+      props: { variant },
+      slots: { default: () => "Text" },
+    })
 
     expect(wrapper.attributes("role")).toBe(role)
   })

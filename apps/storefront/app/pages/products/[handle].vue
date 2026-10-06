@@ -58,7 +58,10 @@ useHead({ title: () => product.value?.title ?? "" })
         <div class="flex flex-col gap-6">
           <h1 class="text-h1">{{ product.title }}</h1>
           <ProductPurchase :product="product">
-            <p v-if="product.description" class="whitespace-pre-line text-body-lg text-muted-foreground">
+            <p
+              v-if="product.description"
+              class="whitespace-pre-line text-body-lg text-muted-foreground"
+            >
               {{ product.description }}
             </p>
           </ProductPurchase>

@@ -10,14 +10,14 @@ The backend must run first, and it must have the seed data. See
 
 Run the commands from the repository root.
 
-| Command                                         | Function                                         |
-| ----------------------------------------------- | ------------------------------------------------ |
-| `pnpm --filter @store/storefront dev`           | Starts the development server on port 3000.      |
-| `pnpm --filter @store/storefront build`         | Builds the app into `.output`.                   |
-| `pnpm --filter @store/storefront preview`       | Starts the built app.                            |
-| `pnpm --filter @store/storefront test`          | Runs all tests.                                  |
-| `pnpm --filter @store/storefront test:unit`     | Runs the unit tests (`test/unit`).               |
-| `pnpm --filter @store/storefront test:nuxt`     | Runs the component and page tests (`test/nuxt`). |
+| Command                                     | Function                                         |
+| ------------------------------------------- | ------------------------------------------------ |
+| `pnpm --filter @store/storefront dev`       | Starts the development server on port 3000.      |
+| `pnpm --filter @store/storefront build`     | Builds the app into `.output`.                   |
+| `pnpm --filter @store/storefront preview`   | Starts the built app.                            |
+| `pnpm --filter @store/storefront test`      | Runs all tests.                                  |
+| `pnpm --filter @store/storefront test:unit` | Runs the unit tests (`test/unit`).               |
+| `pnpm --filter @store/storefront test:nuxt` | Runs the component and page tests (`test/nuxt`). |
 
 `pnpm install` runs `nuxt prepare`, which generates the types in `.nuxt`.
 
@@ -36,41 +36,41 @@ Nuxt reads the keys when the server starts. A new value does not need a new buil
 
 ## Pages
 
-| Route                     | Content                                                          |
-| ------------------------- | ---------------------------------------------------------------- |
-| `/`                       | The eight newest products                                        |
-| `/products`               | All products, 12 on each page, and the categories                |
-| `/products/:handle`       | Product detail, variant selection, add to cart, wishlist, reviews |
-| `/categories/:handle`     | The products of one category                                     |
-| `/cart`                   | Cart items and the subtotal                                      |
-| `/checkout`               | Contact, address, shipping option, and payment                   |
-| `/checkout/return`        | The return page after the Mayar payment                          |
-| `/orders/:id`             | Order confirmation                                               |
-| `/account`                | Profile. Needs a login.                                          |
-| `/account/login`          | Log in                                                           |
-| `/account/register`       | Register                                                         |
-| `/account/forgot-password` | Ask for a password-reset link                                   |
-| `/account/reset-password` | Set a new password from the link in the email                    |
-| `/account/orders`         | Order history and the items that the customer can review. Needs a login. |
-| `/account/wishlist`       | Wishlist. Needs a login.                                         |
+| Route                      | Content                                                                  |
+| -------------------------- | ------------------------------------------------------------------------ |
+| `/`                        | The eight newest products                                                |
+| `/products`                | All products, 12 on each page, and the categories                        |
+| `/products/:handle`        | Product detail, variant selection, add to cart, wishlist, reviews        |
+| `/categories/:handle`      | The products of one category                                             |
+| `/cart`                    | Cart items and the subtotal                                              |
+| `/checkout`                | Contact, address, shipping option, and payment                           |
+| `/checkout/return`         | The return page after the Mayar payment                                  |
+| `/orders/:id`              | Order confirmation                                                       |
+| `/account`                 | Profile. Needs a login.                                                  |
+| `/account/login`           | Log in                                                                   |
+| `/account/register`        | Register                                                                 |
+| `/account/forgot-password` | Ask for a password-reset link                                            |
+| `/account/reset-password`  | Set a new password from the link in the email                            |
+| `/account/orders`          | Order history and the items that the customer can review. Needs a login. |
+| `/account/wishlist`        | Wishlist. Needs a login.                                                 |
 
 Each route also exists with the prefix `/id`.
 
 ## Source layout
 
-| Path                    | Content                                                            |
-| ----------------------- | ------------------------------------------------------------------ |
-| `app/pages/`            | Pages                                                              |
-| `app/layouts/default.vue` | The header with the navigation, the cart count, and the language switcher |
-| `app/components/`       | Store components                                                   |
-| `app/components/ui/`    | shadcn-vue components                                              |
-| `app/composables/`      | Medusa SDK client, cart, region, catalog, checkout, customer, orders, reviews, wishlist |
-| `app/utils/`            | Pure functions: price format, form validation, retry, redirect check |
-| `app/middleware/auth.ts` | Sends a guest to the login page                                   |
-| `app/assets/css/tailwind.css` | Tailwind and the theme colors                                |
-| `i18n/locales/`         | Interface text in `en.json` and `id.json`                          |
-| `test/unit/`            | Unit tests of `app/utils` and of the locale files                  |
-| `test/nuxt/`            | Tests of components, pages, composables, and middleware            |
+| Path                          | Content                                                                                 |
+| ----------------------------- | --------------------------------------------------------------------------------------- |
+| `app/pages/`                  | Pages                                                                                   |
+| `app/layouts/default.vue`     | The header with the navigation, the cart count, and the language switcher               |
+| `app/components/`             | Store components                                                                        |
+| `app/components/ui/`          | shadcn-vue components                                                                   |
+| `app/composables/`            | Medusa SDK client, cart, region, catalog, checkout, customer, orders, reviews, wishlist |
+| `app/utils/`                  | Pure functions: price format, form validation, retry, redirect check                    |
+| `app/middleware/auth.ts`      | Sends a guest to the login page                                                         |
+| `app/assets/css/tailwind.css` | Tailwind and the theme colors                                                           |
+| `i18n/locales/`               | Interface text in `en.json` and `id.json`                                               |
+| `test/unit/`                  | Unit tests of `app/utils` and of the locale files                                       |
+| `test/nuxt/`                  | Tests of components, pages, composables, and middleware                                 |
 
 ## Languages
 
@@ -122,10 +122,10 @@ webhook needs the tunnel.
 
 The tests use Vitest with two projects:
 
-| Project | Files                    | Environment                     |
-| ------- | ------------------------ | ------------------------------- |
-| `unit`  | `test/unit/**/*.test.ts` | Node                            |
-| `nuxt`  | `test/nuxt/**/*.test.ts` | Nuxt with happy-dom             |
+| Project | Files                    | Environment         |
+| ------- | ------------------------ | ------------------- |
+| `unit`  | `test/unit/**/*.test.ts` | Node                |
+| `nuxt`  | `test/nuxt/**/*.test.ts` | Nuxt with happy-dom |
 
 The tests mock the Medusa SDK. They do not need the backend.
 

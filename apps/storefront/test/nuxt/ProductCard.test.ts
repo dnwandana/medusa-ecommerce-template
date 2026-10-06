@@ -49,7 +49,9 @@ describe("ProductCard", () => {
     const wrapper = await mountSuspended(ProductCard, { props: { product: product([150000]) } })
 
     expect(wrapper.html()).toContain("padding-bottom: 133.3")
-    expect(wrapper.find("img").classes()).toEqual(expect.arrayContaining(["size-full", "object-cover"]))
+    expect(wrapper.find("img").classes()).toEqual(
+      expect.arrayContaining(["size-full", "object-cover"])
+    )
   })
 
   it("shows the ImageOff icon on muted when the product has no image", async () => {

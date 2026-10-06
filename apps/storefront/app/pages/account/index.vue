@@ -87,7 +87,9 @@ useHead({ title: () => t("account.title") })
             <Spinner v-if="busy" />
             {{ $t("common.save") }}
           </Button>
-          <p v-if="saved" role="status" class="text-body-sm text-success">{{ $t("account.saved") }}</p>
+          <p v-if="saved" role="status" class="text-body-sm text-success">
+            {{ $t("account.saved") }}
+          </p>
         </CardFooter>
       </Card>
     </form>

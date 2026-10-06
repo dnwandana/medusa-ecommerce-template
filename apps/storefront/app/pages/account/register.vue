@@ -83,7 +83,9 @@ useHead({ title: () => t("auth.registerTitle") })
           :invalid="error === 'auth.passwordHint'"
         />
         <!-- The hint has no role="alert". Only the error is an alert. -->
-        <FieldDescription id="register-password-hint">{{ $t("auth.passwordHint") }}</FieldDescription>
+        <FieldDescription id="register-password-hint">{{
+          $t("auth.passwordHint")
+        }}</FieldDescription>
         <FieldError v-if="error === 'auth.passwordHint'">{{ $t("auth.passwordHint") }}</FieldError>
       </Field>
 

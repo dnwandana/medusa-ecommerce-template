@@ -24,7 +24,9 @@ const steps = [
         <Check v-if="step < current" aria-hidden="true" class="size-4" />
         <template v-else>{{ step }}</template>
       </StepperIndicator>
-      <StepperTitle class="text-[13px] leading-[18px] whitespace-normal md:text-body-sm md:leading-5 md:whitespace-nowrap">
+      <StepperTitle
+        class="text-[13px] leading-[18px] whitespace-normal md:text-body-sm md:leading-5 md:whitespace-nowrap"
+      >
         {{ $t(title) }}
       </StepperTitle>
       <StepperSeparator v-if="step < 3" class="hidden md:block" />

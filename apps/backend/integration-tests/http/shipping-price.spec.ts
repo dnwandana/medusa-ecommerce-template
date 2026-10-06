@@ -80,10 +80,19 @@ medusaIntegrationTestRunner({
 
       it("sums the weights before it rounds", async () => {
         // 3 x 200 g + 300 g = 900 g = 1 kg.
-        expect(await calculatedAmount([["TSHIRT-M", 3], ["TOTE-DEFAULT", 1]])).toBe(10000)
+        expect(
+          await calculatedAmount([
+            ["TSHIRT-M", 3],
+            ["TOTE-DEFAULT", 1],
+          ])
+        ).toBe(10000)
         // 3 x 200 g + 300 g + 1200 g = 2100 g = 3 kg.
         expect(
-          await calculatedAmount([["TSHIRT-M", 3], ["TOTE-DEFAULT", 1], ["PAN-DEFAULT", 1]])
+          await calculatedAmount([
+            ["TSHIRT-M", 3],
+            ["TOTE-DEFAULT", 1],
+            ["PAN-DEFAULT", 1],
+          ])
         ).toBe(30000)
       })
 

@@ -10,10 +10,7 @@ module.exports = defineConfig({
     databaseDriverOptions: buildDatabaseDriverOptions(process.env),
     // The session store uses this URL. The modules get their URL from buildModules.
     redisUrl: process.env.REDIS_URL || undefined,
-    workerMode: (process.env.MEDUSA_WORKER_MODE || "shared") as
-      | "shared"
-      | "worker"
-      | "server",
+    workerMode: (process.env.MEDUSA_WORKER_MODE || "shared") as "shared" | "worker" | "server",
     http: {
       storeCors: process.env.STORE_CORS!,
       adminCors: process.env.ADMIN_CORS!,

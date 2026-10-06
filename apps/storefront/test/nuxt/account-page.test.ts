@@ -95,9 +95,15 @@ describe("account page", () => {
   it("puts the names on one row and the phone in an input group", async () => {
     const wrapper = await mountSuspended(AccountPage)
 
-    expect(wrapper.find('[data-slot="field-group"].two-col input[name="first_name"]').exists()).toBe(true)
-    expect(wrapper.find('[data-slot="field-group"].two-col input[name="last_name"]').exists()).toBe(true)
-    expect(wrapper.find('[data-slot="input-group"] input[name="phone"]').attributes("type")).toBe("tel")
+    expect(
+      wrapper.find('[data-slot="field-group"].two-col input[name="first_name"]').exists()
+    ).toBe(true)
+    expect(wrapper.find('[data-slot="field-group"].two-col input[name="last_name"]').exists()).toBe(
+      true
+    )
+    expect(wrapper.find('[data-slot="input-group"] input[name="phone"]').attributes("type")).toBe(
+      "tel"
+    )
   })
 
   it("shows the saved text next to the save button only after the save", async () => {
@@ -120,6 +126,8 @@ describe("account page", () => {
     await wrapper.find("form").trigger("submit")
     await flushPromises()
 
-    expect(wrapper.find('[data-slot="alert"][role="alert"]').text()).toBe("An error occurred. Try again.")
+    expect(wrapper.find('[data-slot="alert"][role="alert"]').text()).toBe(
+      "An error occurred. Try again."
+    )
   })
 })

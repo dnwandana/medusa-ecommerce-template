@@ -72,7 +72,10 @@ describe("cart page", () => {
     await wrapper.find('button[aria-label="Increase the quantity"]').trigger("click")
     // The buttons are disabled until the first change is complete.
     await flushPromises()
-    await wrapper.findAll("button").find((button) => button.text() === "Remove")!.trigger("click")
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text() === "Remove")!
+      .trigger("click")
     await flushPromises()
 
     expect(cart.updateItem).toHaveBeenCalledWith("item_1", 3)
@@ -121,7 +124,10 @@ describe("cart page", () => {
     cart.removeItem.mockRejectedValue(new Error("HTTP 500"))
     const wrapper = await mountPage()
 
-    await wrapper.findAll("button").find((button) => button.text() === "Remove")!.trigger("click")
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text() === "Remove")!
+      .trigger("click")
     await flushPromises()
 
     expect(wrapper.find('[role="alert"]').text()).toBe("An error occurred. Try again.")

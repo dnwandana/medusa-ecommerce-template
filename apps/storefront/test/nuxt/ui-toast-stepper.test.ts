@@ -11,15 +11,20 @@ describe("Sonner", () => {
 
 describe("Stepper", () => {
   it("gives the active step the cur style and the earlier step the done style", async () => {
-    const Steps = defineComponent(() => () =>
-      h(Stepper, { modelValue: 2 }, () =>
-        [1, 2, 3].map((step) =>
-          h(StepperItem, { step, "data-testid": `step-${step}` }, () => [
-            h(StepperIndicator, () => String(step)),
-            h(StepperTitle, () => `Step ${step}`),
-          ]))))
+    const Steps = defineComponent(
+      () => () =>
+        h(Stepper, { modelValue: 2 }, () =>
+          [1, 2, 3].map((step) =>
+            h(StepperItem, { step, "data-testid": `step-${step}` }, () => [
+              h(StepperIndicator, () => String(step)),
+              h(StepperTitle, () => `Step ${step}`),
+            ])
+          )
+        )
+    )
     const wrapper = await mountSuspended(Steps)
-    const indicator = (step: number) => wrapper.find(`[data-testid="step-${step}"] [data-slot="stepper-indicator"]`)
+    const indicator = (step: number) =>
+      wrapper.find(`[data-testid="step-${step}"] [data-slot="stepper-indicator"]`)
 
     expect(wrapper.find('[data-testid="step-1"]').attributes("data-state")).toBe("completed")
     expect(wrapper.find('[data-testid="step-2"]').attributes("data-state")).toBe("active")

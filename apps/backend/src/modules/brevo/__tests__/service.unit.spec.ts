@@ -114,9 +114,9 @@ describe("BrevoNotificationProviderService", () => {
   })
 
   it("requires the apiKey and senderEmail options", () => {
-    expect(() => BrevoNotificationProviderService.validateOptions({ senderEmail: "a@b.c" })).toThrow(
-      "The apiKey option of brevo is required."
-    )
+    expect(() =>
+      BrevoNotificationProviderService.validateOptions({ senderEmail: "a@b.c" })
+    ).toThrow("The apiKey option of brevo is required.")
     expect(() => BrevoNotificationProviderService.validateOptions({ apiKey: "k" })).toThrow(
       "The senderEmail option of brevo is required."
     )

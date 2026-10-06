@@ -27,7 +27,9 @@ describe("CheckoutStepper", () => {
   it("shows a check mark in a completed step and the number in the other steps", async () => {
     const wrapper = await mountSuspended(CheckoutStepper, { props: { current: 3 } })
 
-    expect(wrapper.find('[data-testid="step-1"] [data-slot="stepper-indicator"] svg').exists()).toBe(true)
+    expect(
+      wrapper.find('[data-testid="step-1"] [data-slot="stepper-indicator"] svg').exists()
+    ).toBe(true)
     expect(wrapper.find('[data-testid="step-3"] [data-slot="stepper-indicator"]').text()).toBe("3")
   })
 

@@ -52,7 +52,9 @@ describe("OrderSummary", () => {
   it("shows the items, the totals, and the address in three cards in a grid of 3fr and 2fr", async () => {
     const wrapper = await mountSuspended(OrderSummary, { props: { order } })
 
-    expect(wrapper.classes()).toEqual(expect.arrayContaining(["grid", "md:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]"]))
+    expect(wrapper.classes()).toEqual(
+      expect.arrayContaining(["grid", "md:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]"])
+    )
     expect(wrapper.findAll('[data-slot="card"]')).toHaveLength(3)
     expect(wrapper.find('[data-slot="card-title"]').text()).toBe("Order #12")
   })

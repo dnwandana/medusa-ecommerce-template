@@ -10,7 +10,11 @@ const orderResult = { type: "order", order } as never
 const cartResult = {
   type: "cart",
   cart: { id: "cart_1" },
-  error: { message: "Payment is not authorized", name: "Error", type: "payment_authorization_error" },
+  error: {
+    message: "Payment is not authorized",
+    name: "Error",
+    type: "payment_authorization_error",
+  },
 } as never
 
 const httpError = (status: number) => Object.assign(new Error(`HTTP ${status}`), { status })

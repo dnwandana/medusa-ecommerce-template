@@ -89,7 +89,9 @@ describe("ReviewForm", () => {
 
     await submit(wrapper)
 
-    expect(wrapper.find('[data-slot="alert"][role="status"]').text()).toBe("Thank you. Your review shows after approval.")
+    expect(wrapper.find('[data-slot="alert"][role="status"]').text()).toBe(
+      "Thank you. Your review shows after approval."
+    )
   })
 
   it("shows the field errors as alerts under the fields", async () => {
@@ -110,7 +112,9 @@ describe("ReviewForm", () => {
 
     await submit(wrapper)
 
-    expect(wrapper.find('[data-slot="alert"][role="alert"]').text()).toBe("You already reviewed this purchase.")
+    expect(wrapper.find('[data-slot="alert"][role="alert"]').text()).toBe(
+      "You already reviewed this purchase."
+    )
   })
 
   it("shows a spinner and disables the button while the review is sent", async () => {

@@ -49,9 +49,9 @@ describe("isPurchasable", () => {
   })
 
   it("is true when the store does not manage the stock or allows a backorder", () => {
-    expect(isPurchasable(variant("v", {}, { manage_inventory: false, inventory_quantity: 0 }))).toBe(
-      true
-    )
+    expect(
+      isPurchasable(variant("v", {}, { manage_inventory: false, inventory_quantity: 0 }))
+    ).toBe(true)
     expect(isPurchasable(variant("v", {}, { allow_backorder: true, inventory_quantity: 0 }))).toBe(
       true
     )

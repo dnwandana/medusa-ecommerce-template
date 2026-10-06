@@ -35,13 +35,15 @@ export async function getOrderItems(
   if (!order) {
     throw new Error(`The order ${orderId} does not exist.`)
   }
-  return (order.items ?? []).flatMap((item) => (item ? [item] : [])).map((item) => ({
-    id: item.id,
-    sku: item.variant_sku ?? "",
-    product_id: item.product_id ?? "",
-    quantity: Number(item.quantity),
-    shipped_quantity: Number(item.detail?.shipped_quantity ?? 0),
-  }))
+  return (order.items ?? [])
+    .flatMap((item) => (item ? [item] : []))
+    .map((item) => ({
+      id: item.id,
+      sku: item.variant_sku ?? "",
+      product_id: item.product_id ?? "",
+      quantity: Number(item.quantity),
+      shipped_quantity: Number(item.detail?.shipped_quantity ?? 0),
+    }))
 }
 
 // Creates one fulfillment for the given items and marks it as shipped.

@@ -96,7 +96,11 @@ export async function placePaidOrder(
   const { cartId, invoiceId } = await createCartWithPaymentSession(ctx, items)
   mock.setInvoiceStatus(invoiceId, "paid")
 
-  const completed = await ctx.api.post(`/store/carts/${cartId}/complete`, {}, { headers: ctx.headers })
+  const completed = await ctx.api.post(
+    `/store/carts/${cartId}/complete`,
+    {},
+    { headers: ctx.headers }
+  )
   if (completed.data.type !== "order") {
     throw new Error(
       `The cart ${cartId} did not become an order. Response: ${JSON.stringify(completed.data.error)}`

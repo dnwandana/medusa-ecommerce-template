@@ -56,7 +56,9 @@ useHead({ title: () => t(state.value === "pending" ? "return.pendingTitle" : "ch
       <EmptyMedia tone="muted">
         <Spinner class="size-6" />
       </EmptyMedia>
-      <EmptyTitle role="status"><h1>{{ $t("return.confirming") }}</h1></EmptyTitle>
+      <EmptyTitle role="status"
+        ><h1>{{ $t("return.confirming") }}</h1></EmptyTitle
+      >
     </EmptyHeader>
 
     <template v-else-if="state === 'noCart'">
@@ -64,7 +66,9 @@ useHead({ title: () => t(state.value === "pending" ? "return.pendingTitle" : "ch
         <EmptyMedia tone="muted">
           <ShoppingBag aria-hidden="true" class="size-6" />
         </EmptyMedia>
-        <EmptyTitle><h1>{{ $t("return.noCart") }}</h1></EmptyTitle>
+        <EmptyTitle
+          ><h1>{{ $t("return.noCart") }}</h1></EmptyTitle
+        >
       </EmptyHeader>
       <EmptyContent>
         <Button variant="outline" as-child>
@@ -78,7 +82,9 @@ useHead({ title: () => t(state.value === "pending" ? "return.pendingTitle" : "ch
         <EmptyMedia tone="warning">
           <Clock aria-hidden="true" class="size-6" />
         </EmptyMedia>
-        <EmptyTitle><h1>{{ $t("return.pendingTitle") }}</h1></EmptyTitle>
+        <EmptyTitle
+          ><h1>{{ $t("return.pendingTitle") }}</h1></EmptyTitle
+        >
         <EmptyDescription>{{ $t("return.pendingBody") }}</EmptyDescription>
       </EmptyHeader>
       <EmptyContent>
@@ -93,7 +99,9 @@ useHead({ title: () => t(state.value === "pending" ? "return.pendingTitle" : "ch
         <EmptyMedia tone="destructive">
           <CircleAlert aria-hidden="true" class="size-6" />
         </EmptyMedia>
-        <EmptyTitle role="alert"><h1>{{ $t("return.failedTitle") }}</h1></EmptyTitle>
+        <EmptyTitle role="alert"
+          ><h1>{{ $t("return.failedTitle") }}</h1></EmptyTitle
+        >
         <EmptyDescription>{{ $t("return.failedBody") }}</EmptyDescription>
       </EmptyHeader>
       <EmptyContent>

@@ -48,7 +48,9 @@ describe("AppMobileMenu", () => {
 
     expect(sheet()?.querySelector('a[href="/products"]')).not.toBeNull()
     expect(sheet()?.querySelector('a[href="/categories/shirts"]')?.textContent).toContain("Shirts")
-    expect(sheet()?.querySelector('a[href="/categories/trousers"]')?.textContent).toContain("Trousers")
+    expect(sheet()?.querySelector('a[href="/categories/trousers"]')?.textContent).toContain(
+      "Trousers"
+    )
   })
 
   it("gives the close button an i18n label", async () => {

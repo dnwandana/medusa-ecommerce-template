@@ -15,10 +15,16 @@ medusaIntegrationTestRunner({
       let pan: { id: string; product_id: string }
 
       const add = (variantId: string, requestHeaders = headers) =>
-        api.post("/store/customers/me/wishlist/items", { variant_id: variantId }, { headers: requestHeaders })
+        api.post(
+          "/store/customers/me/wishlist/items",
+          { variant_id: variantId },
+          { headers: requestHeaders }
+        )
 
       const get = (requestHeaders = headers) =>
-        api.get("/store/customers/me/wishlist", { headers: requestHeaders }).catch((e: any) => e.response)
+        api
+          .get("/store/customers/me/wishlist", { headers: requestHeaders })
+          .catch((e: any) => e.response)
 
       beforeEach(async () => {
         const container = getContainer()
@@ -31,7 +37,10 @@ medusaIntegrationTestRunner({
           fields: ["id", "sku", "product_id"],
           filters: { sku: ["TOTE-DEFAULT", "PAN-DEFAULT"] },
         })
-        tote = data.find((v: any) => v.sku === "TOTE-DEFAULT")! as { id: string; product_id: string }
+        tote = data.find((v: any) => v.sku === "TOTE-DEFAULT")! as {
+          id: string
+          product_id: string
+        }
         pan = data.find((v: any) => v.sku === "PAN-DEFAULT")! as { id: string; product_id: string }
       })
 

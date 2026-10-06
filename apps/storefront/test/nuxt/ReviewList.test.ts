@@ -90,7 +90,11 @@ describe("ReviewList", () => {
 
   it("shows the initials of the reviewer in an avatar", async () => {
     reviews.listForProduct.mockResolvedValue({
-      reviews: [review("rev_1", 5)], count: 1, limit: 5, offset: 0, average_rating: 5,
+      reviews: [review("rev_1", 5)],
+      count: 1,
+      limit: 5,
+      offset: 0,
+      average_rating: 5,
     })
     const wrapper = await mountSuspended(ReviewList, { props: { productId: "prod_1" } })
 
@@ -107,11 +111,18 @@ describe("ReviewList", () => {
 
   it("shows Previous on page 2", async () => {
     reviews.listForProduct.mockResolvedValue({
-      reviews: [review("rev_1", 5)], count: 7, limit: 5, offset: 0, average_rating: 5,
+      reviews: [review("rev_1", 5)],
+      count: 7,
+      limit: 5,
+      offset: 0,
+      average_rating: 5,
     })
     const wrapper = await mountSuspended(ReviewList, { props: { productId: "prod_1" } })
 
-    await wrapper.findAll("button").find((button) => button.text() === "Next")!.trigger("click")
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text() === "Next")!
+      .trigger("click")
     await flushPromises()
 
     expect(wrapper.findAll("button").map((button) => button.text())).toContain("Previous")

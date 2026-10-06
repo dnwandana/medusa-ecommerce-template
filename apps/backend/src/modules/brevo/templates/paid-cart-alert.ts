@@ -19,11 +19,7 @@ function hasValue(value: unknown): value is string {
 
 // Renders the email that tells the store owner about a paid cart with no order.
 export function renderPaidCartAlert(data: PaidCartAlertData): RenderedEmail {
-  if (
-    !hasValue(data?.cart_id) ||
-    !hasValue(data?.invoice_id) ||
-    typeof data?.amount !== "number"
-  ) {
+  if (!hasValue(data?.cart_id) || !hasValue(data?.invoice_id) || typeof data?.amount !== "number") {
     throw new Error('The "paid-cart-alert" template needs cart_id, invoice_id, and amount.')
   }
 

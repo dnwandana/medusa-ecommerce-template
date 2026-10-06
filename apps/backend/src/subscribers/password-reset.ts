@@ -37,8 +37,7 @@ export default async function passwordResetHandler({
     }
 
     const reset_url =
-      `${baseUrl}?token=${encodeURIComponent(token)}` +
-      `&email=${encodeURIComponent(entity_id)}`
+      `${baseUrl}?token=${encodeURIComponent(token)}` + `&email=${encodeURIComponent(entity_id)}`
 
     const notificationService = container.resolve(Modules.NOTIFICATION)
     await notificationService.createNotifications({

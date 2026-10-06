@@ -52,9 +52,10 @@ describe("WeightShippingProviderService", () => {
   })
 
   it("creates and cancels a fulfillment with no external call", async () => {
-    await expect(
-      makeService().createFulfillment({}, [], undefined, {})
-    ).resolves.toEqual({ data: {}, labels: [] })
+    await expect(makeService().createFulfillment({}, [], undefined, {})).resolves.toEqual({
+      data: {},
+      labels: [],
+    })
     await expect(makeService().cancelFulfillment({})).resolves.toEqual({})
   })
 
@@ -63,8 +64,6 @@ describe("WeightShippingProviderService", () => {
       "The ratePerKg option of weight-shipping must be a positive whole number."
     )
     expect(() => WeightShippingProviderService.validateOptions({})).toThrow()
-    expect(() =>
-      WeightShippingProviderService.validateOptions({ ratePerKg: 10000 })
-    ).not.toThrow()
+    expect(() => WeightShippingProviderService.validateOptions({ ratePerKg: 10000 })).not.toThrow()
   })
 })

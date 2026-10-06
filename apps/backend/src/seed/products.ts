@@ -80,9 +80,7 @@ export async function seedProducts(
 }
 
 // Returns the category id for each category name.
-async function findOrCreateCategories(
-  container: MedusaContainer
-): Promise<Record<string, string>> {
+async function findOrCreateCategories(container: MedusaContainer): Promise<Record<string, string>> {
   const query = container.resolve(ContainerRegistrationKeys.QUERY)
   const names = [...new Set(SAMPLE_PRODUCTS.map((product) => product.category))]
 
@@ -162,8 +160,7 @@ async function createAbsentInventoryLevels(
     filters: { sku: SKUS },
   })
   const itemsWithoutLevel = inventoryItems.filter(
-    (item) =>
-      !(item.location_levels ?? []).some((level) => level?.location_id === stockLocationId)
+    (item) => !(item.location_levels ?? []).some((level) => level?.location_id === stockLocationId)
   )
   if (itemsWithoutLevel.length === 0) {
     return

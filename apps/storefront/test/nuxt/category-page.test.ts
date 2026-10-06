@@ -10,13 +10,20 @@ const { catalog } = vi.hoisted(() => ({
 
 mockNuxtImport("useCatalog", () => () => catalog)
 
-const shirts = { id: "pcat_1", name: "Shirts", handle: "shirts", description: "Relaxed shirts for most days." }
+const shirts = {
+  id: "pcat_1",
+  name: "Shirts",
+  handle: "shirts",
+  description: "Relaxed shirts for most days.",
+}
 
 beforeEach(() => {
   clearNuxtData()
   catalog.getCategoryByHandle.mockReset().mockResolvedValue(shirts)
   catalog.listProducts.mockReset().mockResolvedValue({ products: [], count: 30 })
-  catalog.listCategories.mockReset().mockResolvedValue([shirts, { id: "pcat_2", name: "Trousers", handle: "trousers" }])
+  catalog.listCategories
+    .mockReset()
+    .mockResolvedValue([shirts, { id: "pcat_2", name: "Trousers", handle: "trousers" }])
 })
 
 describe("category page", () => {
@@ -41,7 +48,11 @@ describe("category page", () => {
     const wrapper = await mountSuspended(CategoryPage, { route: "/categories/shirts?page=2" })
 
     expect(wrapper.findComponent(CategoryFilter).props("currentHandle")).toBe("shirts")
-    expect(wrapper.findComponent(CatalogPagination).props()).toMatchObject({ page: 2, count: 30, path: "/categories/shirts" })
+    expect(wrapper.findComponent(CatalogPagination).props()).toMatchObject({
+      page: 2,
+      count: 30,
+      path: "/categories/shirts",
+    })
   })
 
   it("shows the empty text of the category", async () => {
