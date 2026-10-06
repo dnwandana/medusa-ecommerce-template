@@ -11,24 +11,24 @@ useHead({ title: () => t("home.title") })
 </script>
 
 <template>
-  <div class="flex flex-col gap-8">
-    <section class="flex flex-col gap-2">
-      <h1 class="text-3xl font-semibold">{{ $t("home.title") }}</h1>
-      <p class="text-muted-foreground">{{ $t("home.subtitle") }}</p>
+  <div>
+    <!-- The design hero is text only, with no image. -->
+    <section class="flex flex-col items-start gap-4 rounded-xl bg-backdrop-sand px-5 py-10 md:px-16 md:py-24">
+      <h1 class="text-display max-w-[16ch]">{{ $t("home.title") }}</h1>
+      <p class="text-body-lg max-w-[52ch] text-muted-foreground">{{ $t("home.subtitle") }}</p>
+      <Button as-child size="lg">
+        <NuxtLinkLocale to="/products">{{ $t("home.viewAll") }}</NuxtLinkLocale>
+      </Button>
     </section>
 
-    <section class="flex flex-col gap-4">
-      <h2 class="text-xl font-semibold">{{ $t("home.newProducts") }}</h2>
-      <p v-if="error" role="alert">{{ $t("common.error") }}</p>
-      <p v-else-if="!data?.products.length">{{ $t("products.empty") }}</p>
-      <div v-else class="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <ProductCard v-for="product in data.products" :key="product.id" :product="product" />
-      </div>
-      <div>
-        <Button as-child>
-          <NuxtLinkLocale to="/products">{{ $t("home.viewAll") }}</NuxtLinkLocale>
-        </Button>
-      </div>
+    <section class="mt-12 flex flex-col gap-6">
+      <h2 class="text-h2">{{ $t("home.newProducts") }}</h2>
+      <ProductGrid
+        :products="data?.products ?? []"
+        :empty-text="$t('products.empty')"
+        :error="!!error"
+        :skeletons="8"
+      />
     </section>
   </div>
 </template>

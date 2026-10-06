@@ -1,7 +1,7 @@
 import { mockNuxtImport, mountSuspended } from "@nuxt/test-utils/runtime"
 import { flushPromises } from "@vue/test-utils"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { ReviewForm } from "#components"
+import { ReviewForm, StarRating } from "#components"
 
 const { reviews } = vi.hoisted(() => ({
   reviews: { submit: vi.fn(), listReviewableItems: vi.fn(), listForProduct: vi.fn() },
@@ -74,5 +74,53 @@ describe("ReviewForm", () => {
     expect(wrapper.text()).toContain("You already reviewed this purchase.")
     expect(wrapper.find("form").exists()).toBe(true)
     expect(wrapper.emitted("submitted")).toBeUndefined()
+  })
+
+  it("uses the star rating in input mode for the rating", async () => {
+    const wrapper = await mountSuspended(ReviewForm, { props: { item } })
+
+    expect(wrapper.findComponent(StarRating).props("mode")).toBe("input")
+    expect(wrapper.findAll('input[name="rating"]')).toHaveLength(5)
+  })
+
+  it("shows the confirmation in a success alert", async () => {
+    const wrapper = await mountSuspended(ReviewForm, { props: { item } })
+    await fill(wrapper)
+
+    await submit(wrapper)
+
+    expect(wrapper.find('[data-slot="alert"][role="status"]').text()).toBe("Thank you. Your review shows after approval.")
+  })
+
+  it("shows the field errors as alerts under the fields", async () => {
+    const wrapper = await mountSuspended(ReviewForm, { props: { item } })
+
+    await submit(wrapper)
+
+    expect(wrapper.findAll('[role="alert"]').map((alert) => alert.text())).toEqual([
+      "Select a rating from 1 to 5.",
+      "Write your review.",
+    ])
+  })
+
+  it("shows the refusal of the backend in a destructive alert", async () => {
+    reviews.submit.mockRejectedValue(Object.assign(new Error("HTTP 422"), { status: 422 }))
+    const wrapper = await mountSuspended(ReviewForm, { props: { item } })
+    await fill(wrapper)
+
+    await submit(wrapper)
+
+    expect(wrapper.find('[data-slot="alert"][role="alert"]').text()).toBe("You already reviewed this purchase.")
+  })
+
+  it("shows a spinner and disables the button while the review is sent", async () => {
+    reviews.submit.mockReturnValue(new Promise(() => {}))
+    const wrapper = await mountSuspended(ReviewForm, { props: { item } })
+    await fill(wrapper)
+
+    await wrapper.find("form").trigger("submit")
+
+    expect(wrapper.find('button[type="submit"]').attributes("disabled")).toBeDefined()
+    expect(wrapper.find('button[type="submit"] svg.animate-spin').exists()).toBe(true)
   })
 })

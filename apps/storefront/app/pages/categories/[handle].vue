@@ -15,7 +15,8 @@ if (!category.value) {
   throw createError({ statusCode: 404, statusMessage: t("categories.notFound"), fatal: true })
 }
 
-const { data, error } = await useAsyncData(
+// The server render has the status "success". The status is "pending" only while a page change on the client loads.
+const { data, error, status } = await useAsyncData(
   () => `category-products:${locale.value}:${handle.value}:${page.value}`,
   () =>
     catalog.listProducts({
@@ -24,36 +25,51 @@ const { data, error } = await useAsyncData(
     })
 )
 
+// The key is the same as on the products page, so the pages, the footer, and the mobile menu share one request.
+const { data: categories } = await useAsyncData(
+  () => `categories:${locale.value}`,
+  () => catalog.listCategories()
+)
+
 useHead({ title: () => category.value?.name ?? "" })
 </script>
 
 <template>
-  <div class="flex flex-col gap-6">
+  <div class="flex flex-col gap-6 md:gap-8">
+    <Breadcrumb :aria-label="$t('nav.breadcrumb')">
+      <BreadcrumbList>
+        <BreadcrumbItem>
+          <BreadcrumbLink as-child>
+            <NuxtLinkLocale to="/">{{ $t("nav.home") }}</NuxtLinkLocale>
+          </BreadcrumbLink>
+        </BreadcrumbItem>
+        <BreadcrumbSeparator />
+        <BreadcrumbItem>
+          <BreadcrumbLink as-child>
+            <NuxtLinkLocale to="/products">{{ $t("nav.products") }}</NuxtLinkLocale>
+          </BreadcrumbLink>
+        </BreadcrumbItem>
+        <BreadcrumbSeparator />
+        <BreadcrumbItem>
+          <BreadcrumbPage>{{ category?.name }}</BreadcrumbPage>
+        </BreadcrumbItem>
+      </BreadcrumbList>
+    </Breadcrumb>
+
     <div class="flex flex-col gap-2">
-      <h1 class="text-2xl font-semibold">{{ category?.name }}</h1>
-      <p v-if="category?.description" class="text-muted-foreground">{{ category.description }}</p>
+      <h1 class="text-h1">{{ category?.name }}</h1>
+      <p v-if="category?.description" class="text-body-lg max-w-[60ch] text-muted-foreground">
+        {{ category.description }}
+      </p>
     </div>
 
-    <p v-if="error" role="alert">{{ $t("common.error") }}</p>
-    <p v-else-if="!data?.products.length">{{ $t("categories.empty") }}</p>
-    <div v-else class="grid grid-cols-2 gap-4 md:grid-cols-4">
-      <ProductCard v-for="product in data.products" :key="product.id" :product="product" />
-    </div>
-
-    <div class="flex justify-between">
-      <NuxtLinkLocale
-        v-if="page > 1"
-        :to="{ path: `/categories/${handle}`, query: { page: page - 1 } }"
-      >
-        {{ $t("common.previous") }}
-      </NuxtLinkLocale>
-      <span v-else />
-      <NuxtLinkLocale
-        v-if="data && page * PAGE_SIZE < data.count"
-        :to="{ path: `/categories/${handle}`, query: { page: page + 1 } }"
-      >
-        {{ $t("common.next") }}
-      </NuxtLinkLocale>
-    </div>
+    <CategoryFilter v-if="categories?.length" :categories="categories" :current-handle="handle" />
+    <ProductGrid
+      :products="data?.products ?? []"
+      :empty-text="$t('categories.empty')"
+      :loading="status === 'pending'"
+      :error="!!error"
+    />
+    <CatalogPagination :page="page" :count="data?.count ?? 0" :path="`/categories/${handle}`" />
   </div>
 </template>

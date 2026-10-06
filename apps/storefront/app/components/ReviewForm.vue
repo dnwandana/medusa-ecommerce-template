@@ -51,44 +51,38 @@ async function submit(): Promise<void> {
 </script>
 
 <template>
-  <p v-if="done" role="status" class="text-sm">{{ $t("reviews.submitted") }}</p>
+  <Alert v-if="done" variant="success">
+    <AlertDescription>{{ $t("reviews.submitted") }}</AlertDescription>
+  </Alert>
 
-  <form v-else novalidate class="flex flex-col gap-3" @submit.prevent="submit">
-    <h3 class="font-medium">
-      {{ $t("reviews.write") }}: {{ item.product_title }}
-      <span v-if="item.variant_title" class="text-muted-foreground">({{ item.variant_title }})</span>
-    </h3>
-
+  <!-- The Collapsible trigger of the orders page names the item, so the form has no heading. -->
+  <form v-else novalidate class="flex flex-col gap-5" @submit.prevent="submit">
     <fieldset class="flex flex-col gap-1">
-      <legend class="text-sm font-medium">{{ $t("reviews.rating") }}</legend>
-      <div class="flex gap-3">
-        <label v-for="n in 5" :key="n" class="flex items-center gap-1 text-sm">
-          <input v-model.number="rating" type="radio" name="rating" :value="n" />
-          {{ n }}
-        </label>
-      </div>
+      <legend class="mb-1 text-body-sm font-semibold">{{ $t("reviews.rating") }}</legend>
+      <StarRating v-model="rating" mode="input" name="rating" />
+      <FieldError v-if="errors.rating">{{ $t(errors.rating) }}</FieldError>
     </fieldset>
-    <p v-if="errors.rating" role="alert" class="text-sm text-destructive">
-      {{ $t(errors.rating) }}
-    </p>
 
-    <div class="flex flex-col gap-1">
-      <Label :for="`${idPrefix}-title`">{{ $t("reviews.reviewTitle") }}</Label>
+    <Field>
+      <FieldLabel :for="`${idPrefix}-title`">{{ $t("reviews.reviewTitle") }}</FieldLabel>
       <Input :id="`${idPrefix}-title`" v-model="title" name="title" />
-    </div>
+    </Field>
 
-    <div class="flex flex-col gap-1">
-      <Label :for="`${idPrefix}-content`">{{ $t("reviews.content") }}</Label>
+    <Field>
+      <FieldLabel :for="`${idPrefix}-content`">{{ $t("reviews.content") }}</FieldLabel>
       <Textarea :id="`${idPrefix}-content`" v-model="content" name="content" />
-    </div>
-    <p v-if="errors.content" role="alert" class="text-sm text-destructive">
-      {{ $t(errors.content) }}
-    </p>
+      <FieldError v-if="errors.content">{{ $t(errors.content) }}</FieldError>
+    </Field>
 
-    <p v-if="failure" role="alert" class="text-sm text-destructive">{{ $t(failure) }}</p>
+    <Alert v-if="failure" variant="destructive">
+      <AlertDescription>{{ $t(failure) }}</AlertDescription>
+    </Alert>
 
     <div>
-      <Button type="submit" :disabled="busy">{{ $t("reviews.submit") }}</Button>
+      <Button type="submit" :disabled="busy">
+        <Spinner v-if="busy" />
+        {{ $t("reviews.submit") }}
+      </Button>
     </div>
   </form>
 </template>

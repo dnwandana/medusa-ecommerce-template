@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import type { HttpTypes } from "@medusajs/types"
+import { toast } from "vue-sonner"
 
 const props = defineProps<{ product: HttpTypes.StoreProduct }>()
 
 const cart = useCart()
+const { t } = useI18n()
+const localePath = useLocalePath()
 
 // The selected value for each option ID. The start value is the options of the first variant.
 // The setup fills it, not onMounted, so that the server render has the price.
@@ -14,7 +17,6 @@ const selected = ref<Record<string, string>>(
       .map((item) => [item.option_id as string, item.value])
   )
 )
-const message = ref<string | null>(null)
 const busy = ref(false)
 
 const variant = computed(() => findVariant(props.product, selected.value))
@@ -22,7 +24,13 @@ const canBuy = computed(() => variant.value !== null && isPurchasable(variant.va
 
 function select(optionId: string, value: string): void {
   selected.value = { ...selected.value, [optionId]: value }
-  message.value = null
+}
+
+// reka-ui single mode clears the value when the user clicks the selected item. Keep the selection.
+function choose(optionId: string, value: unknown): void {
+  if (typeof value === "string" && value !== "") {
+    select(optionId, value)
+  }
 }
 
 async function addToCart(): Promise<void> {
@@ -31,12 +39,13 @@ async function addToCart(): Promise<void> {
     return
   }
   busy.value = true
-  message.value = null
   try {
     await cart.add(current.id, 1)
-    message.value = "products.added"
+    toast.success(t("products.added"), {
+      action: { label: t("products.viewCart"), onClick: () => navigateTo(localePath("/cart")) },
+    })
   } catch {
-    message.value = "products.addFailed"
+    toast.error(t("products.addFailed"))
   } finally {
     busy.value = false
   }
@@ -44,31 +53,36 @@ async function addToCart(): Promise<void> {
 </script>
 
 <template>
-  <div class="flex flex-col gap-4">
+  <div class="flex flex-col gap-6">
+    <p class="text-price-lg">{{ formatPrice(variantPrice(variant)) }}</p>
+
+    <slot />
+
     <div v-for="option in product.options ?? []" :key="option.id" class="flex flex-col gap-2">
-      <span class="text-sm font-medium">{{ option.title }}</span>
-      <div class="flex flex-wrap gap-2">
-        <button
-          v-for="item in option.values ?? []"
-          :key="item.value"
-          type="button"
-          class="rounded border px-3 py-1 text-sm aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-primary-foreground"
-          :aria-pressed="selected[option.id] === item.value ? 'true' : 'false'"
-          @click="select(option.id, item.value)"
-        >{{ item.value }}</button>
-      </div>
+      <span :id="`option-${option.id}`" class="text-body-sm font-semibold">{{ option.title }}</span>
+      <!-- The empty string keeps the ToggleGroup controlled when no value is selected.
+           An uncontrolled ToggleGroup keeps its own value, and a click on the selected item clears it. -->
+      <ToggleGroup
+        type="single"
+        :aria-labelledby="`option-${option.id}`"
+        :model-value="selected[option.id] ?? ''"
+        @update:model-value="(value) => choose(option.id, value)"
+      >
+        <ToggleGroupItem v-for="item in option.values ?? []" :key="item.value" :value="item.value">
+          {{ item.value }}
+        </ToggleGroupItem>
+      </ToggleGroup>
     </div>
 
-    <p class="text-xl font-semibold">{{ formatPrice(variantPrice(variant)) }}</p>
+    <div class="flex flex-col gap-3">
+      <Button data-testid="add-to-cart" size="lg" class="w-full" :disabled="!canBuy || busy" @click="addToCart">
+        <Spinner v-if="busy" />
+        <template v-if="variant === null">{{ $t("products.selectVariant") }}</template>
+        <template v-else-if="!canBuy">{{ $t("products.outOfStock") }}</template>
+        <template v-else>{{ $t("products.addToCart") }}</template>
+      </Button>
 
-    <Button data-testid="add-to-cart" :disabled="!canBuy || busy" @click="addToCart">
-      <template v-if="variant === null">{{ $t("products.selectVariant") }}</template>
-      <template v-else-if="!canBuy">{{ $t("products.outOfStock") }}</template>
-      <template v-else>{{ $t("products.addToCart") }}</template>
-    </Button>
-
-    <p v-if="message" role="status" class="text-sm text-neutral-600">{{ $t(message) }}</p>
-
-    <WishlistButton :variant-id="variant?.id ?? null" />
+      <WishlistButton :variant-id="variant?.id ?? null" />
+    </div>
   </div>
 </template>

@@ -87,4 +87,33 @@ describe("ReviewList", () => {
 
     expect(reviews.listForProduct).toHaveBeenLastCalledWith("prod_1", { limit: 5, offset: 5 })
   })
+
+  it("shows the initials of the reviewer in an avatar", async () => {
+    reviews.listForProduct.mockResolvedValue({
+      reviews: [review("rev_1", 5)], count: 1, limit: 5, offset: 0, average_rating: 5,
+    })
+    const wrapper = await mountSuspended(ReviewList, { props: { productId: "prod_1" } })
+
+    expect(wrapper.find('[data-slot="avatar-fallback"]').text()).toBe("SD")
+    expect(wrapper.find("article").text()).toContain("2026-10-01")
+  })
+
+  it("shows a destructive alert when the reviews do not load", async () => {
+    reviews.listForProduct.mockRejectedValue(new Error("HTTP 500"))
+    const wrapper = await mountSuspended(ReviewList, { props: { productId: "prod_1" } })
+
+    expect(wrapper.find('[role="alert"]').text()).toBe("An error occurred. Try again.")
+  })
+
+  it("shows Previous on page 2", async () => {
+    reviews.listForProduct.mockResolvedValue({
+      reviews: [review("rev_1", 5)], count: 7, limit: 5, offset: 0, average_rating: 5,
+    })
+    const wrapper = await mountSuspended(ReviewList, { props: { productId: "prod_1" } })
+
+    await wrapper.findAll("button").find((button) => button.text() === "Next")!.trigger("click")
+    await flushPromises()
+
+    expect(wrapper.findAll("button").map((button) => button.text())).toContain("Previous")
+  })
 })

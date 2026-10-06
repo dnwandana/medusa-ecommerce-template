@@ -44,4 +44,25 @@ describe("ProductCard", () => {
 
     expect(wrapper.find("button").exists()).toBe(false)
   })
+
+  it("shows the image in a 3:4 frame", async () => {
+    const wrapper = await mountSuspended(ProductCard, { props: { product: product([150000]) } })
+
+    expect(wrapper.html()).toContain("padding-bottom: 133.3")
+    expect(wrapper.find("img").classes()).toEqual(expect.arrayContaining(["size-full", "object-cover"]))
+  })
+
+  it("shows the ImageOff icon on muted when the product has no image", async () => {
+    const noImage = { ...(product([150000]) as object), thumbnail: null } as never
+    const wrapper = await mountSuspended(ProductCard, { props: { product: noImage } })
+
+    expect(wrapper.find("img").exists()).toBe(false)
+    expect(wrapper.find(".bg-muted svg").exists()).toBe(true)
+  })
+
+  it("shows the price in the price style", async () => {
+    const wrapper = await mountSuspended(ProductCard, { props: { product: product([150000]) } })
+
+    expect(wrapper.find(".text-price").text()).toBe("Rp 150.000")
+  })
 })

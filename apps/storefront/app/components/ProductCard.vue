@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { HttpTypes } from "@medusajs/types"
+import { ImageOff } from "@lucide/vue"
 
 const props = defineProps<{ product: HttpTypes.StoreProduct }>()
 
@@ -13,19 +14,23 @@ const lowestPrice = computed<number | null>(() => {
 </script>
 
 <template>
-  <NuxtLinkLocale :to="`/products/${product.handle}`" class="block">
-    <Card class="h-full pt-0">
-      <img
-        v-if="product.thumbnail"
-        :src="product.thumbnail"
-        :alt="product.title"
-        loading="lazy"
-        class="aspect-square w-full object-cover"
-      />
-      <div v-else class="aspect-square w-full bg-muted" />
+  <NuxtLinkLocale :to="`/products/${product.handle}`" class="group block rounded-lg focus-visible:shadow-focus">
+    <Card class="h-full overflow-hidden">
+      <AspectRatio :ratio="3 / 4" class="bg-muted">
+        <img
+          v-if="product.thumbnail"
+          :src="product.thumbnail"
+          :alt="product.title"
+          loading="lazy"
+          class="size-full object-cover transition-transform group-hover:scale-[1.02]"
+        />
+        <div v-else class="flex size-full items-center justify-center">
+          <ImageOff class="size-8 text-icon-subtle" aria-hidden="true" />
+        </div>
+      </AspectRatio>
       <CardContent class="flex flex-col gap-1">
-        <span class="font-medium">{{ product.title }}</span>
-        <span class="text-muted-foreground">{{ formatPrice(lowestPrice) }}</span>
+        <span class="text-body-sm font-semibold md:text-base">{{ product.title }}</span>
+        <span class="text-price">{{ formatPrice(lowestPrice) }}</span>
       </CardContent>
     </Card>
   </NuxtLinkLocale>
