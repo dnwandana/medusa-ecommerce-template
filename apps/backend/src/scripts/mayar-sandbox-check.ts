@@ -5,7 +5,7 @@ const ONE_HOUR_MS = 60 * 60 * 1000
 
 // Creates one invoice in the Mayar sandbox, reads it, and closes it. It prints each response, so
 // that the developer can record the facts in docs/mayar-sandbox-check.md.
-export default async function mayarSandboxCheck({ container }: ExecArgs): Promise<void> {
+export default async function mayarSandboxCheck(_args: ExecArgs): Promise<void> {
   const apiUrl = process.env.MAYAR_API_URL ?? ""
   const apiKey = process.env.MAYAR_API_KEY ?? ""
 
