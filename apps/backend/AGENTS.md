@@ -18,6 +18,7 @@ pnpm --filter @store/backend seed
 pnpm --filter @store/backend mayar:check                  # sandbox host only
 pnpm --filter @store/backend test:unit [path]
 pnpm --filter @store/backend test:integration:http [path]
+pnpm --filter @store/backend lint                         # ESLint, eslint.config.mjs
 ```
 
 - Jest selects the files from `TEST_TYPE` (`jest.config.js`):

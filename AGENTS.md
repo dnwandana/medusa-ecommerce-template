@@ -13,7 +13,12 @@ This file gives guidance to AI coding agents that work with code in this reposit
   procedure.
 - `docs/superpowers/` (design spec, implementation plans, `FOLLOW-UPS.md`) is gitignored. Parts of
   it do not match the current code, for example `pnpm bootstrap` does not exist.
-- There is no ESLint, Prettier, or type-check script in the repository.
+- ESLint has one flat config in each app (`eslint.config.mjs`). The storefront config uses
+  `@nuxt/eslint`. The backend config uses `typescript-eslint`.
+- Prettier has one config at the root (`.prettierrc.json`): no semicolons, double quotes, and a
+  line width of 100. `.prettierignore` excludes the shadcn-vue files in `components/ui/` and the
+  MikroORM migrations.
+- There is no type-check script in the repository.
 
 ## Commands
 
@@ -32,10 +37,17 @@ pnpm --filter @store/backend test:unit [path]
 pnpm --filter @store/backend test:integration:http [path]
 pnpm --filter @store/storefront test
 pnpm --filter @store/storefront exec vitest run <path>
+
+pnpm lint                                   # ESLint in both apps
+pnpm lint:fix
+pnpm format                                 # Prettier writes all files
+pnpm format:check
 ```
 
 - `pnpm test` stops at the first failed step.
 - `pnpm test` does not run `test:integration:modules`.
+- `pnpm test` does not run the linter or the formatter. Run `pnpm lint` and `pnpm format:check`
+  before you commit.
 - The backend HTTP integration tests need PostgreSQL. The values come from `apps/backend/.env.test`
   (`localhost:5432`, user `postgres`). They do not need Redis or Garage, because
   `apps/backend/.env.test` sets `REDIS_URL=` and `S3_BUCKET=` empty.

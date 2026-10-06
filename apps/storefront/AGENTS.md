@@ -16,9 +16,12 @@ pnpm --filter @store/storefront test                       # both Vitest project
 pnpm --filter @store/storefront test:unit                  # project "unit"
 pnpm --filter @store/storefront test:nuxt                  # project "nuxt"
 pnpm --filter @store/storefront exec vitest run <path>     # one file
+pnpm --filter @store/storefront lint                       # ESLint, eslint.config.mjs
 ```
 
 - `postinstall` runs `nuxt prepare`, which generates the types in `.nuxt`. `tsconfig.json` only references the `.nuxt/tsconfig.*.json` files.
+- `eslint.config.mjs` imports `.nuxt/eslint.config.mjs`, which the `@nuxt/eslint` module generates
+  in `nuxt prepare`. If ESLint cannot find this file, run `pnpm install` again.
 - The backend CORS defaults and the Mayar return URL use port 3000.
 
 ## Configuration (`nuxt.config.ts`)

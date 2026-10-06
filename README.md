@@ -97,18 +97,20 @@ Checkout needs a Mayar sandbox key. See "Mayar payments" in the
 
 ## Root scripts
 
-| Command     | Function                                                                          |
-| ----------- | --------------------------------------------------------------------------------- |
-| `pnpm dev`  | Starts the backend (`medusa develop`) and the storefront (port 3000).            |
-| `pnpm test` | Runs all tests in this order: backend unit, backend HTTP integration, storefront. |
+| Command       | Function                                                                                |
+| ------------- | --------------------------------------------------------------------------------------- |
+| `pnpm dev`    | Starts the backend (`medusa develop`) and the storefront (port 3000).                   |
+| `pnpm test`   | Runs all tests in this order: backend unit, backend HTTP integration, storefront.       |
+| `pnpm lint`   | Runs ESLint in the backend and the storefront. `pnpm lint:fix` also fixes the problems. |
+| `pnpm format` | Formats all files with Prettier. `pnpm format:check` only reports the files.            |
 
 ## Tests
 
-| Command                                                | Needs                          |
-| ------------------------------------------------------ | ------------------------------ |
-| `pnpm --filter @store/backend test:unit`               | Nothing                        |
-| `pnpm --filter @store/backend test:integration:http`   | PostgreSQL at `localhost:5432` |
-| `pnpm --filter @store/storefront test`                 | Nothing                        |
+| Command                                              | Needs                          |
+| ---------------------------------------------------- | ------------------------------ |
+| `pnpm --filter @store/backend test:unit`             | Nothing                        |
+| `pnpm --filter @store/backend test:integration:http` | PostgreSQL at `localhost:5432` |
+| `pnpm --filter @store/storefront test`               | Nothing                        |
 
 - The HTTP integration tests read the database user and password from `apps/backend/.env.test`.
   Environment variables override these values, for example `DB_PORT=55432`.
@@ -123,15 +125,15 @@ The store runs on one server with Docker Compose. You build the images on the se
 migrations, and start the services with `docker compose` commands. Caddy is the only service that
 publishes ports.
 
-| Service         | Function                                                    |
-| --------------- | ----------------------------------------------------------- |
+| Service         | Function                                                                    |
+| --------------- | --------------------------------------------------------------------------- |
 | `caddy`         | TLS and reverse proxy for `<domain>`, `api.<domain>`, and `assets.<domain>` |
-| `storefront`    | Nuxt server                                                 |
-| `medusa-server` | Medusa HTTP API and admin dashboard                         |
-| `medusa-worker` | Medusa scheduled jobs and event subscribers                 |
-| `postgres`      | Database                                                    |
-| `redis`         | Event bus, workflow engine, cache, and locks                |
-| `garage`        | S3 storage for the product images                           |
+| `storefront`    | Nuxt server                                                                 |
+| `medusa-server` | Medusa HTTP API and admin dashboard                                         |
+| `medusa-worker` | Medusa scheduled jobs and event subscribers                                 |
+| `postgres`      | Database                                                                    |
+| `redis`         | Event bus, workflow engine, cache, and locks                                |
+| `garage`        | S3 storage for the product images                                           |
 
 See [docs/deployment.md](docs/deployment.md) for the full procedure: the server, the DNS records,
 the environment file, the first deploy, live payments, and the backups.

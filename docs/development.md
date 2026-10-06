@@ -273,6 +273,17 @@ docker compose -f docker-compose.local.yml up -d --wait
 2. If you pulled new migrations, run step 5.
 3. Start the backend and the storefront (step 9).
 
+## Lint and format
+
+Run these commands from the repository root before you commit.
+
+```bash
+pnpm lint            # ESLint in the backend and the storefront
+pnpm format:check    # Prettier reports the files that need a format
+```
+
+To fix the problems, run `pnpm lint:fix` and `pnpm format`.
+
 ## Optional services
 
 These services are not necessary to start the store. Each one has a section in `apps/backend/README.md`.
@@ -313,17 +324,17 @@ The seed creates a new publishable key, so update `apps/storefront/.env`.
 
 ## Troubleshooting
 
-| Problem                                                                                     | Cause and fix                                                                                                                                    |
-| ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| The backend cannot connect to the database.                                                 | Check `DATABASE_URL`. The user, the password, and the database must exist. `docker ps` shows which container uses port 5432.                     |
-| The backend does not start. The error names `S3_ACCESS_KEY_ID` or `S3_SECRET_ACCESS_KEY`.   | The key is empty in `apps/backend/.env`. Do step 3, and put the key values into `apps/backend/.env`.                                             |
-| `Publishable API key required in the request header`                                        | `NUXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY` is empty. Set it (step 8) and start the storefront again.                                                   |
-| `A valid publishable key is required to proceed with the request`                           | The key is not in this database. This occurs after a reset or with a second database. Get the key again (step 6).                                |
-| `The store has no region.`                                                                  | The seed did not run on this database. Run step 6.                                                                                               |
-| The storefront shows no products.                                                           | The key has no link to the sales channel. Run the seed again. It adds the link.                                                                  |
-| The browser shows a CORS error.                                                             | `STORE_CORS` in `apps/backend/.env` must contain the storefront address, `http://localhost:3000`. Start the backend again.                       |
-| The admin login fails.                                                                      | The admin user does not exist in this database. Run step 7.                                                                                      |
-| A tool cannot open `assets.localhost`.                                                      | The tool uses only the system resolver, and some system resolvers do not resolve `*.localhost`. Use a browser or `curl`.                         |
-| Old product images do not show.                                                             | Their URLs start with `http://localhost:9000/static/`. Medusa kept them in local storage. Upload the images again, or reset the database.        |
-| `docker compose -f docker-compose.local.yml up` fails because port 5432 or 6379 is in use.  | Other containers use the ports. Stop those containers, or use them instead of the Compose services.                                              |
-| `docker compose -f docker-compose.local.yml up` fails because port 3900 or 3902 is in use.  | Another program uses the port. Stop the program that uses the port.                                                                              |
+| Problem                                                                                    | Cause and fix                                                                                                                             |
+| ------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| The backend cannot connect to the database.                                                | Check `DATABASE_URL`. The user, the password, and the database must exist. `docker ps` shows which container uses port 5432.              |
+| The backend does not start. The error names `S3_ACCESS_KEY_ID` or `S3_SECRET_ACCESS_KEY`.  | The key is empty in `apps/backend/.env`. Do step 3, and put the key values into `apps/backend/.env`.                                      |
+| `Publishable API key required in the request header`                                       | `NUXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY` is empty. Set it (step 8) and start the storefront again.                                            |
+| `A valid publishable key is required to proceed with the request`                          | The key is not in this database. This occurs after a reset or with a second database. Get the key again (step 6).                         |
+| `The store has no region.`                                                                 | The seed did not run on this database. Run step 6.                                                                                        |
+| The storefront shows no products.                                                          | The key has no link to the sales channel. Run the seed again. It adds the link.                                                           |
+| The browser shows a CORS error.                                                            | `STORE_CORS` in `apps/backend/.env` must contain the storefront address, `http://localhost:3000`. Start the backend again.                |
+| The admin login fails.                                                                     | The admin user does not exist in this database. Run step 7.                                                                               |
+| A tool cannot open `assets.localhost`.                                                     | The tool uses only the system resolver, and some system resolvers do not resolve `*.localhost`. Use a browser or `curl`.                  |
+| Old product images do not show.                                                            | Their URLs start with `http://localhost:9000/static/`. Medusa kept them in local storage. Upload the images again, or reset the database. |
+| `docker compose -f docker-compose.local.yml up` fails because port 5432 or 6379 is in use. | Other containers use the ports. Stop those containers, or use them instead of the Compose services.                                       |
+| `docker compose -f docker-compose.local.yml up` fails because port 3900 or 3902 is in use. | Another program uses the port. Stop the program that uses the port.                                                                       |
