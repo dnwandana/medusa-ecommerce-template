@@ -16,6 +16,12 @@ beforeEach(() => {
 })
 
 describe("useOrders", () => {
+  it("asks for the payment collections, so that the order page can find a bank transfer", () => {
+    expect(ORDER_FIELDS).toBe(
+      "*items,*shipping_address,+item_subtotal,+shipping_total,+total,+created_at,+payment_collections.status,*payment_collections.payment_sessions"
+    )
+  })
+
   it("gets one order with the order fields", async () => {
     sdk.store.order.retrieve.mockResolvedValue({ order: { id: "order_1" } })
 

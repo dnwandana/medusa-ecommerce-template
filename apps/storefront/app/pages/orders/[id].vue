@@ -5,6 +5,7 @@ import { CircleCheck } from "@lucide/vue"
 const { t, locale } = useI18n()
 const route = useRoute()
 const { getOrder } = useOrders()
+const { getDetails } = useBankTransfer()
 
 const { data: order } = await useAsyncData(
   () => `order:${locale.value}:${route.params.id}`,
@@ -14,6 +15,25 @@ const { data: order } = await useAsyncData(
 if (!order.value) {
   throw createError({ statusCode: 404, statusMessage: t("order.notFound"), fatal: true })
 }
+
+// A captured order or a gateway order must not show the bank details.
+const awaitingBankTransfer = computed(() => !!order.value && isAwaitingBankTransfer(order.value))
+
+const { data: bankAccounts } = await useAsyncData(
+  () => `bank-transfer:${route.params.id}`,
+  async () => {
+    if (!awaitingBankTransfer.value) {
+      return null
+    }
+    try {
+      const { bank_accounts } = await getDetails()
+      return bank_accounts
+    } catch {
+      // A failed request must not hide the order. The component then shows the contact text.
+      return []
+    }
+  }
+)
 
 useHead({ title: () => t("order.thanks") })
 </script>
@@ -31,6 +51,13 @@ useHead({ title: () => t("order.thanks") })
         {{ $t("order.confirmationSent", { email: order.email }) }}
       </p>
     </div>
+
+    <BankTransferInstructions
+      v-if="awaitingBankTransfer"
+      :amount="order.total"
+      :deadline="bankTransferDeadline(order.created_at)"
+      :accounts="bankAccounts ?? []"
+    />
 
     <OrderSummary :order="order" />
 

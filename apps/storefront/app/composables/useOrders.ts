@@ -2,7 +2,9 @@ import type { HttpTypes } from "@medusajs/types"
 import { errorStatus } from "~/utils/errorStatus"
 
 // The order pages show the items, the shipping address, and the totals.
-export const ORDER_FIELDS = "*items,*shipping_address,+item_subtotal,+shipping_total,+total"
+// The order time and the payment collections let the order page find an unpaid bank transfer.
+export const ORDER_FIELDS =
+  "*items,*shipping_address,+item_subtotal,+shipping_total,+total,+created_at,+payment_collections.status,*payment_collections.payment_sessions"
 
 // Returns the functions that read orders from the Store API.
 export function useOrders(): {
