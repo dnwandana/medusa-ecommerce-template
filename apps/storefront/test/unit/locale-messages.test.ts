@@ -41,6 +41,24 @@ describe("locale messages", () => {
     expect(english["return.failedBody"]).toContain("we received your payment and will contact you")
   })
 
+  it("has the texts of the saved addresses that the spec gives", () => {
+    expect(english["account.addresses.title"]).toBe("Addresses")
+    expect(english["checkout.addressSaved"]).toBe(
+      'The address is saved to your account as "{label}".'
+    )
+    expect(english["checkout.addressNotSaved"]).toBe(
+      "The address was not saved to your account. Your order still ships to this address."
+    )
+    expect(english["account.addresses.onlyAddress"]).toBe(
+      "This is your only address. After you delete it, you have no saved addresses."
+    )
+  })
+
+  it("has no country text, because the store ships only in Indonesia", () => {
+    expect(english["checkout.country"]).toBeUndefined()
+    expect(indonesian["checkout.country"]).toBeUndefined()
+  })
+
   it.each([
     ["nav.menu", "Menu", "Menu"],
     [
