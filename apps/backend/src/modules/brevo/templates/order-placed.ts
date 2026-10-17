@@ -16,8 +16,25 @@ export type OrderPlacedAddress = {
   phone?: string | null
 }
 
+export type OrderPlacedBankAccount = {
+  bank_name: string
+  account_number: string
+  account_holder: string
+}
+
+// The bank details for an unpaid bank transfer order. The deadline is the text from
+// formatWibTime.
+export type OrderPlacedBankTransfer = {
+  amount: number
+  deadline: string
+  accounts: OrderPlacedBankAccount[]
+}
+
 export type OrderPlacedData = {
   order_url: string
+  // Only a bank transfer order that is not paid has this value. A gateway order email shows no
+  // bank details.
+  bank_transfer?: OrderPlacedBankTransfer
   order: {
     display_id: number
     email: string
@@ -46,6 +63,24 @@ function renderAddress(address: OrderPlacedAddress): string {
   return `<h2>Ship to</h2>\n<p>${lines.join("<br>")}</p>`
 }
 
+function renderBankTransfer(bankTransfer: OrderPlacedBankTransfer): string {
+  const accounts = (bankTransfer.accounts ?? [])
+    .map(
+      (account) =>
+        `<p><strong>${escapeHtml(account.bank_name)}</strong><br>` +
+        `${escapeHtml(account.account_number)}<br>${escapeHtml(account.account_holder)}</p>`
+    )
+    .join("\n")
+  return [
+    "<h2>Pay by bank transfer</h2>",
+    `<p>${escapeHtml(`Amount: ${formatRupiah(bankTransfer.amount)}`)}</p>`,
+    accounts,
+    `<p>${escapeHtml(`Transfer the exact amount before ${bankTransfer.deadline}.`)}</p>`,
+  ]
+    .filter(Boolean)
+    .join("\n")
+}
+
 // Returns the order confirmation email for the customer.
 export function renderOrderPlaced(data: OrderPlacedData): RenderedEmail {
   const order = data?.order
@@ -61,6 +96,7 @@ export function renderOrderPlaced(data: OrderPlacedData): RenderedEmail {
     `<table style="width:100%;border-collapse:collapse;">\n${items}\n</table>`,
     `<p>${escapeHtml(`Shipping: ${formatRupiah(order.shipping_total)}`)}<br>`,
     `<strong>${escapeHtml(`Total: ${formatRupiah(order.total)}`)}</strong></p>`,
+    data.bank_transfer ? renderBankTransfer(data.bank_transfer) : "",
     order.shipping_address ? renderAddress(order.shipping_address) : "",
     `<p><a href="${escapeHtml(data.order_url)}">View your order</a></p>`,
   ]

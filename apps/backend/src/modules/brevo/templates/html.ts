@@ -21,6 +21,26 @@ export function formatRupiah(amount: unknown): string {
   return `Rp ${String(whole).replace(/\B(?=(\d{3})+(?!\d))/g, ".")}`
 }
 
+const WIB_FORMAT = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Asia/Jakarta",
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+})
+
+// Formats a time in WIB (Asia/Jakarta), for example "18 October 2026, 14:30 WIB". It builds the
+// text from the parts, because the words that join the parts differ between ICU versions.
+export function formatWibTime(date: Date): string {
+  const parts: Record<string, string> = {}
+  for (const part of WIB_FORMAT.formatToParts(date)) {
+    parts[part.type] = part.value
+  }
+  return `${parts.day} ${parts.month} ${parts.year}, ${parts.hour}:${parts.minute} WIB`
+}
+
 // Returns a full HTML document with the title in an <h1> element.
 export function layout(title: string, bodyHtml: string): string {
   const safeTitle = escapeHtml(title)

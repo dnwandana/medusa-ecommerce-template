@@ -78,6 +78,48 @@ describe("renderOrderPlaced", () => {
     expect(html).toContain("&lt;b&gt;Budi&lt;/b&gt;")
   })
 
+  it("shows the amount, each account, and the deadline for a bank transfer order", () => {
+    const { html } = renderOrderPlaced({
+      ...data,
+      bank_transfer: {
+        amount: 318000,
+        deadline: "18 October 2026, 14:30 WIB",
+        accounts: [
+          { bank_name: "BCA", account_number: "0123456789", account_holder: "Toko" },
+          { bank_name: "Mandiri", account_number: "9876543210", account_holder: "Toko Dua" },
+        ],
+      },
+    })
+    expect(html).toContain("Pay by bank transfer")
+    expect(html).toContain("Rp 318.000")
+    expect(html).toContain("BCA")
+    expect(html).toContain("0123456789")
+    expect(html).toContain("Mandiri")
+    expect(html).toContain("9876543210")
+    expect(html).toContain("Toko Dua")
+    expect(html).toContain("Transfer the exact amount before 18 October 2026, 14:30 WIB.")
+  })
+
+  // Review Focus: a gateway order email does not show the bank details.
+  it("shows no bank details for an order with no bank_transfer value", () => {
+    expect(renderOrderPlaced(data).html).not.toMatch(/bank transfer/i)
+  })
+
+  it("escapes the account values", () => {
+    const { html } = renderOrderPlaced({
+      ...data,
+      bank_transfer: {
+        amount: 318000,
+        deadline: "18 October 2026, 14:30 WIB",
+        accounts: [{ bank_name: "B&C", account_number: "<i>1</i>", account_holder: "<b>Toko</b>" }],
+      },
+    })
+    expect(html).not.toContain("<b>Toko</b>")
+    expect(html).toContain("&lt;b&gt;Toko&lt;/b&gt;")
+    expect(html).toContain("&lt;i&gt;1&lt;/i&gt;")
+    expect(html).toContain("B&amp;C")
+  })
+
   it("stops when the order is absent", () => {
     expect(() => renderOrderPlaced({ order_url: "x" } as any)).toThrow(
       'The "order-placed" template needs an order.'

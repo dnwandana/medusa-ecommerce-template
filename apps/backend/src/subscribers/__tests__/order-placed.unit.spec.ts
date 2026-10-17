@@ -1,4 +1,5 @@
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import { BANK_ACCOUNT_MODULE } from "../../modules/bank-account"
 import orderPlacedHandler, { config } from "../order-placed"
 
 const order = {
@@ -11,18 +12,43 @@ const order = {
   shipping_address: { first_name: "Budi", last_name: "Santoso", city: "Jakarta" },
 }
 
+const bankTransferOrder = {
+  ...order,
+  created_at: "2026-10-17T07:30:00Z",
+  total: 318000,
+  payment_collections: [
+    {
+      status: "authorized",
+      payment_sessions: [{ provider_id: "pp_bank-transfer_bank-transfer" }],
+    },
+  ],
+}
+
+const accounts = [
+  {
+    id: "ba_1",
+    bank_name: "BCA",
+    account_number: "0123456789",
+    account_holder: "Toko",
+    is_active: true,
+    rank: 0,
+  },
+]
+
 const makeContainer = (orders: unknown[], storefrontUrl = "https://shop.example.com") => {
   const graph = jest.fn().mockResolvedValue({ data: orders })
   const createNotifications = jest.fn().mockResolvedValue({})
   const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() }
+  const bankAccountService = { listBankAccounts: jest.fn().mockResolvedValue(accounts) }
   const registry: Record<string, unknown> = {
     [ContainerRegistrationKeys.QUERY]: { graph },
     [ContainerRegistrationKeys.LOGGER]: logger,
     [ContainerRegistrationKeys.CONFIG_MODULE]: { admin: { storefrontUrl } },
     [Modules.NOTIFICATION]: { createNotifications },
+    [BANK_ACCOUNT_MODULE]: bankAccountService,
   }
   const container = { resolve: (key: string) => registry[key] } as any
-  return { container, graph, createNotifications, logger }
+  return { container, graph, createNotifications, logger, bankAccountService }
 }
 
 const run = (container: any) =>
@@ -48,6 +74,7 @@ describe("order-placed subscriber", () => {
         "id",
         "display_id",
         "email",
+        "created_at",
         "total",
         "shipping_total",
         "items.title",
@@ -55,6 +82,8 @@ describe("order-placed subscriber", () => {
         "items.quantity",
         "items.unit_price",
         "shipping_address.*",
+        "payment_collections.status",
+        "payment_collections.payment_sessions.provider_id",
       ],
       filters: { id: "order_123" },
     })
@@ -64,6 +93,70 @@ describe("order-placed subscriber", () => {
       template: "order-placed",
       data: { order, order_url: "https://shop.example.com/orders/order_123" },
     })
+  })
+
+  it("adds the active accounts and the deadline for a bank transfer order", async () => {
+    const { container, createNotifications, bankAccountService } = makeContainer([
+      bankTransferOrder,
+    ])
+
+    await run(container)
+
+    expect(bankAccountService.listBankAccounts).toHaveBeenCalledWith(
+      { is_active: true },
+      { order: { rank: "ASC", created_at: "ASC" } }
+    )
+    expect(createNotifications.mock.calls[0][0].data.bank_transfer).toEqual({
+      amount: 318000,
+      deadline: "18 October 2026, 14:30 WIB",
+      accounts: [{ bank_name: "BCA", account_number: "0123456789", account_holder: "Toko" }],
+    })
+  })
+
+  // Review Focus: a gateway order email does not show the bank details.
+  it("adds no bank details for a gateway order", async () => {
+    const { container, createNotifications, bankAccountService } = makeContainer([
+      {
+        ...bankTransferOrder,
+        payment_collections: [
+          { status: "authorized", payment_sessions: [{ provider_id: "pp_test_test" }] },
+        ],
+      },
+    ])
+
+    await run(container)
+
+    expect(bankAccountService.listBankAccounts).not.toHaveBeenCalled()
+    expect(createNotifications.mock.calls[0][0].data).not.toHaveProperty("bank_transfer")
+  })
+
+  it("adds no bank details for a captured bank transfer order", async () => {
+    const { container, createNotifications, bankAccountService } = makeContainer([
+      {
+        ...bankTransferOrder,
+        payment_collections: [
+          {
+            status: "completed",
+            payment_sessions: [{ provider_id: "pp_bank-transfer_bank-transfer" }],
+          },
+        ],
+      },
+    ])
+
+    await run(container)
+
+    expect(bankAccountService.listBankAccounts).not.toHaveBeenCalled()
+    expect(createNotifications.mock.calls[0][0].data).not.toHaveProperty("bank_transfer")
+  })
+
+  it("logs the error and does not throw when the account list fails", async () => {
+    const { container, logger, bankAccountService } = makeContainer([bankTransferOrder])
+    bankAccountService.listBankAccounts.mockRejectedValue(new Error("Database is down"))
+
+    await expect(run(container)).resolves.toBeUndefined()
+    expect(logger.error).toHaveBeenCalledWith(
+      "The order-placed email for order order_123 failed. Cause: Database is down"
+    )
   })
 
   it("removes a trailing slash from the storefront URL", async () => {
