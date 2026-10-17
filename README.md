@@ -4,14 +4,14 @@ A monorepo template for headless e-commerce. The backend is Medusa v2. The store
 Use this template as the start of a new online store.
 
 The template comes with a complete store for physical products in Indonesia. It has one region,
-prices in Indonesian Rupiah (IDR), and payments through Mayar invoices. Change these parts for the
-market of your store.
+prices in Indonesian Rupiah (IDR), and payments by bank transfer. Change these parts for the market
+of your store.
 
 ## Features
 
 - Product catalog with categories, product variants, and stock.
 - Cart and a one-page checkout with Indonesian addresses.
-- Payment on the hosted Mayar page, with a webhook and a recovery job.
+- Payment by bank transfer. The admin manages the bank accounts. A redirect gateway can be added.
 - Shipping price from the total weight of the cart.
 - Customer accounts: register, log in, password reset, order history.
 - Product reviews with approval in the admin dashboard.
@@ -22,17 +22,16 @@ market of your store.
 
 ## Repository layout
 
-| Path                          | Content                                                                          |
-| ----------------------------- | -------------------------------------------------------------------------------- |
-| `apps/backend`                | Medusa v2 backend and admin dashboard. See [its README](apps/backend/README.md). |
-| `apps/storefront`             | Nuxt 4 storefront. See [its README](apps/storefront/README.md).                  |
-| `docs/development.md`         | Local setup from an empty machine, step by step.                                 |
-| `docs/deployment.md`          | Production setup on one server.                                                  |
-| `docs/mayar-sandbox-check.md` | Results of the Mayar sandbox check.                                              |
-| `docker-compose.yml`          | Production services.                                                             |
-| `docker-compose.local.yml`    | Development services: PostgreSQL, Redis, and Garage.                             |
-| `Caddyfile`                   | Reverse proxy and TLS for production.                                            |
-| `garage.toml`                 | Garage (S3 storage) configuration for development and production.                |
+| Path                       | Content                                                                          |
+| -------------------------- | -------------------------------------------------------------------------------- |
+| `apps/backend`             | Medusa v2 backend and admin dashboard. See [its README](apps/backend/README.md). |
+| `apps/storefront`          | Nuxt 4 storefront. See [its README](apps/storefront/README.md).                  |
+| `docs/development.md`      | Local setup from an empty machine, step by step.                                 |
+| `docs/deployment.md`       | Production setup on one server.                                                  |
+| `docker-compose.yml`       | Production services.                                                             |
+| `docker-compose.local.yml` | Development services: PostgreSQL, Redis, and Garage.                             |
+| `Caddyfile`                | Reverse proxy and TLS for production.                                            |
+| `garage.toml`              | Garage (S3 storage) configuration for development and production.                |
 
 The repository is a pnpm workspace. The package names are `@store/backend` and
 `@store/storefront`.
@@ -41,9 +40,8 @@ The repository is a pnpm workspace. The package names are `@store/backend` and
 
 ```text
 Browser ──> Nuxt storefront (:3000) ──> Medusa server (:9000) ──> PostgreSQL
-   │                                        │    │                 Redis
-   │                                        │    └──> Mayar API, Brevo API
-   └──> Mayar payment page ── webhook ──────┘
+                                                 │                 Redis
+                                                 └──> Brevo API
                                          Medusa worker (scheduled jobs, events)
 ```
 
@@ -92,8 +90,8 @@ pnpm dev
 
 Change the admin password before you use this project for a real store.
 
-Checkout needs a Mayar sandbox key. See "Mayar payments" in the
-[backend README](apps/backend/README.md#mayar-payments).
+Checkout works with no payment key. The seed adds a sample bank account. Change it before you
+sell. See [Payments](docs/deployment.md#payments).
 
 ## Root scripts
 
@@ -114,10 +112,10 @@ Checkout needs a Mayar sandbox key. See "Mayar payments" in the
 
 - The HTTP integration tests read the database user and password from `apps/backend/.env.test`.
   Environment variables override these values, for example `DB_PORT=55432`.
-- The integration tests do not need Redis, and they do not call the real Mayar API.
+- The integration tests do not need Redis, and they call no payment API.
 - The storefront tests mock the Medusa SDK. They do not need the backend.
 - To run one test file, give its path:
-  `pnpm --filter @store/backend test:unit src/modules/mayar/__tests__/client.unit.spec.ts`.
+  `pnpm --filter @store/backend test:unit src/modules/bank-transfer/__tests__/service.unit.spec.ts`.
 
 ## Deployment
 
@@ -136,7 +134,7 @@ publishes ports.
 | `garage`        | S3 storage for the product images                                           |
 
 See [docs/deployment.md](docs/deployment.md) for the full procedure: the server, the DNS records,
-the environment file, the first deploy, live payments, and the backups.
+the environment file, the first deploy, the payments, and the backups.
 
 ## More documentation
 

@@ -44,8 +44,8 @@ Nuxt reads the keys when the server starts. A new value does not need a new buil
 | `/categories/:handle`      | The products of one category                                             |
 | `/cart`                    | Cart items and the subtotal                                              |
 | `/checkout`                | Contact, address, shipping option, and payment                           |
-| `/checkout/return`         | The return page after the Mayar payment                                  |
-| `/orders/:id`              | Order confirmation                                                       |
+| `/checkout/return`         | The return page after the payment on a gateway page                      |
+| `/orders/:id`              | Order confirmation, and the bank details for a bank transfer order       |
 | `/account`                 | Profile. Needs a login.                                                  |
 | `/account/login`           | Log in                                                                   |
 | `/account/register`        | Register                                                                 |
@@ -65,7 +65,7 @@ Each route also exists with the prefix `/id`.
 | `app/components/`             | Store components                                                                        |
 | `app/components/ui/`          | shadcn-vue components                                                                   |
 | `app/composables/`            | Medusa SDK client, cart, region, catalog, checkout, customer, orders, reviews, wishlist |
-| `app/utils/`                  | Pure functions: price format, form validation, retry, redirect check                    |
+| `app/utils/`                  | Pure functions: price format, form validation, retry, redirect check, bank transfer     |
 | `app/middleware/auth.ts`      | Sends a guest to the login page                                                         |
 | `app/assets/css/tailwind.css` | Tailwind and the theme colors                                                           |
 | `i18n/locales/`               | Interface text in `en.json` and `id.json`                                               |
@@ -104,19 +104,24 @@ The password-reset email links to `/account/reset-password`. The backend makes t
 1. The customer enters the contact data and an Indonesian address.
 2. The storefront saves the data on the cart and shows the shipping options.
 3. The customer selects a shipping option.
-4. **Pay** creates a Mayar payment session and opens the Mayar payment page.
-5. Mayar sends the customer back to `/checkout/return`.
-6. The return page completes the cart. It tries five times, at intervals of 2 seconds, because
-   the payment webhook can arrive late.
-7. On success, the storefront shows `/orders/:id`. If the payment is not complete yet, the cart
-   stays.
+4. The customer selects a payment method. The storefront lists the payment providers of the region.
+5. **Place order** starts a payment session for that provider.
+6. Bank transfer: the storefront completes the cart at once. It then shows `/orders/:id` with the
+   bank accounts, the amount, and the deadline in WIB.
+7. Payment gateway: the storefront opens the gateway page. The gateway sends the customer back to
+   `/checkout/return`.
+   - The return page completes the cart. It tries five times, at intervals of 2 seconds, because
+     the payment webhook can arrive late.
+   - On success, the storefront shows `/orders/:id`. If the payment is not complete yet, the cart
+     stays.
+
+If the storefront cannot place the order, the cart stays and the page shows an error.
 
 The phone number must be an Indonesian mobile number, for example `081234567890`. The postal code
 must have 5 digits.
 
-Checkout needs the Mayar sandbox key in the backend. See "Mayar payments" in the
-[backend README](../backend/README.md#mayar-payments). The return page works with no tunnel. The
-webhook needs the tunnel.
+Checkout works with no payment key. The seed adds a sample bank account. A gateway webhook needs a
+public URL for the backend.
 
 ## Tests
 

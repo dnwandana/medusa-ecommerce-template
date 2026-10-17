@@ -16,19 +16,17 @@ this document from the repository root.
 | `pnpm --filter @store/backend exec medusa db:migrate`                    | Runs the database migrations. Run it again after you pull new migrations. |
 | `pnpm --filter @store/backend seed`                                      | Creates the store data. The last output line is `PUBLISHABLE_KEY=pk_...`. |
 | `pnpm --filter @store/backend exec medusa user -e <email> -p <password>` | Creates an admin user.                                                    |
-| `pnpm --filter @store/backend mayar:check`                               | Creates and closes one Mayar sandbox invoice to verify the key.           |
 | `pnpm --filter @store/backend test:unit`                                 | Runs the unit tests.                                                      |
 | `pnpm --filter @store/backend test:integration:http`                     | Runs the HTTP integration tests. They need PostgreSQL.                    |
 
 ## Addresses
 
-| Address                                         | Use                                                 |
-| ----------------------------------------------- | --------------------------------------------------- |
-| http://localhost:9000/app                       | Admin dashboard                                     |
-| http://localhost:9000/health                    | Health check                                        |
-| http://localhost:9000/store/...                 | Store API. Send the header `x-publishable-api-key`. |
-| http://localhost:9000/admin/...                 | Admin API                                           |
-| http://localhost:9000/hooks/payment/mayar_mayar | Mayar webhook                                       |
+| Address                         | Use                                                 |
+| ------------------------------- | --------------------------------------------------- |
+| http://localhost:9000/app       | Admin dashboard                                     |
+| http://localhost:9000/health    | Health check                                        |
+| http://localhost:9000/store/... | Store API. Send the header `x-publishable-api-key`. |
+| http://localhost:9000/admin/... | Admin API                                           |
 
 ## Environment keys
 
@@ -41,7 +39,7 @@ The file is `apps/backend/.env`. Copy it from `.env.example`.
 | `REDIS_URL`                                | `redis://localhost:6379`                                   | Redis connection. If it is empty, Medusa uses its in-memory modules.                                                        |
 | `STORE_CORS`, `ADMIN_CORS`, `AUTH_CORS`    | local addresses                                            | Origins that can call the API                                                                                               |
 | `JWT_SECRET`, `COOKIE_SECRET`              | `supersecret`                                              | Secrets. Set new values in production.                                                                                      |
-| `STOREFRONT_URL`                           | `http://localhost:3000`                                    | Base URL for the email links and for the Mayar return URL                                                                   |
+| `STOREFRONT_URL`                           | `http://localhost:3000`                                    | Base URL for the email links and for the return URL of a payment gateway                                                    |
 | `MEDUSA_BACKEND_URL`                       | `http://localhost:9000`                                    | Public URL of the backend. The admin dashboard reads it at build time.                                                      |
 | `MEDUSA_WORKER_MODE`                       | `shared`                                                   | `shared`, `server`, or `worker`                                                                                             |
 | `DISABLE_MEDUSA_ADMIN`                     | `false`                                                    | `true` on a worker instance                                                                                                 |
@@ -49,8 +47,6 @@ The file is `apps/backend/.env`. Copy it from `.env.example`.
 | `BREVO_API_KEY`                            | empty                                                      | Brevo API key. If it is empty, the backend writes each email to the log.                                                    |
 | `BREVO_SENDER_EMAIL`                       | empty                                                      | Sender address. Required when `BREVO_API_KEY` has a value.                                                                  |
 | `BREVO_SENDER_NAME`                        | `My Store`                                                 | Sender name                                                                                                                 |
-| `MAYAR_API_URL`                            | `https://api.mayar.io/hl/v2`                               | The Mayar API. The default is the sandbox. Production uses `https://api.mayar.id/hl/v2`.                                    |
-| `MAYAR_API_KEY`                            | empty                                                      | The Mayar API key. With an empty key, checkout shows an error.                                                              |
 | `STORE_OWNER_EMAIL`                        | empty                                                      | The address that gets the `paid-cart-alert` email. If it is empty, the backend writes the alert to the log.                 |
 | `S3_BUCKET`                                | `store-assets`                                             | Garage bucket for the product images. If it is empty, Medusa keeps the images in `static/`. Only `.env.test` sets it empty. |
 | `S3_FILE_URL`                              | `http://assets.localhost:3902`                             | Public address of the product images                                                                                        |
@@ -71,7 +67,8 @@ The backend does not start in these conditions:
 | `medusa-config.ts`                 | Project configuration. Module list comes from `src/config/modules.ts`.                   |
 | `src/config/`                      | Pure functions that build the module list and the database options from the environment. |
 | `src/api/`                         | Custom HTTP routes. `middlewares.ts` adds validation and authentication.                 |
-| `src/modules/mayar/`               | Mayar payment provider                                                                   |
+| `src/modules/bank-transfer/`       | Bank transfer payment provider                                                           |
+| `src/modules/bank-account/`        | Bank account and store contact data module                                               |
 | `src/modules/weight-shipping/`     | Fulfillment provider that calculates the price from the weight                           |
 | `src/modules/brevo/`               | Brevo email provider and the email templates                                             |
 | `src/modules/product-review/`      | Review data module                                                                       |
@@ -81,7 +78,7 @@ The backend does not start in these conditions:
 | `src/subscribers/`                 | Email for `order.placed` and `auth.password_reset`                                       |
 | `src/jobs/`, `src/recovery/`       | The `check-paid-carts` job and its logic                                                 |
 | `src/seed/`, `src/scripts/seed.ts` | The seed steps and the seed command                                                      |
-| `src/admin/`                       | Admin dashboard extension: the **Reviews** page                                          |
+| `src/admin/`                       | Admin dashboard extension: the **Reviews** page and the **Bank transfer** settings page  |
 | `integration-tests/http/`          | HTTP integration tests and their helpers                                                 |
 
 ## Seed data
@@ -91,13 +88,17 @@ existing records and does not make copies.
 
 - Sales channel "Default Sales Channel".
 - Store currency IDR.
-- Region "Indonesia" with country `id`, currency `idr`, and the payment provider `pp_mayar_mayar`.
+- Region "Indonesia" with country `id`, currency `idr`, and the payment provider
+  `pp_bank-transfer_bank-transfer`.
 - Stock location "Jakarta Warehouse" with a shipping service zone for Indonesia.
 - Shipping option "Standard Shipping". Its price comes from the weight-shipping provider.
 - Categories "Apparel" and "Kitchen".
 - Three products: `plain-t-shirt`, `canvas-tote-bag`, and `cast-iron-pan`. Each variant has
   100 units in stock.
 - Publishable API key "Storefront", linked to the sales channel.
+- One bank account "Sample Bank" `1234567890` (holder "Sample Store") and the store contact
+  `store@example.com` and `+6281234567890`. The seed does not change the records that the owner
+  edited. Replace the sample values in the admin dashboard before the store opens.
 
 Put the printed key in `NUXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY` of the storefront.
 
@@ -124,74 +125,61 @@ In development, `BREVO_API_KEY` is empty, and the backend writes each email to i
 real email, set the three `BREVO_` keys and start the backend again. A failed email does not stop
 the order.
 
-## Mayar payments
+## Bank transfer payments
 
-The store uses Mayar invoices. The customer pays on a page that Mayar hosts. The payment provider
-id is `pp_mayar_mayar`. Mayar accepts IDR only.
+Bank transfer is the only payment provider of the store. The provider id is
+`pp_bank-transfer_bank-transfer`. It needs no env key.
 
-### Sandbox key
+### How an order is paid
 
-1. Create an account at <https://web.mayar.io>.
-2. Open <https://web.mayar.io/api-keys>.
-3. Create a key with the scope "Read & Write".
-4. Set `MAYAR_API_KEY` in `apps/backend/.env`.
-5. Start the backend again.
+1. The customer selects bank transfer at checkout and places the order. There is no redirect.
+2. The provider authorizes the payment at once, and the cart becomes an order.
+3. The order page of the storefront (`/orders/:id`) and the `order-placed` email show the amount,
+   the active bank accounts, and the deadline. The deadline is the order time plus 24 hours, in
+   WIB.
+4. The customer transfers the money.
+5. When the money arrives in the bank account, capture the payment of the order in the Medusa
+   Admin.
 
-Do not use a production key in development. A production key is from <https://web.mayar.id/api-keys>,
-and it goes with `MAYAR_API_URL=https://api.mayar.id/hl/v2`.
+The bank details show only while the payment is `authorized`. After the capture, the order page
+does not show them.
 
-Run `pnpm --filter @store/backend mayar:check` to verify the key. The command creates one sandbox
-invoice and closes it. It does not run against the production host. Write the results in
-[docs/mayar-sandbox-check.md](../../docs/mayar-sandbox-check.md).
+### Bank accounts
 
-### How a payment becomes an order
+Open the admin dashboard, then **Settings**, then **Bank transfer**. On this page you can:
 
-1. Checkout creates a Mayar invoice for the cart total. The invoice expires after 24 hours.
-2. The customer pays on the Mayar page.
-3. Mayar sends the customer to `/checkout/return` on the storefront. That page completes the cart.
-4. The backend asks the Mayar API for the invoice. It creates the order only if Mayar reports
-   the invoice as paid with the amount of the cart.
+- Add, edit, and delete the bank accounts.
+- Set an account to active or inactive.
+- Change the order of the accounts with the Up and Down buttons.
+- Set the store contact: an email address and a WhatsApp number in the E.164 format, for example
+  `+6281234567890`.
 
-The backend does not trust the webhook body or the return URL. Each path asks the Mayar API.
+The customer sees only the active accounts, in `rank` order. A new account with no `rank` goes
+after the other accounts.
 
-Checkout needs the name, the email, and the mobile number of the customer.
-
-### Webhook
-
-The webhook completes the cart when the customer closes the browser after the payment.
-
-1. Make the backend reachable from the internet. In development, use a tunnel, for example
-   `cloudflared tunnel --url http://localhost:9000`.
-2. Register the URL `https://<backend-host>/hooks/payment/mayar_mayar` in the Mayar dashboard
-   (Integration, Webhook).
-
-You can also register the URL with the API:
-
-```bash
-curl -X POST "$MAYAR_API_URL/webhooks/update" \
-  -H "Authorization: Bearer $MAYAR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"urlHook":"https://<backend-host>/hooks/payment/mayar_mayar"}'
-```
-
-Mayar does not sign its webhooks. The backend uses only the event `payment.received`, and it reads
-only the invoice id (`data.productId`) from the body.
+| Route                             | Access | Function                                                        |
+| --------------------------------- | ------ | --------------------------------------------------------------- |
+| `GET /store/bank-transfer`        | Public | Lists the active accounts (public fields only) and the contact. |
+| `GET /admin/bank-accounts`        | Admin  | Lists all accounts in `rank` order.                             |
+| `POST /admin/bank-accounts`       | Admin  | Creates an account. The account number has 5 to 20 digits.      |
+| `POST /admin/bank-accounts/:id`   | Admin  | Changes the fields of an account.                               |
+| `DELETE /admin/bank-accounts/:id` | Admin  | Deletes an account.                                             |
+| `GET /admin/store-contact`        | Admin  | Returns the store contact.                                      |
+| `POST /admin/store-contact`       | Admin  | Saves the store contact. `null` clears a value.                 |
 
 ### Recovery job
 
-The job `check-paid-carts` runs each 15 minutes. It looks at each pending payment session that is
-at most 48 hours old. For a paid invoice, it completes the cart. The job checks 40 sessions
-maximum in one run, because the Mayar API permits 50 requests for each minute. The job does
-nothing while `MAYAR_API_KEY` is empty.
+The job `check-paid-carts` runs each 15 minutes. For each adapter in `RECOVERY_ADAPTERS`
+(`src/recovery/adapters.ts`), it looks at each pending payment session of that provider that is at
+most 48 hours old. If the gateway reports the session as paid, the job completes the cart. The
+job checks `maxSessionsPerRun` sessions of each adapter maximum in one run.
+
+The list is empty now, so the job does nothing. A bank transfer needs no recovery, because its cart
+completes at checkout. A project that adds a payment gateway adds one adapter for the gateway. The
+type `RecoveryAdapter` in the same file describes the adapter.
 
 If the completion fails, the job sends one `paid-cart-alert` email to `STORE_OWNER_EMAIL`. If
-`STORE_OWNER_EMAIL` is empty, the job writes the alert to the log. Then find the payment in the
-Mayar dashboard. Create the order in the Medusa Admin, or return the money to the customer.
-
-### Refunds
-
-Mayar has no refund API. A refund in the Medusa Admin only records the refund. Return the money
-in the Mayar dashboard.
+`STORE_OWNER_EMAIL` is empty, the job writes the alert to the log.
 
 ## Product translations
 
@@ -260,11 +248,9 @@ A customer with no wishlist gets `{ "wishlist": { "id": null, "items": [] } }`.
 
 - The tests read `.env.test`. The values in `.env.test` win over the values in `.env`.
 - `.env.test` sets an empty `REDIS_URL`. Thus the tests do not need Redis.
-- The integration tests replace `fetch` for the host `mayar.test`. They do not call the real
-  Mayar API.
 - Set `DB_HOST`, `DB_PORT`, `DB_USERNAME`, or `DB_PASSWORD` to use a different PostgreSQL server.
 - To run one file, give its path:
-  `pnpm --filter @store/backend test:unit src/modules/mayar/__tests__/client.unit.spec.ts`.
+  `pnpm --filter @store/backend test:unit src/modules/bank-transfer/__tests__/service.unit.spec.ts`.
 
 ## Docker image
 

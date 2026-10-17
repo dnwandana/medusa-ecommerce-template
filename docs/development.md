@@ -144,7 +144,6 @@ can change in development.
 | `DATABASE_URL`         | your database                  | Required.                                                                  |
 | `DATABASE_SSL`         | empty                          | Set `false` only if Medusa cannot connect because the server has no TLS.   |
 | `REDIS_URL`            | `redis://localhost:6379`       | If it is empty, Medusa uses its in-memory modules.                         |
-| `MAYAR_API_KEY`        | empty                          | Required for checkout. See "Mayar payments" in `apps/backend/README.md`.   |
 | `BREVO_API_KEY`        | empty                          | If it is empty, the backend writes each email to the log.                  |
 | `STORE_OWNER_EMAIL`    | empty                          | If it is empty, the backend writes the `paid-cart-alert` email to the log. |
 | `S3_BUCKET`            | `store-assets`                 | If it is empty, Medusa keeps the product images in local storage.          |
@@ -179,7 +178,9 @@ pnpm --filter @store/backend seed
 The seed creates these records:
 
 - The sales channel "Default Sales Channel" and the store currency IDR.
-- The region "Indonesia" with the Mayar payment provider.
+- The region "Indonesia" with the bank transfer payment provider.
+- One sample bank account and the store contact. Change them in the Admin at
+  **Settings → Bank transfer**.
 - The stock location, the shipping profile, and the shipping option for Indonesia.
 - Three sample products.
 - The publishable API key "Storefront", with a link to the sales channel.
@@ -287,11 +288,8 @@ To fix the problems, run `pnpm lint:fix` and `pnpm format`.
 ## Optional services
 
 These services are not necessary to start the store. Each one has a section in `apps/backend/README.md`.
+Checkout needs no optional service.
 
-- **Mayar payments.** Set `MAYAR_API_KEY` to a sandbox key. Then run
-  `pnpm --filter @store/backend mayar:check` to verify the key. Checkout needs this key.
-- **The Mayar webhook.** The webhook needs a public URL for the backend, for example from
-  `cloudflared tunnel --url http://localhost:9000`.
 - **Email.** Set the three `BREVO_` keys to send real email.
 
 Start the backend again after you change `apps/backend/.env`.

@@ -22,7 +22,7 @@ pnpm --filter @store/storefront lint                       # ESLint, eslint.conf
 - `postinstall` runs `nuxt prepare`, which generates the types in `.nuxt`. `tsconfig.json` only references the `.nuxt/tsconfig.*.json` files.
 - `eslint.config.mjs` imports `.nuxt/eslint.config.mjs`, which the `@nuxt/eslint` module generates
   in `nuxt prepare`. If ESLint cannot find this file, run `pnpm install` again.
-- The backend CORS defaults and the Mayar return URL use port 3000.
+- The backend CORS defaults and the return URL of a payment gateway use port 3000.
 
 ## Configuration (`nuxt.config.ts`)
 
@@ -51,11 +51,11 @@ pnpm --filter @store/storefront lint                       # ESLint, eslint.conf
 - Shared state uses `useState` with the keys `cart`, `region`, `customer`, `customer-loaded`,
   `wishlist`, and `addresses`. `logout` sets `wishlist` and `addresses` to `null`.
 - The cart id is in the cookie `cart_id` (`useCartId.ts`): 30 days, `sameSite: "lax"`. The `lax`
-  value keeps the cookie on the top-level return from Mayar.
+  value keeps the cookie on the top-level return from a payment page.
 - `useRegion().ensureRegion()` uses the first region from the backend. There is no region or
   currency selector.
-- Custom backend routes (reviews and wishlist) use `sdk.client.fetch` in `useReviews.ts` and
-  `useWishlist.ts`.
+- Custom backend routes (reviews, wishlist, and bank transfer) use `sdk.client.fetch` in
+  `useReviews.ts`, `useWishlist.ts`, and `useBankTransfer.ts`.
 - `app/middleware/auth.ts` is a named middleware. It does nothing on the server. On the client it
   sends a guest to `/account/login?redirect=<path>`.
 - Data loading:
@@ -69,9 +69,13 @@ pnpm --filter @store/storefront lint                       # ESLint, eslint.conf
   - `completeCartWithRetry`: 5 tries, 2000 ms apart.
   - `safeRedirectPath`.
   - The variant selection rules.
-- `/checkout/return` gets the locale from the `i18n_redirected` cookie, because the Mayar redirect
-  URL has no locale prefix.
+  - Bank transfer: `isAwaitingBankTransfer`, `bankTransferDeadline` (the order time plus 24 hours),
+    and `formatDeadline` (WIB).
+- `/checkout/return` gets the locale from the `i18n_redirected` cookie, because the redirect URL
+  of a payment gateway has no locale prefix.
 - The checkout country is fixed to `id`. Prices are always IDR.
+- The storefront code has no payment provider id. Only `app/utils/bankTransfer.ts` and the locale
+  files name `pp_bank-transfer_bank-transfer`.
 
 ## Code conventions
 

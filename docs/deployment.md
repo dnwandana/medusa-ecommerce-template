@@ -76,26 +76,24 @@ openssl rand -hex 32
 
 Do not use the characters `$` and `` ` `` in a value. Compose can expand these characters.
 
-| Key                      | Purpose                                                                                   | Value                                                                                               |
-| ------------------------ | ----------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `DOMAIN`                 | The storefront host. The Compose file makes `api.<domain>` and `assets.<domain>` from it. | The host name only, for example `example.com`. Do not add `https://` or a path.                     |
-| `ACME_EMAIL`             | Caddy gives this address to the certificate authority.                                    | Your email address.                                                                                 |
-| `POSTGRES_PASSWORD`      | The password of the database user `postgres`.                                             | `openssl rand -hex 32`. Use only letters, digits, `-`, and `_`.                                     |
-| `JWT_SECRET`             | Medusa signs the authentication tokens with this secret.                                  | `openssl rand -hex 32`. Use 32 characters or more.                                                  |
-| `COOKIE_SECRET`          | Medusa signs the session cookie with this secret.                                         | `openssl rand -hex 32`. Use 32 characters or more.                                                  |
-| `GARAGE_RPC_SECRET`      | The RPC secret of Garage.                                                                 | `openssl rand -hex 32`.                                                                             |
-| `GARAGE_ADMIN_TOKEN`     | The token of the Garage admin API.                                                        | `openssl rand -hex 32`.                                                                             |
-| `GARAGE_METRICS_TOKEN`   | The token of the Garage metrics endpoint.                                                 | `openssl rand -hex 32`.                                                                             |
-| `S3_ACCESS_KEY_ID`       | Medusa uses this Garage key to write the product images.                                  | The `Key ID` from `key create`. See [Garage: one-time commands](#garage-one-time-commands).         |
-| `S3_SECRET_ACCESS_KEY`   | The secret of the Garage key.                                                             | The `Secret key` from `key create`. See [Garage: one-time commands](#garage-one-time-commands).     |
-| `MEDUSA_PUBLISHABLE_KEY` | The storefront reads the store API with this key.                                         | The `PUBLISHABLE_KEY` line of the seed. Keep it empty until the [first deploy](#first-deploy).      |
-| `SHIPPING_RATE_PER_KG`   | The shipping price in IDR for each kilogram.                                              | `10000`, or your price.                                                                             |
-| `BREVO_API_KEY`          | The backend sends the order emails through Brevo with this key.                           | A key from the Brevo dashboard.                                                                     |
-| `BREVO_SENDER_EMAIL`     | The sender address of the emails.                                                         | An address that Brevo verified for your account.                                                    |
-| `BREVO_SENDER_NAME`      | The sender name of the emails.                                                            | The name of the store.                                                                              |
-| `STORE_OWNER_EMAIL`      | The address that gets the `paid-cart-alert` email.                                        | Your email address.                                                                                 |
-| `MAYAR_API_URL`          | The address of the Mayar API.                                                             | The sandbox, `https://api.mayar.io/hl/v2`. For real payments, see [Live payments](#live-payments).  |
-| `MAYAR_API_KEY`          | The key of the Mayar API.                                                                 | A sandbox key from `web.mayar.io/api-keys`. For real payments, see [Live payments](#live-payments). |
+| Key                      | Purpose                                                                                   | Value                                                                                           |
+| ------------------------ | ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `DOMAIN`                 | The storefront host. The Compose file makes `api.<domain>` and `assets.<domain>` from it. | The host name only, for example `example.com`. Do not add `https://` or a path.                 |
+| `ACME_EMAIL`             | Caddy gives this address to the certificate authority.                                    | Your email address.                                                                             |
+| `POSTGRES_PASSWORD`      | The password of the database user `postgres`.                                             | `openssl rand -hex 32`. Use only letters, digits, `-`, and `_`.                                 |
+| `JWT_SECRET`             | Medusa signs the authentication tokens with this secret.                                  | `openssl rand -hex 32`. Use 32 characters or more.                                              |
+| `COOKIE_SECRET`          | Medusa signs the session cookie with this secret.                                         | `openssl rand -hex 32`. Use 32 characters or more.                                              |
+| `GARAGE_RPC_SECRET`      | The RPC secret of Garage.                                                                 | `openssl rand -hex 32`.                                                                         |
+| `GARAGE_ADMIN_TOKEN`     | The token of the Garage admin API.                                                        | `openssl rand -hex 32`.                                                                         |
+| `GARAGE_METRICS_TOKEN`   | The token of the Garage metrics endpoint.                                                 | `openssl rand -hex 32`.                                                                         |
+| `S3_ACCESS_KEY_ID`       | Medusa uses this Garage key to write the product images.                                  | The `Key ID` from `key create`. See [Garage: one-time commands](#garage-one-time-commands).     |
+| `S3_SECRET_ACCESS_KEY`   | The secret of the Garage key.                                                             | The `Secret key` from `key create`. See [Garage: one-time commands](#garage-one-time-commands). |
+| `MEDUSA_PUBLISHABLE_KEY` | The storefront reads the store API with this key.                                         | The `PUBLISHABLE_KEY` line of the seed. Keep it empty until the [first deploy](#first-deploy).  |
+| `SHIPPING_RATE_PER_KG`   | The shipping price in IDR for each kilogram.                                              | `10000`, or your price.                                                                         |
+| `BREVO_API_KEY`          | The backend sends the order emails through Brevo with this key.                           | A key from the Brevo dashboard.                                                                 |
+| `BREVO_SENDER_EMAIL`     | The sender address of the emails.                                                         | An address that Brevo verified for your account.                                                |
+| `BREVO_SENDER_NAME`      | The sender name of the emails.                                                            | The name of the store.                                                                          |
+| `STORE_OWNER_EMAIL`      | The address that gets the `paid-cart-alert` email.                                        | Your email address.                                                                             |
 
 Set all values now, but keep the example values of `S3_ACCESS_KEY_ID` and `S3_SECRET_ACCESS_KEY`.
 The next section gives these two values.
@@ -188,9 +186,6 @@ docker compose config --quiet
    - `JWT_SECRET` and `COOKIE_SECRET` have 32 characters or more. They are not `supersecret`, the
      development value.
 
-`MAYAR_API_URL` can stay the sandbox address for the first deploy. Then the store accepts only
-sandbox payments. See [Live payments](#live-payments).
-
 ## First deploy
 
 Run the commands one at a time in `/srv/store`. If a command fails, stop and do not run the next
@@ -221,8 +216,8 @@ $C run --rm -T medusa-server npx medusa db:migrate --execute-safe-links
 $C up -d --remove-orphans
 ```
 
-6. Seed the store. The seed makes the region, the shipping option, three sample products, and the
-   publishable API key.
+6. Seed the store. The seed makes the region, the shipping option, three sample products, a sample
+   bank account, the store contact, and the publishable API key.
 
 ```bash
 $C exec -T medusa-server npx medusa exec ./src/scripts/seed.js | grep PUBLISHABLE_KEY
@@ -311,26 +306,17 @@ If a step fails, read the log of the backend.
 $C logs -f --tail 100 medusa-server
 ```
 
-## Live payments
+## Payments
 
-Do these steps after a check of the store with the Mayar sandbox.
+Bank transfer is the payment method of the store. The seed adds a sample bank account and a sample
+store contact. Replace them before you sell.
 
-1. Set these lines in `.env`. The live key is at `web.mayar.id/api-keys`.
+1. Sign in to the Admin and open **Settings → Bank transfer**.
+2. Replace the seed account "Sample Bank" `1234567890` with a real account, or mark it inactive.
+3. Replace the seed contact "store@example.com" and "+6281234567890" with the real contact.
+4. Make one real order with a small amount. Make sure that the order page shows the real account.
 
-```bash
-MAYAR_API_URL=https://api.mayar.id/hl/v2
-MAYAR_API_KEY=<the key from web.mayar.id/api-keys>
-```
-
-2. Restart the backend.
-
-```bash
-$C up -d medusa-server medusa-worker
-```
-
-3. In the Mayar dashboard, set the webhook URL to
-   `https://api.<domain>/hooks/payment/mayar_mayar`.
-4. Make one real order with a small amount. Make sure that the order shows in the dashboard.
+To add a payment gateway, read `docs/payments/`.
 
 ## Backups
 

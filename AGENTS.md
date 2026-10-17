@@ -64,26 +64,34 @@ pnpm format:check
   are client-only, and the storefront and the API must be on the same site.
 - Custom Store API routes that the storefront uses: `/store/reviews`,
   `/store/products/:id/reviews`, `/store/customers/me/reviewable-items`,
-  `/store/customers/me/wishlist`, `/store/customers/me/wishlist/items[/:id]`.
+  `/store/customers/me/wishlist`, `/store/customers/me/wishlist/items[/:id]`,
+  `/store/bank-transfer`.
 - The store has one region (Indonesia), one currency (`idr`), and amounts in whole rupiah. No code
   divides an amount by 100.
 - Provider ids that both apps depend on:
-  - Payment: `pp_mayar_mayar` (`MAYAR_PROVIDER_ID` in `apps/storefront/app/composables/useCheckout.ts`).
+  - Payment: `pp_bank-transfer_bank-transfer` (`BANK_TRANSFER_PROVIDER_ID` in
+    `apps/backend/src/modules/bank-transfer/constants.ts`). In the storefront, only
+    `app/utils/bankTransfer.ts` and the locale files name it.
   - Fulfillment: `weight-shipping_weight-shipping`.
 
 ### Checkout and payment flow
 
 1. The storefront `/checkout` page updates the cart, lists the shipping options, and adds a
    shipping method.
-2. The storefront calls `initiatePaymentSession` with `pp_mayar_mayar`. The backend Mayar provider
-   creates a Mayar invoice and returns `payment_url`.
-3. The browser goes to the Mayar page. Mayar redirects to `${STOREFRONT_URL}/checkout/return`.
-   This URL has no locale prefix.
-4. The return page calls `cart.complete` with retries. The provider `authorizePayment` asks the
-   Mayar API and succeeds only for a paid invoice with the same amount.
-5. Two other paths complete a paid cart:
-   - The webhook: `POST /hooks/payment/mayar_mayar`. This is the Medusa built-in route.
-   - The job `check-paid-carts`, which runs every 15 minutes.
+2. The storefront lists the payment providers of the region. The customer selects one.
+3. The storefront calls `initiatePaymentSession` with the selected provider id and the customer
+   object (`startPayment` in `apps/storefront/app/composables/useCheckout.ts`).
+4. Bank transfer: the session has no `payment_url`. The storefront completes the cart at once and
+   opens `/orders/:id`. The order page shows the bank accounts from `/store/bank-transfer` until
+   the admin captures the payment.
+5. Redirect gateway: the session has an https `payment_url`. The browser goes to that page. The
+   gateway redirects to `${STOREFRONT_URL}/checkout/return`, a URL with no locale prefix. The
+   return page calls `cart.complete` with retries.
+6. Two other paths complete a paid gateway cart:
+   - The webhook: `POST /hooks/payment/<provider_id>`. This is the Medusa built-in route.
+   - The job `check-paid-carts`, which runs every 15 minutes. It checks the providers in
+     `RECOVERY_ADAPTERS` (`apps/backend/src/recovery/adapters.ts`). The list is empty in the
+     template.
 
 ## Production
 

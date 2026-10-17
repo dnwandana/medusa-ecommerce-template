@@ -15,7 +15,6 @@ pnpm --filter @store/backend build                        # output in .medusa/se
 pnpm --filter @store/backend exec medusa db:migrate
 pnpm --filter @store/backend exec medusa db:generate <module>   # new migration for a custom module
 pnpm --filter @store/backend seed
-pnpm --filter @store/backend mayar:check                  # sandbox host only
 pnpm --filter @store/backend test:unit [path]
 pnpm --filter @store/backend test:integration:http [path]
 pnpm --filter @store/backend lint                         # ESLint, eslint.config.mjs
@@ -27,11 +26,10 @@ pnpm --filter @store/backend lint                         # ESLint, eslint.confi
   - `integration:modules`: `src/modules/*/__tests__/**/*.[jt]s`. No module integration tests exist.
 - Run Jest only through these scripts. They set `TEST_TYPE` and `NODE_OPTIONS`.
 - `jest.config.js` calls `loadEnv("test")`. Values in `.env.test` win over values in `.env`.
-- `.env.test` sets an empty `REDIS_URL` and `MAYAR_API_URL=https://mayar.test/hl/v2`.
-  `integration-tests/helpers/mayar-mock.ts` replaces `global.fetch` for that host.
+- `.env.test` sets an empty `REDIS_URL` and an empty `S3_BUCKET`. The tests need only PostgreSQL.
 - The HTTP integration tests use `medusaIntegrationTestRunner`. Many of them call `runSeed`.
 - `integration-tests/helpers/` has helpers for actors (customer and admin JWTs), checkout, and
-  shipping.
+  shipping. `placeOrder(ctx, items)` in `checkout.ts` places an order with bank transfer.
 
 ## Configuration
 
@@ -49,8 +47,7 @@ pnpm --filter @store/backend lint                         # ESLint, eslint.confi
     Development sets it to the Garage of `docker-compose.local.yml`. The key comes from step 3
     of `docs/development.md`. `.env.test` sets `S3_BUCKET=` empty, so the tests store the files
     in `static/`.
-- The Mayar payment provider is always registered. An empty `MAYAR_API_KEY` does not stop
-  startup.
+- The bank transfer payment provider is always registered. It needs no env key.
 - These conditions stop startup with an error:
   - `SHIPPING_RATE_PER_KG` is not a positive integer.
   - `BREVO_API_KEY` has a value and `BREVO_SENDER_EMAIL` is empty.
@@ -63,10 +60,11 @@ pnpm --filter @store/backend lint                         # ESLint, eslint.confi
 - `src/api/middlewares.ts`: applies `authenticate`, `validateAndTransformBody`, and
   `validateAndTransformQuery` to the custom routes.
 - `src/modules/`:
-  - `mayar/`: payment provider (identifier `mayar`, stored id `pp_mayar_mayar`).
-    - `client.ts` is the HTTP client and has no Medusa imports.
-    - `invoice.ts` has the paid and amount checks.
-    - `service.ts` is the provider.
+  - `bank-transfer/`: payment provider (identifier `bank-transfer`, stored id
+    `pp_bank-transfer_bank-transfer`). The constants `BANK_TRANSFER_PROVIDER_ID` and
+    `PAYMENT_DEADLINE_MS` are in `constants.ts`.
+  - `bank-account/`: data module `bankAccount` with the models `bank_account` and `store_contact`.
+    The service adds `getContact()` and `setContact()`, because the module keeps one contact row.
   - `weight-shipping/`: fulfillment provider. `calculate.ts` has the weight rule: grams, rounded up
     to whole kg, minimum 1 kg, and 1000 g for a variant with no weight.
   - `brevo/`: notification provider. The templates are in `templates/`: `order-placed`,
@@ -78,20 +76,29 @@ pnpm --filter @store/backend lint                         # ESLint, eslint.confi
   to product, customer, and productVariant.
 - `src/workflows/`: `create-review`, `update-review-status`, `add-wishlist-item`, and
   `remove-wishlist-item`. Shared steps are in `src/workflows/steps/`.
-- `src/subscribers/`: `order.placed` sends the order email. `auth.password_reset` sends the reset
-  link.
+- `src/subscribers/`: `order.placed` sends the order email. For an unpaid bank transfer order,
+  the email has the amount, the active bank accounts, and the deadline in WIB.
+  `auth.password_reset` sends the reset link.
 - `src/jobs/check-paid-carts.ts` is the job definition (`*/15 * * * *`).
   - The logic is in `src/recovery/check-paid-carts.ts`.
-  - The wiring to Query, Mayar, Notification, and Cart is in `src/recovery/dependencies.ts`.
-- `src/seed/`: idempotent seed steps for the region, fulfillment, products, and API key.
-  `src/scripts/seed.ts` runs them and prints the publishable key.
-- `src/admin/`: the admin **Reviews** page (`routes/reviews/page.tsx`). The admin code has its own
-  `tsconfig.json`. The root `tsconfig.json` excludes `src/admin`.
+  - The wiring to Query, Notification, and Cart is in `src/recovery/dependencies.ts`. The
+    adapters are in `src/recovery/adapters.ts`.
+  - `RECOVERY_ADAPTERS` is empty, so the job returns at once and writes no log line.
+- `src/seed/`: idempotent seed steps for the region, the bank account, fulfillment, products, and
+  the API key. `bank-account.ts` adds the "Sample Bank" account and the sample contact only when
+  the owner has no data. `src/scripts/seed.ts` runs the seed steps and prints the publishable
+  key.
+- `src/admin/`: the admin **Reviews** page (`routes/reviews/page.tsx`) and the **Settings → Bank
+  transfer** page (`routes/settings/bank-transfer/page.tsx`). The pure helpers are in `lib/` and
+  have unit tests. The admin code has its own `tsconfig.json`. The root `tsconfig.json` excludes
+  `src/admin`.
 
 ## Code conventions
 
 - Mutations go through workflows (`createWorkflow`, `createStep`, `StepResponse`). Each step has a
   compensation function.
+  The Admin routes for the bank accounts and the store contact call the `bankAccount` service
+  directly. Each request changes one record of one module, so there is nothing to compensate.
 - Reads use `query.graph` or the module services.
 - Routes do not catch errors. They throw `MedusaError` and Medusa's error handler formats the
   response.
@@ -103,27 +110,21 @@ pnpm --filter @store/backend lint                         # ESLint, eslint.confi
 - Log and error messages do not contain secrets, tokens, or email addresses.
 - Files are kebab-case. Data modules export a module constant, for example
   `PRODUCT_REVIEW_MODULE = "productReview"`.
-- The code has no semicolons. Most files use double quotes. `src/api/middlewares.ts` uses single
-  quotes.
+- The code has no semicolons and uses double quotes (`.prettierrc.json`).
 - Unit tests sit in `__tests__/` next to the code and use the suffix `.unit.spec.ts`.
-  `src/modules/mayar/__tests__/helpers.ts` builds the provider with a fake client.
 
-## Mayar provider facts
+## Bank transfer provider facts
 
-- Only IDR is accepted. Any other currency throws `INVALID_DATA`.
-- `initiatePayment` needs the customer name, email, and mobile number. They come from
-  `data.customer` or from the logged-in customer.
-- The invoice expires after 24 hours. `extraData.session_id` links the invoice to the payment
-  session.
-- `authorizePayment` returns `captured` only for a paid invoice with the same amount. In all other
-  cases it throws `PAYMENT_AUTHORIZATION_ERROR`.
-- `capturePayment` does nothing.
-- `refundPayment` only logs a warning, because Mayar has no refund API.
-- `getWebhookActionAndData` accepts only `payment.received`. It reads only `data.productId` and asks
-  the Mayar API for the invoice again. Mayar webhooks have no signature.
-- The recovery job checks at most 40 sessions in one run, because the Mayar rate limit is 50
-  requests per minute. It checks only sessions that are 48 hours old or newer.
-- `mayar-sandbox-check.ts` stops if `MAYAR_API_URL` does not contain `mayar.io`.
+- `authorizePayment` returns `authorized` at once. The cart becomes an order at checkout.
+- `initiatePayment` returns no `payment_url`, so the storefront does not redirect.
+- The session data has no customer data. The order already has the customer contact.
+- `getWebhookActionAndData` returns `not_supported`. A bank transfer sends no webhook.
+- `capturePayment` does nothing. The owner captures the payment in the Medusa Admin after the
+  money arrives.
+- `refundPayment` does nothing. The owner returns the money outside of Medusa.
+- The deadline is the order time plus `PAYMENT_DEADLINE_MS` (24 hours).
+- An unpaid bank transfer order has a payment collection with the status `authorized` and a payment
+  session with the provider id `pp_bank-transfer_bank-transfer`.
 
 ## Docker
 
