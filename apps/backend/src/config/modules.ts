@@ -129,33 +129,24 @@ function notificationModule(env: Env): ModuleEntry {
   }
 }
 
-const MAYAR_SANDBOX_URL = "https://api.mayar.io/hl/v2"
-const DEFAULT_STOREFRONT_URL = "http://localhost:3000"
-
-// Registers the mayar provider. Medusa stores its id as "pp_mayar_mayar". The provider is always
-// registered, so the backend starts with an empty MAYAR_API_KEY. Each call to Mayar then fails.
-function paymentModule(env: Env): ModuleEntry {
+// Registers the payment providers. Bank transfer is the default provider, and Medusa stores its id
+// as "pp_bank-transfer_bank-transfer". A client project adds its gateway provider to this list.
+function paymentModule(): ModuleEntry {
   return {
     resolve: "@medusajs/medusa/payment",
     options: {
-      providers: [
-        {
-          resolve: "./src/modules/mayar",
-          id: "mayar",
-          options: {
-            apiUrl: env.MAYAR_API_URL || MAYAR_SANDBOX_URL,
-            apiKey: env.MAYAR_API_KEY || "",
-            storefrontUrl: env.STOREFRONT_URL || DEFAULT_STOREFRONT_URL,
-          },
-        },
-      ],
+      providers: [{ resolve: "./src/modules/bank-transfer", id: "bank-transfer" }],
     },
   }
 }
 
 // Returns the custom modules that have their own data models.
 function customModules(): ModuleEntry[] {
-  return [{ resolve: "./src/modules/product-review" }, { resolve: "./src/modules/wishlist" }]
+  return [
+    { resolve: "./src/modules/product-review" },
+    { resolve: "./src/modules/wishlist" },
+    { resolve: "./src/modules/bank-account" },
+  ]
 }
 
 // Returns the Translation Module. The Store API uses it to return product content in the locale
@@ -227,7 +218,7 @@ export function buildModules(env: Env): ModuleEntry[] {
     ...redisModules(env),
     fulfillmentModule(env),
     notificationModule(env),
-    paymentModule(env),
+    paymentModule(),
     translationModule(),
     ...customModules(),
     ...fileModule(env),

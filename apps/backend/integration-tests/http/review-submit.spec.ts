@@ -3,8 +3,7 @@ import { PRODUCT_REVIEW_MODULE } from "../../src/modules/product-review"
 import ProductReviewModuleService from "../../src/modules/product-review/service"
 import { runSeed } from "../../src/seed"
 import { Actor, createCustomerWithToken } from "../helpers/actors"
-import { placePaidOrder } from "../helpers/checkout"
-import { installMayarMock, MayarMock } from "../helpers/mayar-mock"
+import { placeOrder } from "../helpers/checkout"
 import { getOrderItems, PlacedItem, shipOrderItems } from "../helpers/shipping"
 
 jest.setTimeout(180 * 1000)
@@ -12,7 +11,6 @@ jest.setTimeout(180 * 1000)
 medusaIntegrationTestRunner({
   testSuite: ({ api, getContainer }) => {
     describe("POST /store/reviews", () => {
-      let mock: MayarMock
       let customer: Actor
       let headers: Record<string, string>
       let publishableKey: string
@@ -23,14 +21,13 @@ medusaIntegrationTestRunner({
       beforeEach(async () => {
         const container = getContainer()
         const seed = await runSeed(container)
-        mock = installMayarMock()
         customer = await createCustomerWithToken(container, {
           first_name: "Budi",
           last_name: "Santoso",
         })
         publishableKey = seed.publishableKey
         headers = { "x-publishable-api-key": publishableKey, ...customer.headers }
-        const order = await placePaidOrder({ api, headers, regionId: seed.regionId }, mock, [
+        const order = await placeOrder({ api, headers, regionId: seed.regionId }, [
           ["TSHIRT-M", 3],
           ["TOTE-DEFAULT", 1],
         ])
@@ -39,8 +36,6 @@ medusaIntegrationTestRunner({
         tote = items.find((item) => item.sku === "TOTE-DEFAULT")!
         await shipOrderItems(container, order.id, [{ id: shirt.id, quantity: 1 }])
       })
-
-      afterEach(() => mock.restore())
 
       const post = (body: unknown, requestHeaders = headers) =>
         api.post("/store/reviews", body, { headers: requestHeaders }).catch((e: any) => e.response)

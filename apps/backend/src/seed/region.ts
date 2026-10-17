@@ -7,6 +7,7 @@ import {
   updateRegionsWorkflow,
   updateStoresWorkflow,
 } from "@medusajs/medusa/core-flows"
+import { BANK_TRANSFER_PROVIDER_ID } from "../modules/bank-transfer/constants"
 
 export type SeedRegionResult = { salesChannelId: string; storeId: string; regionId: string }
 
@@ -17,12 +18,12 @@ const CURRENCY = "idr"
 const COUNTRY = "id"
 // The region does not use the system default provider. That provider authorizes each payment with
 // no money.
-const PAYMENT_PROVIDERS = ["pp_mayar_mayar"]
+const PAYMENT_PROVIDERS = [BANK_TRANSFER_PROVIDER_ID]
 
-// Creates the sales channel, the store currency, and the region. The region uses the Mayar
-// provider pp_mayar_mayar as its only payment provider. It creates no tax region, because the
-// store calculates no tax. Each step looks for the record first, so a second run creates no
-// record.
+// Creates the sales channel, the store currency, and the region. The region uses the bank transfer
+// provider pp_bank-transfer_bank-transfer as its only payment provider. It creates no tax region,
+// because the store calculates no tax. Each step looks for the record first, so a second run
+// creates no record.
 export async function seedRegion(container: MedusaContainer): Promise<SeedRegionResult> {
   const salesChannelId = await findOrCreateSalesChannel(container)
   const storeId = await upsertStore(container, salesChannelId)

@@ -2,8 +2,7 @@ import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { medusaIntegrationTestRunner } from "@medusajs/test-utils"
 import { runSeed } from "../../src/seed"
 import { createAdminWithToken, createCustomerWithToken } from "../helpers/actors"
-import { placePaidOrder } from "../helpers/checkout"
-import { installMayarMock, MayarMock } from "../helpers/mayar-mock"
+import { placeOrder } from "../helpers/checkout"
 import { getOrderItems, shipOrderItems } from "../helpers/shipping"
 
 jest.setTimeout(180 * 1000)
@@ -11,13 +10,6 @@ jest.setTimeout(180 * 1000)
 medusaIntegrationTestRunner({
   testSuite: ({ api, getContainer }) => {
     describe("order test helpers", () => {
-      let mock: MayarMock | undefined
-
-      afterEach(() => {
-        mock?.restore()
-        mock = undefined
-      })
-
       it("creates a customer whose token the store API accepts", async () => {
         const container = getContainer()
         const seed = await runSeed(container)
@@ -47,7 +39,6 @@ medusaIntegrationTestRunner({
       it("places an order for the customer and ships a part of it", async () => {
         const container = getContainer()
         const seed = await runSeed(container)
-        mock = installMayarMock()
         const customer = await createCustomerWithToken(container)
         const ctx = {
           api,
@@ -55,7 +46,7 @@ medusaIntegrationTestRunner({
           regionId: seed.regionId,
         }
 
-        const order = await placePaidOrder(ctx, mock, [
+        const order = await placeOrder(ctx, [
           ["TSHIRT-M", 3],
           ["TOTE-DEFAULT", 1],
         ])
@@ -79,6 +70,26 @@ medusaIntegrationTestRunner({
         const after = await getOrderItems(container, order.id)
         expect(after.find((item) => item.sku === "TSHIRT-M")!.shipped_quantity).toBe(1)
         expect(after.find((item) => item.sku === "TOTE-DEFAULT")!.shipped_quantity).toBe(0)
+      })
+
+      it("places a bank transfer order with the payment not captured", async () => {
+        const container = getContainer()
+        const seed = await runSeed(container)
+        const headers = { "x-publishable-api-key": seed.publishableKey }
+        const order = await placeOrder({ api, headers, regionId: seed.regionId }, [
+          ["TOTE-DEFAULT", 1],
+        ])
+
+        const response = await api.get(
+          `/store/orders/${order.id}?fields=+created_at,+payment_collections.status,*payment_collections.payment_sessions`,
+          { headers }
+        )
+
+        const collection = response.data.order.payment_collections[0]
+        expect(collection.status).toBe("authorized")
+        expect(collection.payment_sessions[0].provider_id).toBe("pp_bank-transfer_bank-transfer")
+        expect(collection.payment_sessions[0].data).not.toHaveProperty("payment_url")
+        expect(typeof response.data.order.created_at).toBe("string")
       })
     })
   },

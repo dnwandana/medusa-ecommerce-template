@@ -3,7 +3,8 @@ import { renderTemplate } from "../templates"
 
 const data = {
   cart_id: "cart_01",
-  invoice_id: "inv_1",
+  provider_id: "pp_test_test",
+  payment_reference: "ref-1",
   customer_email: "buyer@example.com",
   amount: 95000,
 }
@@ -13,13 +14,25 @@ describe("renderPaidCartAlert", () => {
     expect(renderPaidCartAlert(data).subject).toBe("Paid cart with no order: cart_01")
   })
 
-  it("shows the cart id, the invoice id, the email address, and the amount", () => {
+  it("shows the cart id, the email address, and the amount", () => {
     const { html } = renderPaidCartAlert(data)
 
     expect(html).toContain("cart_01")
-    expect(html).toContain("inv_1")
     expect(html).toContain("buyer@example.com")
     expect(html).toContain("Rp 95.000")
+  })
+
+  it("shows the provider id and the payment reference and names no gateway", () => {
+    const { html } = renderPaidCartAlert(data)
+    expect(html).toContain("pp_test_test")
+    expect(html).toContain("ref-1")
+    expect(html).not.toMatch(/mayar|invoice/i)
+  })
+
+  it("throws when a required value is missing", () => {
+    expect(() => renderPaidCartAlert({ ...data, payment_reference: "" })).toThrow(
+      'The "paid-cart-alert" template needs cart_id, provider_id, payment_reference, and amount.'
+    )
   })
 
   it("renders an alert with no customer email address", () => {
@@ -39,11 +52,12 @@ describe("renderPaidCartAlert", () => {
   it.each([
     ["no data", undefined],
     ["no cart id", { ...data, cart_id: "" }],
-    ["no invoice id", { ...data, invoice_id: undefined }],
+    ["no provider id", { ...data, provider_id: undefined }],
+    ["no payment reference", { ...data, payment_reference: undefined }],
     ["an amount that is not a number", { ...data, amount: "95000" }],
   ])("stops for %s", (_name, value) => {
     expect(() => renderPaidCartAlert(value as any)).toThrow(
-      'The "paid-cart-alert" template needs cart_id, invoice_id, and amount.'
+      'The "paid-cart-alert" template needs cart_id, provider_id, payment_reference, and amount.'
     )
   })
 })

@@ -1,9 +1,12 @@
-import type { MayarMock } from "./mayar-mock"
-
 export type StoreContext = { api: any; headers: Record<string, string>; regionId: string }
 export type CartItem = [sku: string, quantity: number]
 
-const customer = { name: "Budi Santoso", email: "buyer@example.com", mobile: "081234567890" }
+const customer = {
+  first_name: "Budi",
+  last_name: "Santoso",
+  email: "buyer@example.com",
+  phone: "+6281234567890",
+}
 
 // Creates a cart with an Indonesian address, the given items, and the seeded shipping option.
 export async function createCartWithShipping(
@@ -29,7 +32,7 @@ export async function createCartWithShipping(
         city: "Jakarta",
         postal_code: "10220",
         country_code: "id",
-        phone: customer.mobile,
+        phone: "081234567890",
       },
     },
     { headers }
@@ -54,17 +57,11 @@ export async function createCartWithShipping(
   return { cartId, total: withShipping.data.cart.total }
 }
 
-// Creates a cart and a Mayar payment session for it. installMayarMock() must be active.
+// Creates a cart and a bank transfer payment session for it.
 export async function createCartWithPaymentSession(
   ctx: StoreContext,
   items: CartItem[]
-): Promise<{
-  cartId: string
-  paymentCollectionId: string
-  sessionId: string
-  invoiceId: string
-  total: number
-}> {
+): Promise<{ cartId: string; paymentCollectionId: string; sessionId: string; total: number }> {
   const { api, headers } = ctx
   const { cartId, total } = await createCartWithShipping(ctx, items)
 
@@ -73,28 +70,18 @@ export async function createCartWithPaymentSession(
 
   const withSession = await api.post(
     `/store/payment-collections/${paymentCollectionId}/payment-sessions`,
-    { provider_id: "pp_mayar_mayar", data: { customer } },
+    { provider_id: "pp_bank-transfer_bank-transfer", data: { customer } },
     { headers }
   )
   const session = withSession.data.payment_collection.payment_sessions[0]
 
-  return {
-    cartId,
-    paymentCollectionId,
-    sessionId: session.id,
-    invoiceId: session.data.invoice_id,
-    total,
-  }
+  return { cartId, paymentCollectionId, sessionId: session.id, total }
 }
 
-// Creates a cart, marks its Mayar invoice as paid, and completes the cart. Returns the order.
-export async function placePaidOrder(
-  ctx: StoreContext,
-  mock: MayarMock,
-  items: CartItem[]
-): Promise<any> {
-  const { cartId, invoiceId } = await createCartWithPaymentSession(ctx, items)
-  mock.setInvoiceStatus(invoiceId, "paid")
+// Creates a cart with a bank transfer payment session and completes the cart. The payment is
+// authorized but not captured. Returns the order.
+export async function placeOrder(ctx: StoreContext, items: CartItem[]): Promise<any> {
+  const { cartId } = await createCartWithPaymentSession(ctx, items)
 
   const completed = await ctx.api.post(
     `/store/carts/${cartId}/complete`,

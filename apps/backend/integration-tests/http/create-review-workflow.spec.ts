@@ -4,8 +4,7 @@ import ProductReviewModuleService from "../../src/modules/product-review/service
 import { runSeed } from "../../src/seed"
 import { createReviewWorkflow } from "../../src/workflows/create-review"
 import { createCustomerWithToken } from "../helpers/actors"
-import { CartItem, placePaidOrder } from "../helpers/checkout"
-import { installMayarMock, MayarMock } from "../helpers/mayar-mock"
+import { CartItem, placeOrder } from "../helpers/checkout"
 import { getOrderItems, shipOrderItems } from "../helpers/shipping"
 
 jest.setTimeout(180 * 1000)
@@ -13,15 +12,11 @@ jest.setTimeout(180 * 1000)
 medusaIntegrationTestRunner({
   testSuite: ({ api, getContainer }) => {
     describe("createReviewWorkflow", () => {
-      let mock: MayarMock
       let seed: Awaited<ReturnType<typeof runSeed>>
 
       beforeEach(async () => {
         seed = await runSeed(getContainer())
-        mock = installMayarMock()
       })
-
-      afterEach(() => mock.restore())
 
       const buyer = (names: { first_name?: string | null; last_name?: string | null } = {}) =>
         createCustomerWithToken(getContainer(), names)
@@ -33,7 +28,7 @@ medusaIntegrationTestRunner({
           headers: { "x-publishable-api-key": seed.publishableKey, ...customer.headers },
           regionId: seed.regionId,
         }
-        const order = await placePaidOrder(ctx, mock, items)
+        const order = await placeOrder(ctx, items)
         return { order, items: await getOrderItems(getContainer(), order.id) }
       }
 

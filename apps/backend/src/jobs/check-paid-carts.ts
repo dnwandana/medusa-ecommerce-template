@@ -1,19 +1,24 @@
 import type { MedusaContainer } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { RECOVERY_ADAPTERS, type RecoveryAdapter } from "../recovery/adapters"
 import { checkPaidCarts } from "../recovery/check-paid-carts"
 import { buildRecoveryDeps } from "../recovery/dependencies"
 
 // Completes each cart that a customer paid, but that has no order.
-export default async function checkPaidCartsJob(container: MedusaContainer): Promise<void> {
-  // The job runs each 15 minutes, so an empty key gives no log line.
-  if (!process.env.MAYAR_API_KEY) {
+export default async function checkPaidCartsJob(
+  container: MedusaContainer,
+  adapters: RecoveryAdapter[] = RECOVERY_ADAPTERS
+): Promise<void> {
+  // The template has no gateway, so the adapter list is empty. The job runs each 15 minutes, so it
+  // returns before it writes a log line.
+  if (adapters.length === 0) {
     return
   }
 
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
   try {
     const { checked, completed, alerted } = await checkPaidCarts(
-      buildRecoveryDeps(container, process.env)
+      buildRecoveryDeps(container, process.env, adapters)
     )
     if (completed > 0 || alerted > 0) {
       logger.info(

@@ -2,29 +2,33 @@ import { medusaIntegrationTestRunner } from "@medusajs/test-utils"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { runSeed } from "../../src/seed"
 import checkPaidCartsJob, { config } from "../../src/jobs/check-paid-carts"
+import { BANK_TRANSFER_PROVIDER_ID } from "../../src/modules/bank-transfer/constants"
+import type { RecoveryAdapter } from "../../src/recovery/adapters"
 import { createCartWithPaymentSession, type StoreContext } from "../helpers/checkout"
-import { installMayarMock, type MayarMock } from "../helpers/mayar-mock"
 
 jest.setTimeout(180 * 1000)
+
+// The test adapter uses the bank transfer provider, because its sessions stay pending until the
+// cart completes.
+const adapter = (paid: boolean): RecoveryAdapter => ({
+  providerId: BANK_TRANSFER_PROVIDER_ID,
+  maxSessionsPerRun: 40,
+  isSessionPaid: async () => paid,
+  paymentReference: () => "ref-1",
+})
 
 medusaIntegrationTestRunner({
   testSuite: ({ api, getContainer }) => {
     describe("check-paid-carts job", () => {
       let ctx: StoreContext
-      let mock: MayarMock
 
       beforeEach(async () => {
-        mock = installMayarMock()
         const seed = await runSeed(getContainer())
         ctx = {
           api,
           regionId: seed.regionId,
           headers: { "x-publishable-api-key": seed.publishableKey },
         }
-      })
-
-      afterEach(() => {
-        mock.restore()
       })
 
       const query = () => getContainer().resolve(ContainerRegistrationKeys.QUERY)
@@ -51,21 +55,29 @@ medusaIntegrationTestRunner({
         expect(config).toEqual({ name: "check-paid-carts", schedule: "*/15 * * * *" })
       })
 
-      it("completes the cart of a paid invoice", async () => {
-        const { cartId, invoiceId } = await createCartWithPaymentSession(ctx, [["TOTE-DEFAULT", 1]])
-        mock.setInvoiceStatus(invoiceId, "paid")
-
-        await checkPaidCartsJob(getContainer())
-
-        expect(await orders()).toHaveLength(1)
-        expect((await cart(cartId)).completed_at).not.toBeNull()
-        expect(await alerts()).toHaveLength(0)
-      })
-
-      it("does nothing for an invoice that is not paid", async () => {
+      it("does nothing with the empty adapter list of the template", async () => {
         const { cartId } = await createCartWithPaymentSession(ctx, [["TOTE-DEFAULT", 1]])
 
         await checkPaidCartsJob(getContainer())
+
+        expect(await orders()).toHaveLength(0)
+        expect((await cart(cartId)).completed_at).toBeNull()
+      })
+
+      it("completes the cart of a paid session", async () => {
+        const { cartId } = await createCartWithPaymentSession(ctx, [["TOTE-DEFAULT", 1]])
+
+        await checkPaidCartsJob(getContainer(), [adapter(true)])
+
+        expect(await orders()).toHaveLength(1)
+        expect((await cart(cartId)).completed_at).toEqual(expect.any(Date))
+        expect(await alerts()).toHaveLength(0)
+      })
+
+      it("does nothing for a session that is not paid", async () => {
+        const { cartId } = await createCartWithPaymentSession(ctx, [["TOTE-DEFAULT", 1]])
+
+        await checkPaidCartsJob(getContainer(), [adapter(false)])
 
         expect(await orders()).toHaveLength(0)
         expect((await cart(cartId)).completed_at).toBeNull()
@@ -73,12 +85,14 @@ medusaIntegrationTestRunner({
       })
 
       it("sends one alert to the store owner when the paid cart does not complete", async () => {
-        const { cartId, invoiceId } = await createCartWithPaymentSession(ctx, [["TOTE-DEFAULT", 1]])
-        // A paid invoice with a different amount fails the completion.
-        mock.setInvoiceAmount(invoiceId, 1)
-        mock.setInvoiceStatus(invoiceId, "paid")
+        const { cartId } = await createCartWithPaymentSession(ctx, [["TOTE-DEFAULT", 1]])
+        // A cart with no shipping method fails the completion.
+        const cartModule = getContainer().resolve(Modules.CART)
+        const methods = await cartModule.listShippingMethods({ cart_id: cartId })
+        await cartModule.deleteShippingMethods(methods.map((m) => m.id))
 
-        await checkPaidCartsJob(getContainer())
+        await checkPaidCartsJob(getContainer(), [adapter(true)])
+        await checkPaidCartsJob(getContainer(), [adapter(true)])
 
         expect(await orders()).toHaveLength(0)
         const sent = await alerts()
@@ -87,34 +101,11 @@ medusaIntegrationTestRunner({
         expect(sent[0].channel).toBe("email")
         expect(sent[0].data).toMatchObject({
           cart_id: cartId,
-          invoice_id: invoiceId,
+          provider_id: "pp_bank-transfer_bank-transfer",
+          payment_reference: "ref-1",
           customer_email: "buyer@example.com",
-          amount: 95000,
         })
         expect((await cart(cartId)).metadata?.paid_cart_alert_sent_at).toEqual(expect.any(String))
-
-        const requestsAfterFirstRun = mock.requests.length
-        await checkPaidCartsJob(getContainer())
-
-        expect(await alerts()).toHaveLength(1)
-        expect(mock.requests).toHaveLength(requestsAfterFirstRun)
-      })
-
-      it("makes no request to Mayar when MAYAR_API_KEY is empty", async () => {
-        const { invoiceId } = await createCartWithPaymentSession(ctx, [["TOTE-DEFAULT", 1]])
-        mock.setInvoiceStatus(invoiceId, "paid")
-        const requestsBefore = mock.requests.length
-        const key = process.env.MAYAR_API_KEY
-        process.env.MAYAR_API_KEY = ""
-
-        try {
-          await checkPaidCartsJob(getContainer())
-        } finally {
-          process.env.MAYAR_API_KEY = key
-        }
-
-        expect(mock.requests).toHaveLength(requestsBefore)
-        expect(await orders()).toHaveLength(0)
       })
     })
   },

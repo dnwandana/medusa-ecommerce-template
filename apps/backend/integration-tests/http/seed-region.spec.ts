@@ -29,7 +29,9 @@ medusaIntegrationTestRunner({
         expect(regions[0].name).toBe("Indonesia")
         expect(regions[0].currency_code).toBe("idr")
         expect(regions[0].countries.map((c: any) => c.iso_2)).toEqual(["id"])
-        expect(regions[0].payment_providers.map((p: any) => p.id)).toEqual(["pp_mayar_mayar"])
+        expect(regions[0].payment_providers.map((p: any) => p.id)).toEqual([
+          "pp_bank-transfer_bank-transfer",
+        ])
       })
 
       it("sets IDR as the only store currency and links the sales channel", async () => {
@@ -83,7 +85,9 @@ medusaIntegrationTestRunner({
 
         const regions = await graph("region", ["id", "payment_providers.id"])
         expect(regions).toHaveLength(1)
-        expect(regions[0].payment_providers.map((p: any) => p.id)).toEqual(["pp_mayar_mayar"])
+        expect(regions[0].payment_providers.map((p: any) => p.id)).toEqual([
+          "pp_bank-transfer_bank-transfer",
+        ])
       })
     })
   },

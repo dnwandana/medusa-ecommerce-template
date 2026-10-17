@@ -1,23 +1,16 @@
 import type { MedusaContainer } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { completeCartWorkflow } from "@medusajs/medusa/core-flows"
-import { MayarClient } from "../modules/mayar/client"
-import { isPaidStatus } from "../modules/mayar/invoice"
+import { RECOVERY_ADAPTERS, type RecoveryAdapter } from "./adapters"
 import type { PendingSession, RecoveryDeps } from "./check-paid-carts"
 
-const PROVIDER_ID = "pp_mayar_mayar"
-const MAYAR_SANDBOX_URL = "https://api.mayar.io/hl/v2"
-
-// Connects the recovery logic to Medusa and to the Mayar API.
+// Connects the recovery logic to Medusa. Each adapter gives the paid check for one gateway.
 export function buildRecoveryDeps(
   container: MedusaContainer,
-  env: Record<string, string | undefined>
+  env: Record<string, string | undefined>,
+  adapters: RecoveryAdapter[] = RECOVERY_ADAPTERS
 ): RecoveryDeps {
   const query = container.resolve(ContainerRegistrationKeys.QUERY)
-  const client = new MayarClient({
-    apiUrl: env.MAYAR_API_URL || MAYAR_SANDBOX_URL,
-    apiKey: env.MAYAR_API_KEY ?? "",
-  })
 
   const cartMetadata = async (cartId: string): Promise<Record<string, unknown>> => {
     const { data } = await query.graph({
@@ -31,13 +24,14 @@ export function buildRecoveryDeps(
   return {
     now: () => new Date(),
     ownerEmail: env.STORE_OWNER_EMAIL ?? "",
+    adapters,
     logger: container.resolve(ContainerRegistrationKeys.LOGGER),
 
-    async listPendingSessions(): Promise<PendingSession[]> {
+    async listPendingSessions(providerId: string): Promise<PendingSession[]> {
       const { data: sessions } = await query.graph({
         entity: "payment_session",
         fields: ["id", "data", "amount", "created_at", "payment_collection_id"],
-        filters: { provider_id: PROVIDER_ID, status: ["pending"] },
+        filters: { provider_id: providerId, status: ["pending"] },
       })
       if (!sessions.length) {
         return []
@@ -67,13 +61,13 @@ export function buildRecoveryDeps(
       const cartById = new Map<string, any>(carts.map((c: any) => [c.id, c]))
 
       return sessions.map((session: any): PendingSession => {
-        const invoiceId = session.data?.invoice_id
         const cartId = cartIdByCollection.get(session.payment_collection_id)
         const cart = cartId ? cartById.get(cartId) : undefined
         const alertSentAt = cart?.metadata?.paid_cart_alert_sent_at
         return {
           sessionId: session.id,
-          invoiceId: typeof invoiceId === "string" ? invoiceId : undefined,
+          // The adapter reads the session data, so the data is a plain object.
+          data: { ...(session.data ?? {}) },
           amount: Number(session.amount),
           createdAt: new Date(session.created_at),
           cartId: cart ? cart.id : undefined,
@@ -82,10 +76,6 @@ export function buildRecoveryDeps(
           alertSentAt: typeof alertSentAt === "string" ? alertSentAt : undefined,
         }
       })
-    },
-
-    async isInvoicePaid(invoiceId: string): Promise<boolean> {
-      return isPaidStatus((await client.getInvoice(invoiceId)).status)
     },
 
     async completeCart(cartId: string): Promise<void> {

@@ -143,46 +143,17 @@ describe("buildModules: payment module", () => {
     return (entry?.options as any)?.providers
   }
 
-  it("registers the mayar provider with the sandbox URL and an empty key by default", () => {
-    expect(providers({})).toEqual([
-      {
-        resolve: "./src/modules/mayar",
-        id: "mayar",
-        options: {
-          apiUrl: "https://api.mayar.io/hl/v2",
-          apiKey: "",
-          storefrontUrl: "http://localhost:3000",
-        },
-      },
-    ])
-  })
-
-  it("reads the Mayar values and the storefront URL from the environment", () => {
-    expect(
-      providers({
-        MAYAR_API_URL: "https://api.mayar.id/hl/v2",
-        MAYAR_API_KEY: "live-key",
-        STOREFRONT_URL: "https://shop.example.com",
-      })
-    ).toEqual([
-      {
-        resolve: "./src/modules/mayar",
-        id: "mayar",
-        options: {
-          apiUrl: "https://api.mayar.id/hl/v2",
-          apiKey: "live-key",
-          storefrontUrl: "https://shop.example.com",
-        },
-      },
-    ])
-  })
-
-  it("uses the defaults for empty values", () => {
-    expect(providers({ MAYAR_API_URL: "", STOREFRONT_URL: "" })[0].options).toEqual({
-      apiUrl: "https://api.mayar.io/hl/v2",
-      apiKey: "",
-      storefrontUrl: "http://localhost:3000",
+  it("registers the bank transfer provider first, with no options", () => {
+    expect(providers({})[0]).toEqual({
+      resolve: "./src/modules/bank-transfer",
+      id: "bank-transfer",
     })
+  })
+
+  it("registers only the bank transfer provider, also with a Mayar key in the env", () => {
+    expect(
+      providers({ MAYAR_API_KEY: "live-key", STOREFRONT_URL: "https://shop.example.com" })
+    ).toEqual([{ resolve: "./src/modules/bank-transfer", id: "bank-transfer" }])
   })
 })
 
@@ -209,6 +180,17 @@ describe("buildModules: wishlist module", () => {
 
   it("keeps the product-review module", () => {
     expect(buildModules({})).toContainEqual({ resolve: "./src/modules/product-review" })
+  })
+})
+
+describe("buildModules: bank account module", () => {
+  it("registers the bank account module", () => {
+    expect(buildModules({})).toContainEqual({ resolve: "./src/modules/bank-account" })
+  })
+
+  it("adds the module one time", () => {
+    const list = buildModules({ REDIS_URL: "redis://localhost:6379" })
+    expect(list.filter((m) => m.resolve === "./src/modules/bank-account")).toHaveLength(1)
   })
 })
 
