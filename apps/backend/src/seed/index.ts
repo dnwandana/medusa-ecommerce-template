@@ -1,5 +1,6 @@
 import type { MedusaContainer } from "@medusajs/framework/types"
 import { seedPublishableKey } from "./api-key"
+import { seedBankAccount } from "./bank-account"
 import { seedFulfillment } from "./fulfillment"
 import { seedProducts } from "./products"
 import { seedRegion } from "./region"
@@ -9,6 +10,7 @@ export type SeedResult = { publishableKey: string; regionId: string; shippingOpt
 // Runs all seed parts in sequence. It is safe to run again.
 export async function runSeed(container: MedusaContainer): Promise<SeedResult> {
   const { salesChannelId, regionId } = await seedRegion(container)
+  await seedBankAccount(container)
   const { stockLocationId, shippingProfileId, shippingOptionId } = await seedFulfillment(
     container,
     { salesChannelId }
