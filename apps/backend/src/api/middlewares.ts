@@ -4,8 +4,11 @@ import {
   validateAndTransformBody,
   validateAndTransformQuery,
 } from "@medusajs/framework/http"
+import { PostAdminBankAccountUpdateSchema } from "./admin/bank-accounts/[id]/route"
+import { PostAdminBankAccountSchema } from "./admin/bank-accounts/route"
 import { ADMIN_REVIEW_FIELDS, GetAdminReviewsSchema } from "./admin/reviews/route"
 import { PostAdminReviewStatusSchema } from "./admin/reviews/status/route"
+import { PostAdminStoreContactSchema } from "./admin/store-contact/route"
 import { PostWishlistItemSchema } from "./store/customers/me/wishlist/items/route"
 import { GetStoreReviewsSchema } from "./store/products/[id]/reviews/route"
 import { PostStoreReviewSchema } from "./store/reviews/route"
@@ -47,6 +50,21 @@ export default defineMiddlewares({
       method: ["POST"],
       matcher: "/admin/reviews/status",
       middlewares: [validateAndTransformBody(PostAdminReviewStatusSchema)],
+    },
+    {
+      method: ["POST"],
+      matcher: "/admin/bank-accounts",
+      middlewares: [validateAndTransformBody(PostAdminBankAccountSchema)],
+    },
+    {
+      method: ["POST"],
+      matcher: "/admin/bank-accounts/:id",
+      middlewares: [validateAndTransformBody(PostAdminBankAccountUpdateSchema)],
+    },
+    {
+      method: ["POST"],
+      matcher: "/admin/store-contact",
+      middlewares: [validateAndTransformBody(PostAdminStoreContactSchema)],
     },
     // Medusa lets only a logged-in customer use a route below /store/customers/me.
     {
