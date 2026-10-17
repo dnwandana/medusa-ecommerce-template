@@ -48,8 +48,8 @@ pnpm --filter @store/storefront lint                       # ESLint, eslint.conf
     `app/utils/medusaClient.ts`).
 - The composables in `app/composables/` contain the Medusa calls. Pages and components call the
   composables, not the SDK.
-- Shared state uses `useState` with the keys `cart`, `region`, `customer`, `customer-loaded`, and
-  `wishlist`.
+- Shared state uses `useState` with the keys `cart`, `region`, `customer`, `customer-loaded`,
+  `wishlist`, and `addresses`. `logout` sets `wishlist` and `addresses` to `null`.
 - The cart id is in the cookie `cart_id` (`useCartId.ts`): 30 days, `sameSite: "lax"`. The `lax`
   value keeps the cookie on the top-level return from Mayar.
 - `useRegion().ensureRegion()` uses the first region from the backend. There is no region or
