@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Heart, LogOut, Package, UserPen } from "@lucide/vue"
+import { Heart, LogOut, MapPin, Package, UserPen } from "@lucide/vue"
 
 const route = useRoute()
 const localePath = useLocalePath()
@@ -7,6 +7,7 @@ const { logout } = useCustomer()
 
 const links = [
   { to: "/account", icon: UserPen, label: "account.profile" },
+  { to: "/account/addresses", icon: MapPin, label: "account.addresses.title" },
   { to: "/account/orders", icon: Package, label: "account.orders" },
   { to: "/account/wishlist", icon: Heart, label: "account.wishlist" },
 ]

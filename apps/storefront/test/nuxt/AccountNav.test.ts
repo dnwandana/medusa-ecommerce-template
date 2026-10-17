@@ -28,9 +28,22 @@ describe("AccountNav", () => {
 
     expect(wrapper.find("h1").text()).toBe("Your account")
     expect(wrapper.find('a[href="/account"]').exists()).toBe(true)
+    expect(wrapper.find('a[href="/account/addresses"]').exists()).toBe(true)
     expect(wrapper.find('a[href="/account/orders"]').exists()).toBe(true)
     expect(wrapper.find('a[href="/account/wishlist"]').exists()).toBe(true)
     expect(wrapper.text()).toContain("Orders body")
+  })
+
+  it("puts the Addresses link after Profile and before Orders", async () => {
+    const wrapper = await mountNav()
+
+    const hrefs = wrapper.findAll("nav a").map((link) => link.attributes("href"))
+    expect(hrefs).toEqual([
+      "/account",
+      "/account/addresses",
+      "/account/orders",
+      "/account/wishlist",
+    ])
   })
 
   it("marks the link of the current page", async () => {
