@@ -1,6 +1,6 @@
 import { mountSuspended } from "@nuxt/test-utils/runtime"
 import { describe, expect, it } from "vitest"
-import { Input, Label, Textarea } from "#components"
+import { Checkbox, Input, Label, Textarea } from "#components"
 
 describe("form controls", () => {
   it("gives the input a height of 44px, the input border, and 16px text", async () => {
@@ -34,5 +34,16 @@ describe("form controls", () => {
     await wrapper.setValue("b")
 
     expect(wrapper.emitted("update:modelValue")?.at(-1)).toEqual(["b"])
+  })
+
+  it("toggles the checkbox and emits the boolean value", async () => {
+    const wrapper = await mountSuspended(Checkbox, { props: { modelValue: false } })
+    // The reka-ui CheckboxRoot renders a fragment, so the wrapper root is not the control.
+    const box = wrapper.find('[role="checkbox"]')
+
+    await box.trigger("click")
+
+    expect(box.exists()).toBe(true)
+    expect(wrapper.emitted("update:modelValue")?.[0]).toEqual([true])
   })
 })

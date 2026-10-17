@@ -2,6 +2,14 @@ import { mountSuspended } from "@nuxt/test-utils/runtime"
 import { afterEach, describe, expect, it } from "vitest"
 import { defineComponent, h } from "vue"
 import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -65,5 +73,43 @@ describe("overlay components", () => {
     )
 
     await expect(mountSuspended(Tip, { attachTo: document.body })).resolves.toBeTruthy()
+  })
+
+  it("opens the dialog with the scrim overlay", async () => {
+    const Box = defineComponent(
+      () => () =>
+        h(Dialog, { open: true }, () =>
+          h(DialogContent, () => [
+            h(DialogTitle, () => "Add address"),
+            h(DialogDescription, () => ""),
+          ])
+        )
+    )
+    await mountSuspended(Box, { attachTo: document.body })
+
+    expect(document.body.querySelector('[role="dialog"]')?.textContent).toContain("Add address")
+    expect(document.body.querySelector('[data-slot="dialog-overlay"]')?.className).toContain(
+      "bg-scrim"
+    )
+  })
+
+  it("opens the alert dialog as an alertdialog with the scrim overlay", async () => {
+    const Box = defineComponent(
+      () => () =>
+        h(AlertDialog, { open: true }, () =>
+          h(AlertDialogContent, () => [
+            h(AlertDialogTitle, () => "Delete this address?"),
+            h(AlertDialogDescription, () => ""),
+          ])
+        )
+    )
+    await mountSuspended(Box, { attachTo: document.body })
+
+    expect(document.body.querySelector('[role="alertdialog"]')?.textContent).toContain(
+      "Delete this address?"
+    )
+    expect(document.body.querySelector('[data-slot="alert-dialog-overlay"]')?.className).toContain(
+      "bg-scrim"
+    )
   })
 })
