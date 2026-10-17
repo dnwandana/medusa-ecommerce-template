@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest"
-import { normalizePhone, toMayarCustomer, validateContact } from "../../app/utils/checkoutForm"
+import {
+  normalizePhone,
+  toE164,
+  toPaymentCustomer,
+  validateContact,
+} from "../../app/utils/checkoutForm"
 
 describe("normalizePhone", () => {
   it("removes spaces, hyphens, dots, and brackets", () => {
@@ -8,57 +13,65 @@ describe("normalizePhone", () => {
   })
 })
 
-describe("toMayarCustomer", () => {
+describe("toE164", () => {
+  it("writes each accepted form as +62", () => {
+    expect(toE164("081234567890")).toBe("+6281234567890")
+    expect(toE164("6281234567890")).toBe("+6281234567890")
+    expect(toE164("+62 812-3456-7890")).toBe("+6281234567890")
+  })
+})
+
+describe("toPaymentCustomer", () => {
   const recipient = { first_name: " Sari ", last_name: "Dewi" }
 
-  // Review Focus: Mayar gets the clean number, not the text that the customer typed.
-  it("uses the recipient name and the clean number for a guest", () => {
+  it("uses the recipient name, the clean email, and the E.164 phone for a guest", () => {
     expect(
-      toMayarCustomer({
+      toPaymentCustomer({
         payer: null,
         recipient,
         email: " buyer@example.com ",
-        phone: "+62 812-3456-7890",
+        phone: "0812-3456-7890",
       })
     ).toEqual({
-      name: "Sari Dewi",
+      first_name: "Sari",
+      last_name: "Dewi",
       email: "buyer@example.com",
-      mobile: "+6281234567890",
+      phone: "+6281234567890",
     })
   })
 
-  it("uses the profile name of the payer", () => {
+  it("uses the profile name of a logged-in customer", () => {
     expect(
-      toMayarCustomer({
+      toPaymentCustomer({
         payer: { first_name: "Budi", last_name: "Santoso" },
         recipient,
         email: "member@example.com",
         phone: "081298765432",
-      }).name
-    ).toBe("Budi Santoso")
+      })
+    ).toMatchObject({ first_name: "Budi", last_name: "Santoso" })
   })
 
-  // Review Focus: a profile with no name gives the name of the address.
+  // Review Focus: a profile with no first name gives the name of the address.
   it("uses the recipient name when the profile has no first name", () => {
     expect(
-      toMayarCustomer({
-        payer: { first_name: " ", last_name: null },
+      toPaymentCustomer({
+        payer: { first_name: " ", last_name: "X" },
         recipient,
-        email: "member@example.com",
+        email: "a@b.co",
         phone: "081298765432",
-      }).name
-    ).toBe("Sari Dewi")
+      }).first_name
+    ).toBe("Sari")
   })
 
-  it("gives a name with no extra space when there is no last name", () => {
+  it("gives an empty last name, not null, for a profile with no last name", () => {
     expect(
-      toMayarCustomer({
+      toPaymentCustomer({
         payer: { first_name: "Budi", last_name: null },
         recipient,
-        email: "member@example.com",
+        email: "a@b.co",
         phone: "081298765432",
-      }).name
-    ).toBe("Budi")
+      }).last_name
+    ).toBe("")
   })
 })
 

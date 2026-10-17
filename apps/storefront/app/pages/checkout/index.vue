@@ -7,7 +7,8 @@ import type { AddressErrors, AddressFormValues, CartAddress } from "~/utils/addr
 import { NEW_ADDRESS } from "~/utils/addressForm"
 import type { ContactValues } from "~/utils/checkoutForm"
 
-const { t } = useI18n()
+const { t, te } = useI18n()
+const localePath = useLocalePath()
 const { cart, load } = useCart()
 const { customer } = useCustomer()
 const checkout = useCheckout()
@@ -34,6 +35,10 @@ const makeDefault = ref(false)
 const addressState = ref<AddressListState>("loading")
 // True when "Continue" stopped at a saved address that does not pass the validation.
 const invalidAddress = ref(false)
+// The payment providers of the region. The page loads them when the payment step opens.
+const providers = ref<{ id: string }[]>([])
+const providerState = ref<"idle" | "loading" | "ready" | "failed">("idle")
+const selectedProviderId = ref<string | null>(null)
 // The title of the address that the last "Continue" saved to the account, or null.
 const savedLabel = ref<string | null>(null)
 // True when the last "Continue" did not save the address to the account.
@@ -275,26 +280,73 @@ async function chooseOption(optionId: string): Promise<void> {
   }
 }
 
-// Starts the Mayar payment and leaves the storefront.
+// Loads the payment providers and selects the first one. A gateway needs only an i18n label, so
+// the page has no list of provider ids.
+async function loadProviders(): Promise<void> {
+  providerState.value = "loading"
+  try {
+    providers.value = await checkout.listPaymentProviders()
+  } catch {
+    providerState.value = "failed"
+    return
+  }
+  if (!providers.value.some((provider) => provider.id === selectedProviderId.value)) {
+    selectedProviderId.value = providers.value[0]?.id ?? null
+  }
+  providerState.value = "ready"
+}
+
+// The payment step opens when the cart has a shipping option. The region does not change, so the
+// page loads the providers again only after a failed load.
+watch(selectedOptionId, (optionId) => {
+  if (optionId && (providerState.value === "idle" || providerState.value === "failed")) {
+    loadProviders()
+  }
+})
+
+// A provider with no label in the locale files gets the generic label.
+function providerLabel(providerId: string): string {
+  const key = `checkout.paymentProviders.${providerId}`
+  return te(key) ? t(key) : t("checkout.paymentProviders.default")
+}
+
+function providerHint(providerId: string): string | null {
+  const key = `checkout.paymentHints.${providerId}`
+  return te(key) ? t(key) : null
+}
+
+// Starts the payment with the selected provider. A gateway sends the browser to its payment page.
+// A provider with no payment page gives the order at once.
 async function pay(): Promise<void> {
+  // A second click can come before the disabled button renders. It must not start a second
+  // payment.
+  if (busy.value) {
+    return
+  }
   // A change after "Continue" removes the address. Pay only for the address in the cart.
   const recipient = sentAddress.value
-  if (!recipient) {
+  const providerId = selectedProviderId.value
+  if (!recipient || !providerId) {
     return
   }
   busy.value = true
   message.value = null
   try {
-    // The Mayar invoice uses the contact phone, because each address can have its own phone.
-    const url = await checkout.startPayment(
-      toMayarCustomer({
+    // The payment uses the contact phone, because each address can have its own phone.
+    const start = await checkout.startPayment(
+      providerId,
+      toPaymentCustomer({
         payer: customer.value,
         recipient,
         email: contact.email,
         phone: contact.phone,
       })
     )
-    await navigateTo(url, { external: true })
+    if (start.type === "redirect") {
+      await navigateTo(start.url, { external: true })
+    } else {
+      await navigateTo(localePath(`/orders/${start.orderId}`))
+    }
   } catch {
     // The form keeps its values, so that the customer can try again.
     message.value = "checkout.errors.payment"
@@ -480,24 +532,66 @@ const WARNING_CLASS =
               >
             </CardHeader>
             <CardContent class="flex flex-col gap-4">
-              <Item variant="outline">
-                <ItemMedia class="size-11 rounded-full bg-muted">
-                  <CreditCard aria-hidden="true" class="size-5" />
-                </ItemMedia>
-                <ItemContent>
-                  <ItemTitle>Mayar</ItemTitle>
-                  <ItemDescription>{{ $t("checkout.mayarHint") }}</ItemDescription>
-                </ItemContent>
-              </Item>
+              <p v-if="providerState === 'loading'" role="status" class="text-body-sm">
+                {{ $t("common.loading") }}
+              </p>
+              <div
+                v-else-if="providerState === 'failed'"
+                data-testid="payment-providers-error"
+                role="alert"
+                class="flex flex-wrap items-center gap-3 text-body-sm text-destructive"
+              >
+                {{ $t("common.error") }}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  data-testid="payment-providers-retry"
+                  @click="loadProviders"
+                >
+                  {{ $t("common.retry") }}
+                </Button>
+              </div>
+              <p
+                v-else-if="providerState === 'ready' && !providers.length"
+                role="status"
+                class="text-body-sm text-muted-foreground"
+              >
+                {{ $t("checkout.noPaymentProviders") }}
+              </p>
+              <RadioGroup
+                v-else-if="providerState === 'ready'"
+                v-model="selectedProviderId"
+                name="payment_provider"
+                :disabled="busy"
+              >
+                <label
+                  v-for="provider in providers"
+                  :key="provider.id"
+                  :data-testid="`payment-provider-${provider.id}`"
+                  class="flex cursor-pointer items-center gap-3 rounded-lg border border-border bg-card px-4 py-3.5 has-data-[state=checked]:border-primary has-data-[state=checked]:bg-primary-soft has-data-[state=checked]:shadow-[inset_0_0_0_1px_var(--color-primary)]"
+                >
+                  <RadioGroupItem :id="`payment-${provider.id}`" :value="provider.id" />
+                  <CreditCard aria-hidden="true" class="size-5 shrink-0 text-muted-foreground" />
+                  <span class="flex grow flex-col gap-0.5">
+                    <span class="font-medium">{{ providerLabel(provider.id) }}</span>
+                    <span
+                      v-if="providerHint(provider.id)"
+                      class="text-body-sm text-muted-foreground"
+                      >{{ providerHint(provider.id) }}</span
+                    >
+                  </span>
+                </label>
+              </RadioGroup>
               <Button
                 type="button"
                 data-testid="pay"
                 size="lg"
                 class="w-full"
-                :disabled="busy || !selectedOptionId"
+                :disabled="busy || !selectedOptionId || !selectedProviderId"
                 @click="pay"
               >
-                {{ $t("checkout.pay") }}
+                {{ $t("checkout.placeOrder") }}
               </Button>
             </CardContent>
           </Card>

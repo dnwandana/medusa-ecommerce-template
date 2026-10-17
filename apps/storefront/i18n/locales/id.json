@@ -6,7 +6,7 @@
     "next": "Berikutnya",
     "save": "Simpan",
     "cancel": "Batal",
-    "securePayment": "Pembayaran aman dengan Mayar.",
+    "securePayment": "Pembayaran aman.",
     "shipsIndonesia": "Kami mengirim ke seluruh Indonesia.",
     "close": "Tutup",
     "morePages": "Halaman lain",
@@ -99,8 +99,15 @@
     "continue": "Lanjut ke pengiriman",
     "shippingOption": "Opsi pengiriman",
     "payment": "Pembayaran",
-    "mayarHint": "Anda membayar di halaman aman Mayar. Lalu Anda kembali ke toko.",
-    "pay": "Bayar dengan Mayar",
+    "paymentProviders": {
+      "pp_bank-transfer_bank-transfer": "Transfer bank",
+      "default": "Pembayaran online"
+    },
+    "paymentHints": {
+      "pp_bank-transfer_bank-transfer": "Anda mendapat detail rekening bank setelah Anda membuat pesanan. Unggah bukti transfer dalam 24 jam."
+    },
+    "placeOrder": "Buat pesanan",
+    "noPaymentProviders": "Toko ini belum punya metode pembayaran. Hubungi toko.",
     "steps": {
       "address": "Alamat",
       "shipping": "Pengiriman",
@@ -115,7 +122,7 @@
       "postalCode": "Masukkan kode pos 5 angka.",
       "save": "Alamat tidak tersimpan. Coba lagi.",
       "shipping": "Opsi pengiriman tidak tersimpan. Coba lagi.",
-      "payment": "Halaman pembayaran tidak tersedia. Keranjang Anda tidak berubah. Coba lagi."
+      "payment": "Pesanan tidak dibuat. Keranjang Anda tidak berubah. Coba lagi."
     }
   },
   "return": {
@@ -135,6 +142,17 @@
     "items": "Barang",
     "shippingAddress": "Alamat pengiriman",
     "notFound": "Pesanan tidak ditemukan."
+  },
+  "bankTransfer": {
+    "title": "Bayar dengan transfer bank",
+    "amount": "Jumlah transfer",
+    "exactAmount": "Transfer dengan jumlah yang tepat.",
+    "deadline": "Transfer sebelum {deadline}.",
+    "holder": "Atas nama",
+    "copy": "Salin",
+    "copied": "Tersalin",
+    "copyFailed": "Pilih nomor rekening, lalu salin secara manual.",
+    "noAccounts": "Detail rekening bank tidak tersedia. Hubungi toko."
   },
   "auth": {
     "loginTitle": "Masuk",

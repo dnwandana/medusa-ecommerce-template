@@ -54,6 +54,20 @@ describe("locale messages", () => {
     )
   })
 
+  it("has the payment texts that the spec gives and no gateway name", () => {
+    expect(english["checkout.paymentProviders.default"]).toBe("Online payment")
+    expect(english["checkout.paymentHints.pp_bank-transfer_bank-transfer"]).toBe(
+      "You get the bank details after you place the order. Upload the receipt within 24 hours."
+    )
+    expect(english["checkout.placeOrder"]).toBe("Place order")
+    expect(indonesian["checkout.placeOrder"]).toBe("Buat pesanan")
+    expect(english["checkout.mayarHint"]).toBeUndefined()
+    expect(english["checkout.pay"]).toBeUndefined()
+    for (const value of [...Object.values(english), ...Object.values(indonesian)]) {
+      expect(value).not.toMatch(/mayar/i)
+    }
+  })
+
   it("has no country text, because the store ships only in Indonesia", () => {
     expect(english["checkout.country"]).toBeUndefined()
     expect(indonesian["checkout.country"]).toBeUndefined()
@@ -67,7 +81,7 @@ describe("locale messages", () => {
       "Everyday adalah label pakaian untuk hari-hari biasa: potongan nyaman, warna tenang, harga wajar.",
     ],
     ["footer.shop", "Shop", "Belanja"],
-    ["common.securePayment", "Secure payment with Mayar.", "Pembayaran aman dengan Mayar."],
+    ["common.securePayment", "Secure payment.", "Pembayaran aman."],
     [
       "common.shipsIndonesia",
       "We ship to all of Indonesia.",

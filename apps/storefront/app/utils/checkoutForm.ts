@@ -8,7 +8,7 @@ export function normalizePhone(value: string): string {
   return value.replace(/[\s\-.()]/g, "")
 }
 
-// Mayar rejects an invoice with a mobile number that is not valid.
+// Couriers call or message the recipient, so the checkout accepts only a mobile number.
 export function isMobilePhone(value: string): boolean {
   return PHONE_PATTERN.test(normalizePhone(value.trim()))
 }
@@ -40,27 +40,38 @@ export function validateContact(
   return errors
 }
 
-export type MayarPayer = { first_name?: string | null; last_name?: string | null }
+export type PaymentPayer = { first_name?: string | null; last_name?: string | null }
 
-// Mayar names the payer on the invoice, not the recipient. A profile with no first name has no
-// usable payer name, so the invoice uses the name of the address.
-export function toMayarCustomer(input: {
-  payer: MayarPayer | null
+export type PaymentCustomer = {
+  first_name: string
+  last_name: string
+  email: string
+  phone: string
+}
+
+// Returns an Indonesian mobile number in the E.164 format, for example +6281234567890.
+// Payment providers expect one format, and the customer can type 08, 628, or +628.
+export function toE164(phone: string): string {
+  return normalizePhone(phone.trim()).replace(/^(\+62|62|0)/, "+62")
+}
+
+// Returns the customer object that the checkout sends to each payment provider. A provider names
+// the payer, not the recipient. A profile with no first name has no usable payer name, so the
+// object uses the name of the address.
+export function toPaymentCustomer(input: {
+  payer: PaymentPayer | null
   recipient: { first_name: string; last_name: string }
   email: string
   phone: string
-}): { name: string; email: string; mobile: string } {
-  const source: MayarPayer =
+}): PaymentCustomer {
+  const source: PaymentPayer =
     input.payer && input.payer.first_name?.trim() ? input.payer : input.recipient
-  // The filter removes an empty last name, so that the name has no extra space.
-  const name = [source.first_name ?? "", source.last_name ?? ""]
-    .map((part) => part.trim())
-    .filter(Boolean)
-    .join(" ")
 
   return {
-    name,
+    first_name: (source.first_name ?? "").trim(),
+    // A profile can have a null last name. The object always has a string.
+    last_name: (source.last_name ?? "").trim(),
     email: input.email.trim(),
-    mobile: normalizePhone(input.phone),
+    phone: toE164(input.phone),
   }
 }

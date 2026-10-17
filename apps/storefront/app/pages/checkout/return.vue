@@ -16,7 +16,8 @@ const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, 
 
 // Completes the cart and shows the result.
 async function confirm(): Promise<void> {
-  // Mayar returns to a URL with no locale prefix. The cookie keeps the locale of the customer.
+  // A payment page returns to a URL with no locale prefix. The cookie keeps the locale of the
+  // customer.
   // resolveReturnLocale returns one of the given codes, so the cast is safe.
   const target = resolveReturnLocale(
     savedLocale.value,

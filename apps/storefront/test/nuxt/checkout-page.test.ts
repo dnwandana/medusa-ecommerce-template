@@ -14,6 +14,7 @@ const { cart, customerState, checkout, navigateToMock, addressesMock } = await v
         saveContact: vi.fn(),
         loadShippingOptions: vi.fn(),
         selectShippingOption: vi.fn(),
+        listPaymentProviders: vi.fn(),
         startPayment: vi.fn(),
       },
       navigateToMock: vi.fn(),
@@ -139,6 +140,11 @@ const fillAddress = async (wrapper: Page) => {
   }
 }
 
+const BANK_TRANSFER = "pp_bank-transfer_bank-transfer"
+
+const payRadio = (wrapper: Page, providerId: string) =>
+  wrapper.find(`[data-testid="payment-provider-${providerId}"] button[role="radio"]`)
+
 const pay = async (wrapper: Page) => {
   await wrapper.find('[data-testid="pay"]').trigger("click")
   await flushPromises()
@@ -158,7 +164,10 @@ beforeEach(() => {
     .mockReset()
     .mockResolvedValue([{ id: "so_1", name: "Standard Shipping", amount: 18000 }])
   checkout.selectShippingOption.mockReset().mockResolvedValue(undefined)
-  checkout.startPayment.mockReset().mockResolvedValue("https://pay.mayar.example/invoice-1")
+  checkout.listPaymentProviders.mockReset().mockResolvedValue([{ id: BANK_TRANSFER }])
+  checkout.startPayment
+    .mockReset()
+    .mockResolvedValue({ type: "redirect", url: "https://pay.example.com/1" })
   navigateToMock.mockReset()
   list = [home, office]
   addressesMock.addresses.value = null
@@ -263,20 +272,137 @@ describe("checkout page", () => {
     expect(wrapper.find('button[type="submit"]').text()).toContain("Loading shipping options…")
   })
 
-  it("sends the browser to the Mayar payment page", async () => {
+  it("sends the browser to the payment page", async () => {
     const wrapper = await mountPage()
     await submitAddress(wrapper)
 
     await pay(wrapper)
 
-    expect(checkout.startPayment).toHaveBeenCalledWith({
-      name: "Sari Dewi",
+    expect(checkout.startPayment).toHaveBeenCalledWith(BANK_TRANSFER, {
+      first_name: "Sari",
+      last_name: "Dewi",
       email: "buyer@example.com",
-      mobile: "+6281234567890",
+      phone: "+6281234567890",
     })
-    expect(navigateToMock).toHaveBeenCalledWith("https://pay.mayar.example/invoice-1", {
+    expect(navigateToMock).toHaveBeenCalledWith("https://pay.example.com/1", {
       external: true,
     })
+  })
+
+  it("lists the providers with their labels and the generic label", async () => {
+    checkout.listPaymentProviders.mockResolvedValue([
+      { id: BANK_TRANSFER },
+      { id: "pp_unknown_unknown" },
+    ])
+    const wrapper = await mountPage()
+    await submitAddress(wrapper)
+
+    expect(checkout.listPaymentProviders).toHaveBeenCalledTimes(1)
+    expect(wrapper.find(`[data-testid="payment-provider-${BANK_TRANSFER}"]`).text()).toContain(
+      "Bank transfer"
+    )
+    expect(wrapper.find('[data-testid="payment-provider-pp_unknown_unknown"]').text()).toBe(
+      "Online payment"
+    )
+  })
+
+  it("does not load the providers before the shipping option is saved", async () => {
+    await mountPage()
+    expect(checkout.listPaymentProviders).not.toHaveBeenCalled()
+  })
+
+  it("shows the bank transfer hint and Place order", async () => {
+    const wrapper = await mountPage()
+    await submitAddress(wrapper)
+
+    expect(wrapper.text()).toContain(
+      "You get the bank details after you place the order. Upload the receipt within 24 hours."
+    )
+    expect(wrapper.find('[data-testid="pay"]').text()).toBe("Place order")
+  })
+
+  it("selects the first provider", async () => {
+    const wrapper = await mountPage()
+    await submitAddress(wrapper)
+
+    expect(payRadio(wrapper, BANK_TRANSFER).attributes("data-state")).toBe("checked")
+  })
+
+  it("pays with the provider that the customer selects", async () => {
+    checkout.listPaymentProviders.mockResolvedValue([{ id: BANK_TRANSFER }, { id: "pp_test_test" }])
+    const wrapper = await mountPage()
+    await submitAddress(wrapper)
+
+    await payRadio(wrapper, "pp_test_test").trigger("click")
+    await flushPromises()
+    await pay(wrapper)
+
+    expect(checkout.startPayment).toHaveBeenCalledTimes(1)
+    expect(checkout.startPayment.mock.calls[0]![0]).toBe("pp_test_test")
+  })
+
+  it("goes to the order page after a bank transfer order", async () => {
+    checkout.startPayment.mockResolvedValue({ type: "order", orderId: "order_1" })
+    const wrapper = await mountPage()
+    await submitAddress(wrapper)
+
+    await pay(wrapper)
+
+    expect(navigateToMock).toHaveBeenCalledWith("/orders/order_1")
+  })
+
+  // Review Focus: a failed cart.complete after a bank transfer session keeps the cart.
+  it("shows the error and does not leave the page when the order is not placed", async () => {
+    checkout.startPayment.mockRejectedValue(new Error("No stock"))
+    const wrapper = await mountPage()
+    await submitAddress(wrapper)
+
+    await pay(wrapper)
+
+    expect(wrapper.find('[data-slot="alert"][role="alert"]').text()).toBe(
+      "The order was not placed. Your cart did not change. Try again."
+    )
+    expect(navigateToMock).not.toHaveBeenCalled()
+    expect(wrapper.find('[data-testid="pay"]').attributes("disabled")).toBeUndefined()
+  })
+
+  it("shows a text and disables Place order when the region has no provider", async () => {
+    checkout.listPaymentProviders.mockResolvedValue([])
+    const wrapper = await mountPage()
+    await submitAddress(wrapper)
+
+    expect(wrapper.text()).toContain("This store has no payment method now. Contact the store.")
+    expect(wrapper.find('[data-testid="pay"]').attributes("disabled")).toBeDefined()
+  })
+
+  it("shows an error and loads the providers again after Try again", async () => {
+    checkout.listPaymentProviders.mockRejectedValueOnce(Object.assign(new Error(), { status: 500 }))
+    const wrapper = await mountPage()
+    await submitAddress(wrapper)
+
+    expect(wrapper.find('[data-testid="payment-providers-error"]').text()).toContain(
+      "An error occurred. Try again."
+    )
+    expect(wrapper.find('[data-testid="pay"]').attributes("disabled")).toBeDefined()
+
+    await wrapper.find('[data-testid="payment-providers-retry"]').trigger("click")
+    await flushPromises()
+
+    expect(checkout.listPaymentProviders).toHaveBeenCalledTimes(2)
+    expect(wrapper.find('[data-testid="pay"]').attributes("disabled")).toBeUndefined()
+  })
+
+  // Review Focus: a double click on Place order starts one payment only.
+  it("starts one payment on a double click", async () => {
+    checkout.startPayment.mockReturnValue(new Promise(() => {}))
+    const wrapper = await mountPage()
+    await submitAddress(wrapper)
+
+    await wrapper.find('[data-testid="pay"]').trigger("click")
+    await wrapper.find('[data-testid="pay"]').trigger("click")
+    await flushPromises()
+
+    expect(checkout.startPayment).toHaveBeenCalledTimes(1)
   })
 
   it("does not pay with a field that changed after the address was saved", async () => {
@@ -292,14 +418,14 @@ describe("checkout page", () => {
   })
 
   it("shows an error and stays on the page when the payment does not start", async () => {
-    checkout.startPayment.mockRejectedValue(new Error("Mayar is down"))
+    checkout.startPayment.mockRejectedValue(new Error("Provider is down"))
     const wrapper = await mountPage()
     await submitAddress(wrapper)
 
     await pay(wrapper)
 
     expect(wrapper.text()).toContain(
-      "The payment page is not available. Your cart did not change. Try again."
+      "The order was not placed. Your cart did not change. Try again."
     )
     expect(navigateToMock).not.toHaveBeenCalled()
     expect(wrapper.find('[data-testid="pay"]').attributes("disabled")).toBeUndefined()
@@ -349,14 +475,14 @@ describe("checkout page", () => {
   })
 
   it("shows the payment error in a destructive alert", async () => {
-    checkout.startPayment.mockRejectedValue(new Error("Mayar is down"))
+    checkout.startPayment.mockRejectedValue(new Error("Provider is down"))
     const wrapper = await mountPage()
     await submitAddress(wrapper)
 
     await pay(wrapper)
 
     expect(wrapper.find('[data-slot="alert"][role="alert"]').text()).toBe(
-      "The payment page is not available. Your cart did not change. Try again."
+      "The order was not placed. Your cart did not change. Try again."
     )
   })
 
@@ -434,7 +560,7 @@ describe("checkout page", () => {
     expect(wrapper.find('[data-testid="invalid-address"]').exists()).toBe(false)
   })
 
-  it("disables Pay after the customer selects another address", async () => {
+  it("disables Place order after the customer selects another address", async () => {
     customerState.customer.value = member
     const wrapper = await mountPage()
     await continueCheckout(wrapper)
@@ -448,10 +574,11 @@ describe("checkout page", () => {
     const wrapper = await mountPage()
     await continueCheckout(wrapper)
     await pay(wrapper)
-    expect(checkout.startPayment).toHaveBeenCalledWith({
-      name: "Budi Santoso",
+    expect(checkout.startPayment).toHaveBeenCalledWith(BANK_TRANSFER, {
+      first_name: "Budi",
+      last_name: "Santoso",
       email: "member@example.com",
-      mobile: "081298765432",
+      phone: "+6281298765432",
     })
   })
 

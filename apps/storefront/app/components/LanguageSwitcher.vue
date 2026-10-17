@@ -4,7 +4,8 @@ import { Languages } from "@lucide/vue"
 
 const { variant = "header" } = defineProps<{ variant?: "header" | "sheet" }>()
 
-// setLocale writes the cookie. The return page from Mayar needs the cookie to know the language.
+// setLocale writes the cookie. The return page from a payment gateway needs the cookie to know the
+// language.
 const { locale, locales, setLocale } = useI18n()
 
 const current = computed(() => locales.value.find((item) => item.code === locale.value))

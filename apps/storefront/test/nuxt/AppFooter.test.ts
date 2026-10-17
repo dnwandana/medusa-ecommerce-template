@@ -21,7 +21,7 @@ describe("TrustLines", () => {
     const wrapper = await mountSuspended(TrustLines)
 
     expect(wrapper.text()).toContain("We ship to all of Indonesia.")
-    expect(wrapper.text()).toContain("Secure payment with Mayar.")
+    expect(wrapper.text()).toContain("Secure payment.")
   })
 })
 

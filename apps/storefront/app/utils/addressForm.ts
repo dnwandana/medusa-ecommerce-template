@@ -100,7 +100,7 @@ function lines(text: string): string[] {
     .filter((line) => line !== "")
 }
 
-// The cart, the order, and the Mayar invoice show the address on one line.
+// The cart and the order show the address on one line.
 export function oneLine(text: string): string {
   return lines(text).join(", ")
 }
