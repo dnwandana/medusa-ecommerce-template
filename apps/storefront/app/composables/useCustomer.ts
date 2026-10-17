@@ -28,6 +28,8 @@ export function useCustomer(): {
   const loaded = useState("customer-loaded", () => false)
   // Task 16 keeps the wishlist in this state key.
   const wishlist = useState<unknown>("wishlist", () => null)
+  // useAddresses keeps the saved addresses in this state key.
+  const addresses = useState<unknown>("addresses", () => null)
 
   async function refresh(): Promise<void> {
     try {
@@ -83,6 +85,8 @@ export function useCustomer(): {
     customer.value = null
     cart.clear()
     wishlist.value = null
+    // The next customer in this tab must not see these addresses. null makes the next page load them.
+    addresses.value = null
   }
 
   async function updateProfile(input: {

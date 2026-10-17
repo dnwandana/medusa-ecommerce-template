@@ -135,9 +135,10 @@ describe("useCustomer: register and login", () => {
 })
 
 describe("useCustomer: logout, profile, and password", () => {
-  it("logs out and clears the customer, the cart, and the wishlist", async () => {
+  it("logs out and clears the customer, the cart, the wishlist, and the addresses", async () => {
     sdk.auth.logout.mockResolvedValue(undefined)
     const wishlist = useState<unknown>("wishlist", () => ({ id: "wl_1", items: [] }))
+    const addresses = useState<unknown>("addresses", () => [{ id: "a1" }])
     const { refresh, logout, customer } = useCustomer()
     await refresh()
 
@@ -147,6 +148,7 @@ describe("useCustomer: logout, profile, and password", () => {
     expect(customer.value).toBeNull()
     expect(cart.clear).toHaveBeenCalledTimes(1)
     expect(wishlist.value).toBeNull()
+    expect(addresses.value).toBeNull()
   })
 
   it("saves the profile and updates the customer", async () => {

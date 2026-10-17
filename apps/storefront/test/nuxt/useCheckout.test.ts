@@ -21,15 +21,15 @@ mockNuxtImport("useMedusa", () => () => sdk)
 mockNuxtImport("useCart", () => () => cartState)
 mockNuxtImport("useCartId", () => () => cartId)
 
-const values = {
-  email: "buyer@example.com",
-  phone: "+62 812-3456-7890",
+const address = {
   first_name: "Sari",
   last_name: "Dewi",
   address_1: "Jl. Merdeka No. 1",
   city: "Bandung",
   province: "Jawa Barat",
   postal_code: "40111",
+  country_code: "id" as const,
+  phone: "+6281234567890",
 }
 const mayarCustomer = { name: "Sari Dewi", email: "buyer@example.com", mobile: "+6281234567890" }
 const sessionWith = (data: Record<string, unknown>) => ({
@@ -46,19 +46,9 @@ beforeEach(() => {
 
 describe("useCheckout", () => {
   it("saves the email and the address for Indonesia", async () => {
-    sdk.store.cart.update.mockResolvedValue({ cart: { id: "cart_1", email: values.email } })
-    const address = {
-      first_name: "Sari",
-      last_name: "Dewi",
-      address_1: "Jl. Merdeka No. 1",
-      city: "Bandung",
-      province: "Jawa Barat",
-      postal_code: "40111",
-      country_code: "id",
-      phone: "+6281234567890",
-    }
+    sdk.store.cart.update.mockResolvedValue({ cart: { id: "cart_1", email: "buyer@example.com" } })
 
-    await useCheckout().saveContact(values)
+    await useCheckout().saveContact(" buyer@example.com ", address)
 
     expect(sdk.store.cart.update).toHaveBeenCalledWith("cart_1", {
       email: "buyer@example.com",
@@ -148,7 +138,9 @@ describe("useCheckout", () => {
     cartState.cart.value = null
     cartId.value = null
 
-    await expect(useCheckout().saveContact(values)).rejects.toThrow("The cart is not loaded.")
+    await expect(useCheckout().saveContact("buyer@example.com", address)).rejects.toThrow(
+      "The cart is not loaded."
+    )
     await expect(useCheckout().complete()).rejects.toThrow("There is no cart to complete.")
   })
 })

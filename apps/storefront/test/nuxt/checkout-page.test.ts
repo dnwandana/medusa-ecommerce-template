@@ -1,28 +1,32 @@
 import { mockNuxtImport, mountSuspended } from "@nuxt/test-utils/runtime"
 import { flushPromises } from "@vue/test-utils"
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import CheckoutPage from "~/pages/checkout/index.vue"
 import { CheckoutStepper, CheckoutSummary } from "#components"
 
-const { cart, customerState, checkout, navigateToMock } = await vi.hoisted(async () => {
-  const { ref } = await import("vue")
-  return {
-    cart: { cart: ref<unknown>(null), load: vi.fn() },
-    customerState: { customer: ref<unknown>(null) },
-    checkout: {
-      saveContact: vi.fn(),
-      loadShippingOptions: vi.fn(),
-      selectShippingOption: vi.fn(),
-      startPayment: vi.fn(),
-    },
-    navigateToMock: vi.fn(),
+const { cart, customerState, checkout, navigateToMock, addressesMock } = await vi.hoisted(
+  async () => {
+    const { ref } = await import("vue")
+    return {
+      cart: { cart: ref<unknown>(null), load: vi.fn() },
+      customerState: { customer: ref<unknown>(null) },
+      checkout: {
+        saveContact: vi.fn(),
+        loadShippingOptions: vi.fn(),
+        selectShippingOption: vi.fn(),
+        startPayment: vi.fn(),
+      },
+      navigateToMock: vi.fn(),
+      addressesMock: { addresses: ref<unknown[] | null>(null), load: vi.fn(), create: vi.fn() },
+    }
   }
-})
+)
 
 mockNuxtImport("useCart", () => () => cart)
 mockNuxtImport("useCustomer", () => () => customerState)
 mockNuxtImport("useCheckout", () => () => checkout)
 mockNuxtImport("navigateTo", () => navigateToMock)
+mockNuxtImport("useAddresses", () => () => addressesMock)
 
 const valid = {
   email: "buyer@example.com",
@@ -35,21 +39,104 @@ const valid = {
   postal_code: "40111",
 }
 
+const member = {
+  email: "member@example.com",
+  first_name: "Budi",
+  last_name: "Santoso",
+  phone: "081298765432",
+}
+const home = {
+  id: "a1",
+  address_name: "Rumah",
+  is_default_shipping: true,
+  first_name: "Sari",
+  last_name: "Dewi",
+  phone: "081234567890",
+  address_1: "Jl. Melati No. 12\nRT 03/RW 05",
+  city: "Jakarta Pusat",
+  province: "DKI Jakarta",
+  postal_code: "10310",
+}
+const office = { ...home, id: "a2", address_name: "Kantor", is_default_shipping: false }
+const fromAdmin = {
+  ...home,
+  id: "a9",
+  address_name: null,
+  is_default_shipping: false,
+  phone: null,
+  province: null,
+  postal_code: null,
+}
+
+// The address that create() returns.
+const created = {
+  ...home,
+  id: "a5",
+  address_name: "Kos",
+  is_default_shipping: false,
+  address_1: "Jl. Mawar 7",
+}
+
+// The saved addresses that the next load() writes to the state.
+let list: unknown[] = []
+
 type Page = Awaited<ReturnType<typeof mountSuspended>>
+
+const wrappers: Page[] = []
 
 const mountPage = async () => {
   const wrapper = await mountSuspended(CheckoutPage)
+  wrappers.push(wrapper)
   await flushPromises()
   return wrapper
 }
 
-// Fills the form and submits the first part.
+// Unmount first. The beforeEach changes the shared customer ref, and the watch of a page that is
+// still mounted then loads the saved addresses again.
+afterEach(() => {
+  wrappers.splice(0).forEach((wrapper) => wrapper.unmount())
+})
+
+const CONTACT_FIELDS = ["email", "phone"]
+
+// Fills the form and submits the first part. The Contact card and the address fields can have a
+// control with the same name, so the address values go into the address fields only.
 const submitAddress = async (wrapper: Page, overrides: Partial<typeof valid> = {}) => {
   for (const [name, value] of Object.entries({ ...valid, ...overrides })) {
-    await wrapper.find(`input[name="${name}"]`).setValue(value)
+    const selector = CONTACT_FIELDS.includes(name)
+      ? `input[name="${name}"]`
+      : `[data-testid="address-fields"] [name="${name}"]`
+    await wrapper.find(selector).setValue(value)
   }
   await wrapper.find("form").trigger("submit")
   await flushPromises()
+}
+
+// Submits the form. The Contact card already has the values of the logged-in customer.
+const continueCheckout = async (wrapper: Page) => {
+  await wrapper.find("form").trigger("submit")
+  await flushPromises()
+}
+
+const addressField = (wrapper: Page, name: string) =>
+  wrapper.find(`[data-testid="address-fields"] [name="${name}"]`).element as HTMLInputElement
+
+const selectNewAddress = async (wrapper: Page) => {
+  await wrapper.find('[data-testid="address-option-new"] button[role="radio"]').trigger("click")
+  await flushPromises()
+}
+
+// Types a valid address. The name and the phone come from the profile. The Label field shows only
+// when "Save this address" shows and is on.
+const fillAddress = async (wrapper: Page) => {
+  const values = { address_1: "Jl. Mawar 7", city: "Bandung", postal_code: "40111" }
+  for (const [name, value] of Object.entries(values)) {
+    await wrapper.find(`[data-testid="address-fields"] [name="${name}"]`).setValue(value)
+  }
+  const label = wrapper.find('input[name="address_name"]')
+  if (label.exists()) {
+    await label.setValue("Kos")
+  }
 }
 
 const pay = async (wrapper: Page) => {
@@ -73,6 +160,15 @@ beforeEach(() => {
   checkout.selectShippingOption.mockReset().mockResolvedValue(undefined)
   checkout.startPayment.mockReset().mockResolvedValue("https://pay.mayar.example/invoice-1")
   navigateToMock.mockReset()
+  list = [home, office]
+  addressesMock.addresses.value = null
+  addressesMock.load.mockReset().mockImplementation(async () => {
+    addressesMock.addresses.value = list
+  })
+  addressesMock.create.mockReset().mockImplementation(async () => {
+    addressesMock.addresses.value = [...(addressesMock.addresses.value ?? []), created]
+    return created
+  })
 })
 
 describe("checkout page", () => {
@@ -82,6 +178,12 @@ describe("checkout page", () => {
 
     expect(wrapper.text()).toContain("Your cart is empty.")
     expect(wrapper.find("form").exists()).toBe(false)
+  })
+
+  it("shows no country text", async () => {
+    const wrapper = await mountPage()
+
+    expect(wrapper.text()).not.toContain("Country")
   })
 
   it("fills the contact fields from the logged-in customer", async () => {
@@ -116,11 +218,49 @@ describe("checkout page", () => {
 
     await submitAddress(wrapper)
 
-    expect(checkout.saveContact).toHaveBeenCalledWith(valid)
+    expect(checkout.saveContact).toHaveBeenCalledTimes(1)
     expect(wrapper.text()).toContain("Standard Shipping")
     expect(wrapper.text()).toContain("Rp 18.000")
     expect(checkout.selectShippingOption).toHaveBeenCalledWith("so_1")
     expect(wrapper.find('[data-testid="pay"]').attributes("disabled")).toBeUndefined()
+  })
+
+  it("saves the guest address with the contact phone", async () => {
+    const wrapper = await mountPage()
+    await submitAddress(wrapper)
+    expect(checkout.saveContact).toHaveBeenCalledWith("buyer@example.com", {
+      first_name: "Sari",
+      last_name: "Dewi",
+      address_1: "Jl. Merdeka No. 1",
+      city: "Bandung",
+      province: "Jawa Barat",
+      postal_code: "40111",
+      country_code: "id",
+      phone: "+6281234567890",
+    })
+  })
+
+  it("shows the address as a textarea and no phone field in the address fields of a guest", async () => {
+    const wrapper = await mountPage()
+    expect(wrapper.find('[data-testid="address-fields"] textarea[name="address_1"]').exists()).toBe(
+      true
+    )
+    expect(wrapper.find('[data-testid="address-fields"] [name="phone"]').exists()).toBe(false)
+  })
+
+  it("shows the login link to a guest", async () => {
+    const wrapper = await mountPage()
+    expect(wrapper.text()).toContain("Have an account?")
+    expect(wrapper.find('a[href="/account/login?redirect=/checkout"]').text()).toBe(
+      "Log in to use your saved addresses."
+    )
+  })
+
+  it("shows Loading shipping options… while the options load", async () => {
+    checkout.loadShippingOptions.mockReturnValue(new Promise(() => {}))
+    const wrapper = await mountPage()
+    await submitAddress(wrapper)
+    expect(wrapper.find('button[type="submit"]').text()).toContain("Loading shipping options…")
   })
 
   it("sends the browser to the Mayar payment page", async () => {
@@ -227,5 +367,261 @@ describe("checkout page", () => {
     expect(wrapper.find("aside").classes()).toEqual(
       expect.arrayContaining(["order-first", "md:order-none", "md:sticky"])
     )
+  })
+
+  it("does not load the saved addresses for a guest", async () => {
+    await mountPage()
+    expect(addressesMock.load).not.toHaveBeenCalled()
+  })
+
+  it("loads the saved addresses and selects the default address", async () => {
+    customerState.customer.value = member
+    const wrapper = await mountPage()
+    expect(addressesMock.load).toHaveBeenCalledTimes(1)
+    expect(
+      wrapper
+        .find('[data-testid="address-option-a1"] button[role="radio"]')
+        .attributes("data-state")
+    ).toBe("checked")
+    expect(wrapper.find('[data-testid="address-fields"]').exists()).toBe(false)
+  })
+
+  it("disables Continue while the saved addresses load", async () => {
+    customerState.customer.value = member
+    addressesMock.load.mockReturnValue(new Promise(() => {}))
+    const wrapper = await mountPage()
+    expect(wrapper.find('button[type="submit"]').attributes("disabled")).toBeDefined()
+  })
+
+  it("writes the selected saved address on one line with its own phone to the cart", async () => {
+    customerState.customer.value = member
+    const wrapper = await mountPage()
+    await continueCheckout(wrapper)
+    expect(checkout.saveContact).toHaveBeenCalledWith("member@example.com", {
+      first_name: "Sari",
+      last_name: "Dewi",
+      address_1: "Jl. Melati No. 12, RT 03/RW 05",
+      city: "Jakarta Pusat",
+      province: "DKI Jakarta",
+      postal_code: "10310",
+      country_code: "id",
+      phone: "081234567890",
+    })
+  })
+
+  // Review Focus: an address from the admin with null fields.
+  it("stops with an alert and a link for a saved address that is not complete", async () => {
+    customerState.customer.value = member
+    list = [fromAdmin]
+    const wrapper = await mountPage()
+    await continueCheckout(wrapper)
+    expect(wrapper.find('[data-testid="invalid-address"]').text()).toContain(
+      "This saved address is not complete. Update it on the Addresses page."
+    )
+    expect(wrapper.find('[data-testid="invalid-address"] a').attributes("href")).toBe(
+      "/account/addresses"
+    )
+    expect(checkout.saveContact).not.toHaveBeenCalled()
+  })
+
+  it("hides the alert for a saved address that is not complete after another selection", async () => {
+    customerState.customer.value = member
+    list = [fromAdmin, office]
+    const wrapper = await mountPage()
+    await continueCheckout(wrapper)
+    await wrapper.find('[data-testid="address-option-a2"] button[role="radio"]').trigger("click")
+    await flushPromises()
+    expect(wrapper.find('[data-testid="invalid-address"]').exists()).toBe(false)
+  })
+
+  it("disables Pay after the customer selects another address", async () => {
+    customerState.customer.value = member
+    const wrapper = await mountPage()
+    await continueCheckout(wrapper)
+    await wrapper.find('[data-testid="address-option-a2"] button[role="radio"]').trigger("click")
+    await flushPromises()
+    expect(wrapper.find('[data-testid="pay"]').attributes("disabled")).toBeDefined()
+  })
+
+  it("pays with the profile name and the contact phone", async () => {
+    customerState.customer.value = member
+    const wrapper = await mountPage()
+    await continueCheckout(wrapper)
+    await pay(wrapper)
+    expect(checkout.startPayment).toHaveBeenCalledWith({
+      name: "Budi Santoso",
+      email: "member@example.com",
+      mobile: "081298765432",
+    })
+  })
+
+  it("opens the form with the profile values when there are no saved addresses", async () => {
+    customerState.customer.value = member
+    list = []
+    const wrapper = await mountPage()
+    expect(wrapper.text()).toContain("You have no saved addresses yet.")
+    expect(addressField(wrapper, "first_name").value).toBe("Budi")
+    expect(addressField(wrapper, "phone").value).toBe("081298765432")
+    expect(addressField(wrapper, "address_1").value).toBe("")
+  })
+
+  // Review Focus: a profile with no name and no phone.
+  it("leaves the name and the phone empty for a profile with no name and no phone", async () => {
+    customerState.customer.value = {
+      email: "member@example.com",
+      first_name: null,
+      last_name: null,
+      phone: null,
+    }
+    list = []
+    const wrapper = await mountPage()
+    expect(addressField(wrapper, "first_name").value).toBe("")
+    expect(addressField(wrapper, "phone").value).toBe("")
+  })
+
+  it("shows the form after a failed load and loads again after Try again", async () => {
+    customerState.customer.value = member
+    addressesMock.load.mockRejectedValueOnce(Object.assign(new Error(), { status: 500 }))
+    const wrapper = await mountPage()
+    expect(wrapper.find('[data-testid="address-fields"]').exists()).toBe(true)
+    await wrapper.find('[data-testid="address-retry"]').trigger("click")
+    await flushPromises()
+    expect(addressesMock.load).toHaveBeenCalledTimes(2)
+    expect(wrapper.find('[data-testid="address-option-a1"]').exists()).toBe(true)
+  })
+
+  it("has no duplicate ids for a logged-in customer with the new address form open", async () => {
+    customerState.customer.value = member
+    const wrapper = await mountPage()
+    await wrapper.find('[data-testid="address-option-new"] button[role="radio"]').trigger("click")
+    await flushPromises()
+    expect(wrapper.find('[data-testid="address-fields"] [name="phone"]').exists()).toBe(true)
+    const ids = wrapper.findAll("[id]").map((element) => element.attributes("id"))
+    expect(ids.filter((id, index) => ids.indexOf(id) !== index)).toEqual([])
+  })
+
+  it("saves the new address, selects it, and writes it to the cart", async () => {
+    customerState.customer.value = member
+    const wrapper = await mountPage()
+    await selectNewAddress(wrapper)
+    await fillAddress(wrapper)
+    await continueCheckout(wrapper)
+    expect(addressesMock.create).toHaveBeenCalledWith(
+      expect.objectContaining({ address_name: "Kos", first_name: "Budi" }),
+      false
+    )
+    expect(
+      wrapper
+        .find('[data-testid="address-option-a5"] button[role="radio"]')
+        .attributes("data-state")
+    ).toBe("checked")
+    expect(wrapper.find('[data-testid="address-saved"]').text()).toBe(
+      'The address is saved to your account as "Kos".'
+    )
+    expect(checkout.saveContact).toHaveBeenCalledWith(
+      "member@example.com",
+      expect.objectContaining({ address_1: "Jl. Mawar 7" })
+    )
+    expect(wrapper.find('[data-testid="pay"]').attributes("disabled")).toBeUndefined()
+  })
+
+  it("closes the form and resets it to the profile values after the save", async () => {
+    customerState.customer.value = member
+    const wrapper = await mountPage()
+    await selectNewAddress(wrapper)
+    await fillAddress(wrapper)
+    await wrapper.find('[data-testid="make-default"]').trigger("click")
+    await continueCheckout(wrapper)
+    expect(wrapper.find('[data-testid="address-fields"]').exists()).toBe(false)
+
+    await selectNewAddress(wrapper)
+    expect(addressField(wrapper, "first_name").value).toBe("Budi")
+    expect(addressField(wrapper, "address_1").value).toBe("")
+    expect(wrapper.find('[data-testid="save-address"]').attributes("data-state")).toBe("checked")
+    expect(wrapper.find('[data-testid="make-default"]').attributes("data-state")).toBe("unchecked")
+    expect(wrapper.find('[data-testid="address-saved"]').exists()).toBe(false)
+  })
+
+  it("saves the first address as the default address and shows the list after the save", async () => {
+    customerState.customer.value = member
+    list = []
+    const wrapper = await mountPage()
+    await fillAddress(wrapper)
+    await continueCheckout(wrapper)
+    expect(addressesMock.create).toHaveBeenCalledWith(expect.anything(), true)
+    expect(wrapper.find('[data-testid="address-option-a5"]').exists()).toBe(true)
+  })
+
+  it("sends the default flag when Use as my default shipping address is on", async () => {
+    customerState.customer.value = member
+    const wrapper = await mountPage()
+    await selectNewAddress(wrapper)
+    await fillAddress(wrapper)
+    await wrapper.find('[data-testid="make-default"]').trigger("click")
+    await continueCheckout(wrapper)
+    expect(addressesMock.create).toHaveBeenCalledWith(expect.anything(), true)
+  })
+
+  it("does not save the address when Save this address is off", async () => {
+    customerState.customer.value = member
+    const wrapper = await mountPage()
+    await selectNewAddress(wrapper)
+    await fillAddress(wrapper)
+    await wrapper.find('[data-testid="save-address"]').trigger("click")
+    await continueCheckout(wrapper)
+    expect(addressesMock.create).not.toHaveBeenCalled()
+    expect(checkout.saveContact).toHaveBeenCalledTimes(1)
+  })
+
+  it("warns, keeps the form, and still writes the typed address when the save fails", async () => {
+    customerState.customer.value = member
+    addressesMock.create.mockRejectedValue(Object.assign(new Error(), { status: 500 }))
+    const wrapper = await mountPage()
+    await selectNewAddress(wrapper)
+    await fillAddress(wrapper)
+    await continueCheckout(wrapper)
+    expect(wrapper.find('[data-testid="address-not-saved"]').text()).toContain(
+      "The address was not saved to your account. Your order still ships to this address."
+    )
+    expect((wrapper.find('input[name="address_name"]').element as HTMLInputElement).value).toBe(
+      "Kos"
+    )
+    expect(checkout.saveContact).toHaveBeenCalledTimes(1)
+  })
+
+  it("hides the warning after another selection", async () => {
+    customerState.customer.value = member
+    addressesMock.create.mockRejectedValue(Object.assign(new Error(), { status: 500 }))
+    const wrapper = await mountPage()
+    await selectNewAddress(wrapper)
+    await fillAddress(wrapper)
+    await continueCheckout(wrapper)
+    await wrapper.find('[data-testid="address-option-a1"] button[role="radio"]').trigger("click")
+    await flushPromises()
+    expect(wrapper.find('[data-testid="address-not-saved"]').exists()).toBe(false)
+  })
+
+  // Review Focus: a double click creates one address only.
+  it("shows Saving the address… and creates one address on a double click", async () => {
+    customerState.customer.value = member
+    addressesMock.create.mockReturnValue(new Promise(() => {}))
+    const wrapper = await mountPage()
+    await selectNewAddress(wrapper)
+    await fillAddress(wrapper)
+    await wrapper.find("form").trigger("submit")
+    await wrapper.find("form").trigger("submit")
+    await flushPromises()
+    expect(wrapper.find('button[type="submit"]').text()).toContain("Saving the address…")
+    expect(addressesMock.create).toHaveBeenCalledTimes(1)
+  })
+
+  it("does not save the address after a failed load", async () => {
+    customerState.customer.value = member
+    addressesMock.load.mockRejectedValue(Object.assign(new Error(), { status: 500 }))
+    const wrapper = await mountPage()
+    await fillAddress(wrapper)
+    await continueCheckout(wrapper)
+    expect(addressesMock.create).not.toHaveBeenCalled()
+    expect(checkout.saveContact).toHaveBeenCalledTimes(1)
   })
 })

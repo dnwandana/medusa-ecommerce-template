@@ -1,5 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
-import type { CheckoutFormValues } from "~/utils/checkoutForm"
+import type { CartAddress } from "~/utils/addressForm"
 
 export const MAYAR_PROVIDER_ID = "pp_mayar_mayar"
 
@@ -7,7 +7,7 @@ export type ShippingChoice = { id: string; name: string; amount: number | null }
 
 // Returns the functions for the checkout steps of the cart.
 export function useCheckout(): {
-  saveContact(values: CheckoutFormValues): Promise<void>
+  saveContact(email: string, address: CartAddress): Promise<void>
   loadShippingOptions(): Promise<ShippingChoice[]>
   selectShippingOption(optionId: string): Promise<void>
   startPayment(customer: { name: string; email: string; mobile: string }): Promise<string>
@@ -25,21 +25,12 @@ export function useCheckout(): {
     return cart.value
   }
 
-  async function saveContact(values: CheckoutFormValues): Promise<void> {
+  // Writes the email, the shipping address, and the billing address. The store has no separate
+  // billing address, so both get the same address.
+  async function saveContact(email: string, address: CartAddress): Promise<void> {
     const current = requireCart()
-    const address = {
-      first_name: values.first_name.trim(),
-      last_name: values.last_name.trim(),
-      address_1: values.address_1.trim(),
-      city: values.city.trim(),
-      province: values.province.trim(),
-      postal_code: values.postal_code.trim(),
-      country_code: "id",
-      phone: normalizePhone(values.phone),
-    }
-
     const { cart: updated } = await sdk.store.cart.update(current.id, {
-      email: values.email.trim(),
+      email: email.trim(),
       shipping_address: address,
       billing_address: address,
     })
