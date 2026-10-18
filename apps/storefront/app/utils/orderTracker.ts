@@ -1,13 +1,5 @@
-// The customer statuses of payment base part 2. Replace this type with the import of
-// `CustomerStatus` from `orderStatus.ts` when that file exists.
-export type CustomerStatus =
-  | "waiting_for_payment"
-  | "payment_submitted"
-  | "processing"
-  | "shipped"
-  | "delivered"
-  | "cancelled"
-  | "refunded"
+import { BANK_TRANSFER_PROVIDER_ID } from "./bankTransfer"
+import type { CustomerStatus, OrderPaymentState } from "./orderStatus"
 
 export type TrackerStepId = "confirmed" | "on_its_way" | "delivered"
 
@@ -23,16 +15,20 @@ export type TrackerStep = {
 
 type DateValue = string | Date | null | undefined
 
-// The fields of a Store order that the tracker reads.
+// The fields of a Store order that the tracker reads. `payment_state` comes from
+// `/store/payment-states`, because the order fields have no payment data.
 export type TrackerOrder = {
   created_at: string | Date
   fulfillment_status?: string | null
   fulfillments?:
     { shipped_at?: DateValue; delivered_at?: DateValue; canceled_at?: DateValue }[] | null
-  payment_collections?: { payments?: { captured_at?: DateValue }[] | null }[] | null
+  payment_collections?: { status?: string | null }[] | null
+  payment_state?: OrderPaymentState | null
 }
 
-const CONFIRMED_STATUSES: CustomerStatus[] = ["processing", "shipped", "delivered"]
+// An order that left the store is confirmed, also when the owner did not capture the payment.
+const SENT_STATUSES: CustomerStatus[] = ["shipped", "delivered"]
+const GATEWAY_PAID_COLLECTIONS = ["authorized", "completed"]
 const ON_ITS_WAY_FULFILLMENT = ["shipped", "partially_delivered", "delivered"]
 const PARTLY_SHIPPED_FULFILLMENT = ["partially_shipped", "partially_delivered"]
 
@@ -60,11 +56,16 @@ export function trackerSteps(order: TrackerOrder, status: CustomerStatus): Track
   const fulfillmentStatus = order.fulfillment_status ?? ""
   // A canceled fulfillment never gives a date.
   const fulfillments = (order.fulfillments ?? []).filter((fulfillment) => !fulfillment.canceled_at)
-  const captures = (order.payment_collections ?? []).flatMap((collection) =>
-    (collection.payments ?? []).map((payment) => payment.captured_at)
-  )
+  // A captured payment gives the date of Confirmed. An authorized gateway payment has no date.
+  const capturedAt = order.payment_state?.captured_at ?? null
+  const isBankTransfer = order.payment_state?.provider_id === BANK_TRANSFER_PROVIDER_ID
+  const gatewayPaid =
+    !isBankTransfer &&
+    (order.payment_collections ?? []).some((collection) =>
+      GATEWAY_PAID_COLLECTIONS.includes(collection.status ?? "")
+    )
 
-  const confirmed = CONFIRMED_STATUSES.includes(status)
+  const confirmed = capturedAt !== null || gatewayPaid || SENT_STATUSES.includes(status)
   const onItsWay = ON_ITS_WAY_FULFILLMENT.includes(fulfillmentStatus)
   const delivered = fulfillmentStatus === "delivered"
 
@@ -72,9 +73,7 @@ export function trackerSteps(order: TrackerOrder, status: CustomerStatus): Track
     {
       id: "confirmed",
       complete: confirmed,
-      date: confirmed
-        ? (pickDate(captures, "earliest") ?? new Date(order.created_at).toISOString())
-        : null,
+      date: confirmed ? pickDate([capturedAt], "earliest") : null,
       caption: confirmedCaption(status),
     },
     {

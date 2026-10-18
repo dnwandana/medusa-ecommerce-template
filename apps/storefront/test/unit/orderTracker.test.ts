@@ -1,11 +1,21 @@
 import { describe, expect, it } from "vitest"
+import type { OrderPaymentState } from "~/utils/orderStatus"
 import { formatOrderDate, formatStepTime, trackerSteps } from "~/utils/orderTracker"
+
+const bankState = (over: Partial<OrderPaymentState> = {}): OrderPaymentState => ({
+  order_id: "order_1",
+  provider_id: "pp_bank-transfer_bank-transfer",
+  captured_at: null,
+  receipts: [],
+  note: null,
+  ...over,
+})
 
 const base = {
   created_at: "2026-10-17T02:00:00.000Z",
   fulfillment_status: "not_fulfilled",
   fulfillments: [],
-  payment_collections: [{ payments: [] }],
+  payment_state: bankState(),
 }
 
 describe("trackerSteps", () => {
@@ -23,7 +33,7 @@ describe("trackerSteps", () => {
   it("completes Confirmed with the capture date", () => {
     const order = {
       ...base,
-      payment_collections: [{ payments: [{ captured_at: "2026-10-18T03:15:00.000Z" }] }],
+      payment_state: bankState({ captured_at: "2026-10-18T03:15:00.000Z" }),
     }
     const steps = trackerSteps(order, "processing")
     expect(steps[0]).toMatchObject({
@@ -34,8 +44,51 @@ describe("trackerSteps", () => {
     expect(steps[1]).toMatchObject({ complete: false, current: true, date: null })
   })
 
-  it("uses the order date for Confirmed when no payment has a capture date", () => {
-    expect(trackerSteps(base, "processing")[0]!.date).toBe("2026-10-17T02:00:00.000Z")
+  it("dates Confirmed with the capture time", () => {
+    const steps = trackerSteps(
+      {
+        created_at: "2026-10-17T07:30:00Z",
+        payment_state: bankState({ captured_at: "2026-10-18T04:00:00Z" }),
+      },
+      "processing"
+    )
+    expect(steps[0]).toMatchObject({
+      id: "confirmed",
+      complete: true,
+      date: "2026-10-18T04:00:00.000Z",
+    })
+  })
+
+  it("completes Confirmed for an authorized gateway payment, with no date", () => {
+    const steps = trackerSteps(
+      {
+        created_at: "2026-10-17T07:30:00Z",
+        payment_collections: [{ status: "authorized" }],
+        payment_state: bankState({ provider_id: "pp_x_x" }),
+      },
+      "processing"
+    )
+    expect(steps[0]).toMatchObject({ id: "confirmed", complete: true, date: null })
+  })
+
+  it("keeps Confirmed open for a bank transfer that is not captured", () => {
+    const steps = trackerSteps(
+      { ...base, payment_collections: [{ status: "authorized" }] },
+      "payment_submitted"
+    )
+    expect(steps[0]).toMatchObject({ complete: false, current: true, date: null })
+  })
+
+  it("keeps Confirmed open for a gateway payment that is not authorized", () => {
+    const steps = trackerSteps(
+      {
+        created_at: "2026-10-17T07:30:00Z",
+        payment_collections: [{ status: "not_paid" }],
+        payment_state: bankState({ provider_id: "pp_x_x" }),
+      },
+      "processing"
+    )
+    expect(steps[0]).toMatchObject({ complete: false, current: true })
   })
 
   it("keeps On its way open and shows a caption for a partial shipment", () => {
@@ -46,7 +99,8 @@ describe("trackerSteps", () => {
         { shipped_at: "2026-10-20T01:00:00.000Z", delivered_at: null, canceled_at: null },
       ],
     }
-    const step = trackerSteps(order, "processing")[1]!
+    // `customerStatus` gives "shipped" for a partial shipment.
+    const step = trackerSteps(order, "shipped")[1]!
     expect(step).toMatchObject({
       complete: false,
       current: true,

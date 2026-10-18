@@ -231,11 +231,7 @@
     "toHome": "Kembali ke beranda"
   },
   "order": {
-    "thanks": "Terima kasih atas pesanan Anda",
     "number": "Pesanan #{id}",
-    "confirmationSent": "Kami mengirim konfirmasi ke {email}.",
-    "items": "Barang",
-    "shippingAddress": "Alamat pengiriman",
     "notFound": "Pesanan tidak ditemukan.",
     "eyebrow": "Pesanan #{id} · {date}",
     "heading": {
@@ -298,18 +294,50 @@
     "totalPaid": "Total dibayar",
     "questions": "Ada pertanyaan tentang pesanan Anda?",
     "contactLine": "{link}, dalam Bahasa Inggris atau Bahasa Indonesia.",
-    "contactLink": "Hubungi kami"
+    "contactLink": "Hubungi kami",
+    "status": {
+      "waiting_for_payment": "Menunggu pembayaran",
+      "payment_submitted": "Pembayaran dikirim",
+      "processing": "Diproses",
+      "shipped": "Dikirim",
+      "delivered": "Diterima",
+      "cancelled": "Dibatalkan",
+      "refunded": "Dana dikembalikan"
+    }
   },
   "bankTransfer": {
     "title": "Bayar dengan transfer bank",
     "amount": "Jumlah transfer",
     "exactAmount": "Transfer dengan jumlah yang tepat.",
-    "deadline": "Transfer sebelum {deadline}.",
     "holder": "Atas nama",
     "copy": "Salin",
     "copied": "Tersalin",
     "copyFailed": "Pilih nomor rekening, lalu salin secara manual.",
-    "noAccounts": "Detail rekening bank tidak tersedia. Hubungi toko."
+    "noAccounts": "Detail rekening bank tidak tersedia. Hubungi toko.",
+    "checkingTitle": "Kami sedang memeriksa pembayaran Anda",
+    "deadlineUpload": "Transfer dan unggah bukti transfer Anda sebelum {deadline}.",
+    "cancelWarning": "Jika kami tidak menerima bukti transfer sampai saat itu, kami membatalkan pesanan.",
+    "noteTitle": "Catatan dari toko",
+    "noteAction": "Transfer kekurangannya, lalu unggah satu bukti transfer lagi."
+  },
+  "receipt": {
+    "title": "Bukti transfer Anda",
+    "helpFirst": "Setelah transfer, unggah foto atau tangkapan layar bukti transfer. Anda dapat mengunggah hingga 3 bukti transfer.",
+    "helpMore": "Anda dapat mengunggah {count} bukti transfer lagi. | Anda dapat mengunggah {count} bukti transfer lagi.",
+    "helpMax": "Anda sudah mengunggah 3 bukti transfer.",
+    "listTitle": "Bukti transfer yang diunggah",
+    "uploadedAt": "Diunggah {date}",
+    "drop": "Letakkan file di sini, atau",
+    "choose": "Pilih file",
+    "formats": "JPG, PNG, atau WebP, maksimal 5 MB",
+    "change": "Ganti",
+    "upload": "Unggah bukti transfer",
+    "uploading": "Mengunggah…",
+    "uploaded": "Kami sudah menerima bukti transfer Anda.",
+    "errorType": "Jenis file ini tidak didukung. Pilih file JPG, PNG, atau WebP.",
+    "errorSize": "Ukuran file lebih dari 5 MB. Pilih file yang lebih kecil.",
+    "errorFailed": "Unggahan gagal. Coba lagi.",
+    "maxContact": "Anda tidak dapat mengunggah bukti transfer lagi. Untuk mengirim bukti transfer lain, hubungi toko."
   },
   "auth": {
     "email": "Alamat email",

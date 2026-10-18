@@ -4,22 +4,40 @@ import {
   formatDeadline,
   isAwaitingBankTransfer,
 } from "../../app/utils/bankTransfer"
+import type { OrderPaymentState } from "../../app/utils/orderStatus"
 
-const order = (status: string, provider: string) =>
-  ({ payment_collections: [{ status, payment_sessions: [{ provider_id: provider }] }] }) as any
+const bankState = (over: Partial<OrderPaymentState> = {}): OrderPaymentState => ({
+  order_id: "order_1",
+  provider_id: "pp_bank-transfer_bank-transfer",
+  captured_at: null,
+  receipts: [],
+  note: null,
+  ...over,
+})
 
 describe("isAwaitingBankTransfer", () => {
-  it("is true for an authorized bank transfer order", () => {
-    expect(isAwaitingBankTransfer(order("authorized", "pp_bank-transfer_bank-transfer"))).toBe(true)
+  it("waits for a bank transfer that is not captured", () => {
+    expect(isAwaitingBankTransfer({ status: "pending", payment_state: bankState() })).toBe(true)
+    expect(
+      isAwaitingBankTransfer({
+        status: "pending",
+        payment_state: bankState({ captured_at: "2026-10-18T04:00:00Z" }),
+      })
+    ).toBe(false)
+    expect(isAwaitingBankTransfer({ status: "canceled", payment_state: bankState() })).toBe(false)
+    expect(
+      isAwaitingBankTransfer({
+        status: "pending",
+        payment_state: bankState({ provider_id: "pp_x_x" }),
+      })
+    ).toBe(false)
+    expect(isAwaitingBankTransfer({ status: "pending", payment_state: null })).toBe(false)
   })
-  it("is false for a captured bank transfer order", () => {
-    expect(isAwaitingBankTransfer(order("completed", "pp_bank-transfer_bank-transfer"))).toBe(false)
-  })
-  it("is false for a gateway order", () => {
-    expect(isAwaitingBankTransfer(order("authorized", "pp_test_test"))).toBe(false)
-  })
-  it("is false for an order with no payment collections", () => {
-    expect(isAwaitingBankTransfer({} as any)).toBe(false)
+
+  it("is false for no order and for an order with no payment state", () => {
+    expect(isAwaitingBankTransfer(null)).toBe(false)
+    expect(isAwaitingBankTransfer(undefined)).toBe(false)
+    expect(isAwaitingBankTransfer({ status: "pending" })).toBe(false)
   })
 })
 

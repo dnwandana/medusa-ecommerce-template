@@ -1,4 +1,4 @@
-import type { HttpTypes } from "@medusajs/types"
+import type { OrderPaymentState } from "./orderStatus"
 
 // The storefront names the bank transfer provider id only here and in the locale files.
 export const BANK_TRANSFER_PROVIDER_ID = "pp_bank-transfer_bank-transfer"
@@ -6,14 +6,17 @@ export const BANK_TRANSFER_PROVIDER_ID = "pp_bank-transfer_bank-transfer"
 // The customer must pay within 24 hours of the order time.
 const PAYMENT_DEADLINE_MS = 24 * 60 * 60 * 1000
 
-// Returns true when the order uses bank transfer and the store has not captured the payment.
-export function isAwaitingBankTransfer(order: HttpTypes.StoreOrder): boolean {
-  return (order.payment_collections ?? []).some(
-    (collection) =>
-      collection.status === "authorized" &&
-      (collection.payment_sessions ?? []).some(
-        (session) => session.provider_id === BANK_TRANSFER_PROVIDER_ID
-      )
+// Returns true when the order uses bank transfer, the order is not canceled, and the store has
+// not captured the payment.
+export function isAwaitingBankTransfer(
+  order: { status: string; payment_state?: OrderPaymentState | null } | null | undefined
+): boolean {
+  const state = order?.payment_state
+  return (
+    !!state &&
+    order.status !== "canceled" &&
+    state.provider_id === BANK_TRANSFER_PROVIDER_ID &&
+    state.captured_at === null
   )
 }
 

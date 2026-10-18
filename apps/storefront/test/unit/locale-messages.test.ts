@@ -336,6 +336,45 @@ describe("locale messages", () => {
     expect(indonesian[key]).toEqual(expect.any(String))
   })
 
+  it.each([
+    ["order.status.waiting_for_payment", "Waiting for payment", "Menunggu pembayaran"],
+    ["order.status.payment_submitted", "Payment submitted", "Pembayaran dikirim"],
+    [
+      "receipt.errorType",
+      "This file type is not supported. Choose a JPG, PNG or WebP file.",
+      undefined,
+    ],
+    [
+      "receipt.maxContact",
+      "You cannot upload more receipts. To send another receipt, contact the store.",
+      undefined,
+    ],
+    [
+      "bankTransfer.deadlineUpload",
+      "Transfer and upload your receipt before {deadline}.",
+      undefined,
+    ],
+  ])("has %s", (key, englishText, indonesianText) => {
+    expect(english[key]).toBe(englishText)
+    if (indonesianText) expect(indonesian[key]).toBe(indonesianText)
+    else expect(indonesian[key]).toBeTruthy()
+  })
+
+  it("has the seven customer statuses", () => {
+    for (const status of [
+      "waiting_for_payment",
+      "payment_submitted",
+      "processing",
+      "shipped",
+      "delivered",
+      "cancelled",
+      "refunded",
+    ]) {
+      expect(english[`order.status.${status}`], status).toBeTruthy()
+      expect(indonesian[`order.status.${status}`], status).toBeTruthy()
+    }
+  })
+
   it.each(removedKeys)("has no password key %s", (key) => {
     expect(english[key]).toBeUndefined()
     expect(indonesian[key]).toBeUndefined()

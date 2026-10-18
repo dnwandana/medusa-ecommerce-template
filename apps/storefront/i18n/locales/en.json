@@ -231,11 +231,7 @@
     "toHome": "Back to the home page"
   },
   "order": {
-    "thanks": "Thank you for your order",
     "number": "Order #{id}",
-    "confirmationSent": "We sent a confirmation to {email}.",
-    "items": "Items",
-    "shippingAddress": "Shipping address",
     "notFound": "The order does not exist.",
     "eyebrow": "Order #{id} · {date}",
     "heading": {
@@ -298,18 +294,50 @@
     "totalPaid": "Total paid",
     "questions": "Questions about your order?",
     "contactLine": "{link}, in English or Bahasa Indonesia.",
-    "contactLink": "Contact us"
+    "contactLink": "Contact us",
+    "status": {
+      "waiting_for_payment": "Waiting for payment",
+      "payment_submitted": "Payment submitted",
+      "processing": "Processing",
+      "shipped": "Shipped",
+      "delivered": "Delivered",
+      "cancelled": "Cancelled",
+      "refunded": "Refunded"
+    }
   },
   "bankTransfer": {
     "title": "Pay by bank transfer",
     "amount": "Amount to transfer",
     "exactAmount": "Transfer the exact amount.",
-    "deadline": "Transfer before {deadline}.",
     "holder": "Account holder",
     "copy": "Copy",
     "copied": "Copied",
     "copyFailed": "Select the number and copy it by hand.",
-    "noAccounts": "The bank details are not available. Contact the store."
+    "noAccounts": "The bank details are not available. Contact the store.",
+    "checkingTitle": "We are checking your payment",
+    "deadlineUpload": "Transfer and upload your receipt before {deadline}.",
+    "cancelWarning": "If we get no receipt by then, we cancel the order.",
+    "noteTitle": "A note from the store",
+    "noteAction": "Transfer the difference, then upload one more receipt."
+  },
+  "receipt": {
+    "title": "Your receipt",
+    "helpFirst": "After the transfer, upload a photo or a screenshot of the receipt. You can upload up to 3 receipts.",
+    "helpMore": "You can upload {count} more receipt. | You can upload {count} more receipts.",
+    "helpMax": "You uploaded 3 receipts.",
+    "listTitle": "Uploaded receipts",
+    "uploadedAt": "Uploaded {date}",
+    "drop": "Drop the file here, or",
+    "choose": "Choose a file",
+    "formats": "JPG, PNG or WebP, up to 5 MB",
+    "change": "Change",
+    "upload": "Upload receipt",
+    "uploading": "Uploading…",
+    "uploaded": "We got your receipt.",
+    "errorType": "This file type is not supported. Choose a JPG, PNG or WebP file.",
+    "errorSize": "The file is larger than 5 MB. Choose a smaller file.",
+    "errorFailed": "The upload failed. Try again.",
+    "maxContact": "You cannot upload more receipts. To send another receipt, contact the store."
   },
   "auth": {
     "email": "Email address",
