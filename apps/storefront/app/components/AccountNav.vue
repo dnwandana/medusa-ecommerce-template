@@ -1,23 +1,24 @@
 <script setup lang="ts">
-import { Heart, LogOut, MapPin, Package, UserPen } from "@lucide/vue"
+import { LogOut } from "@lucide/vue"
 
 const route = useRoute()
 const localePath = useLocalePath()
 const { logout } = useCustomer()
 
+// The side nav shows no item counts.
 const links = [
-  { to: "/account", icon: UserPen, label: "account.profile" },
-  { to: "/account/addresses", icon: MapPin, label: "account.addresses.title" },
-  { to: "/account/orders", icon: Package, label: "account.orders" },
-  { to: "/account/wishlist", icon: Heart, label: "account.wishlist" },
+  { to: "/account", label: "account.profile" },
+  { to: "/account/orders", label: "account.orders" },
+  { to: "/account/addresses", label: "account.addresses.title" },
+  { to: "/account/wishlist", label: "account.wishlist" },
 ]
 
-// Sets aria-current from the route. The "on" style of the ghost button reads this attribute.
+// Sets aria-current from the route. The style of the current row and tab reads this attribute.
 function current(to: string): "page" | undefined {
   return route.path === localePath(to) ? "page" : undefined
 }
 
-// Logs out and opens the home page.
+// Signs out and opens the home page.
 async function leave(): Promise<void> {
   await logout()
   await navigateTo(localePath("/"))
@@ -26,51 +27,55 @@ async function leave(): Promise<void> {
 
 <template>
   <!--
-    The grid areas move the one logout button. Below md it sits next to the title.
-    At md and above it sits under the side nav. Thus the DOM has only one logout button.
+    The grid areas move the one "Sign out" button. Below md it sits next to the heading.
+    At md and above it sits under the side nav. Thus the DOM has only one "Sign out" button.
   -->
   <div
-    class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-y-6 [grid-template-areas:'title_logout'_'tabs_tabs'_'content_content'] md:grid-cols-[220px_minmax(0,1fr)] md:grid-rows-[auto_auto_1fr] md:items-start md:gap-x-12 md:gap-y-0 md:[grid-template-areas:'title_title'_'nav_content'_'logout_content']"
+    class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-y-6 pt-6 pb-16 [grid-template-areas:'title_logout'_'tabs_tabs'_'content_content'] md:grid-cols-[180px_minmax(0,1fr)] md:grid-rows-[auto_auto_1fr] md:items-start md:gap-x-12 md:gap-y-0 md:pt-12 md:pb-32 md:[grid-template-areas:'title_title'_'nav_content'_'logout_content'] lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-x-24"
   >
-    <h1 class="text-h1 [grid-area:title] md:mb-6">{{ $t("account.title") }}</h1>
+    <AccountShell class="[grid-area:title] md:mb-12" />
 
-    <nav :aria-label="$t('account.title')" class="hidden gap-1 [grid-area:nav] md:flex md:flex-col">
-      <Button
+    <nav
+      :aria-label="$t('account.title')"
+      data-testid="side-nav"
+      class="hidden [grid-area:nav] md:flex md:flex-col"
+    >
+      <NuxtLinkLocale
         v-for="link in links"
         :key="link.to"
-        as-child
-        variant="ghost"
-        class="w-full justify-start"
+        :to="link.to"
+        :aria-current="current(link.to)"
+        class="flex min-h-12 items-center border-b border-border text-nav text-foreground first:border-t hover:text-muted-foreground focus-visible:shadow-[var(--focus-ring)] focus-visible:outline-none aria-[current=page]:font-heading aria-[current=page]:text-[20px] aria-[current=page]:leading-7 aria-[current=page]:tracking-normal aria-[current=page]:normal-case aria-[current=page]:italic"
       >
-        <NuxtLinkLocale :to="link.to" :aria-current="current(link.to)">
-          <component :is="link.icon" aria-hidden="true" />
-          {{ $t(link.label) }}
-        </NuxtLinkLocale>
-      </Button>
-      <Separator class="my-2" />
+        {{ $t(link.label) }}
+      </NuxtLinkLocale>
     </nav>
 
-    <Tabs :model-value="route.path" class="[grid-area:tabs] md:hidden">
-      <TabsList class="w-full justify-start">
-        <TabsTrigger v-for="link in links" :key="link.to" as-child :value="localePath(link.to)">
-          <NuxtLinkLocale :to="link.to">
-            <component :is="link.icon" aria-hidden="true" />
-            {{ $t(link.label) }}
-          </NuxtLinkLocale>
-        </TabsTrigger>
-      </TabsList>
-    </Tabs>
+    <nav
+      :aria-label="$t('account.title')"
+      data-testid="account-tabs"
+      class="-mr-4 flex gap-6 overflow-x-auto border-b border-border pr-4 [scrollbar-width:none] [grid-area:tabs] md:hidden"
+    >
+      <NuxtLinkLocale
+        v-for="link in links"
+        :key="link.to"
+        :to="link.to"
+        :aria-current="current(link.to)"
+        class="-mb-px flex min-h-12 shrink-0 items-center border-b border-transparent text-nav whitespace-nowrap text-foreground focus-visible:shadow-[var(--focus-ring)] focus-visible:outline-none aria-[current=page]:border-foreground"
+      >
+        {{ $t(link.label) }}
+      </NuxtLinkLocale>
+    </nav>
 
-    <Button
+    <button
       type="button"
-      variant="ghost"
-      data-testid="logout"
-      class="justify-self-end [grid-area:logout] md:w-full md:justify-start md:self-start"
+      data-testid="sign-out"
+      class="flex min-h-11 items-center gap-3 justify-self-end text-nav text-muted-foreground [grid-area:logout] hover:text-foreground focus-visible:shadow-[var(--focus-ring)] focus-visible:outline-none md:mt-6 md:min-h-14 md:justify-self-start"
       @click="leave"
     >
-      <LogOut aria-hidden="true" />
-      {{ $t("account.logout") }}
-    </Button>
+      <LogOut :size="18" :stroke-width="1.5" aria-hidden="true" />
+      {{ $t("nav.signOut") }}
+    </button>
 
     <div class="min-w-0 [grid-area:content]">
       <slot />

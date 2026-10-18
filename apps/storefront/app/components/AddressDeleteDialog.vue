@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { HttpTypes } from "@medusajs/types"
-import { Info } from "@lucide/vue"
+import { CircleAlert, Info } from "@lucide/vue"
 
 const props = defineProps<{
   address: HttpTypes.StoreCustomerAddress | null
@@ -70,48 +70,57 @@ function blockCloseDuringDelete(event: Event): void {
 
 <template>
   <AlertDialog v-model:open="open">
-    <!-- Below md the dialog is a bottom sheet: fixed to the bottom, full width, top corners rounded. -->
+    <!-- Below md the dialog is a bottom sheet: fixed to the bottom and full width. -->
     <AlertDialogContent
-      class="top-auto bottom-0 left-0 translate-x-0 translate-y-0 rounded-b-none data-[size=default]:max-w-none data-[size=default]:sm:max-w-none md:top-1/2 md:bottom-auto md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-b-xl data-[size=default]:md:max-w-md"
+      class="top-auto bottom-0 left-0 max-w-none translate-x-0 translate-y-0 gap-0 p-0 sm:max-w-none md:top-1/2 md:bottom-auto md:left-1/2 md:max-w-[440px] md:-translate-x-1/2 md:-translate-y-1/2"
       data-testid="delete-dialog"
       @escape-key-down="blockCloseDuringDelete"
     >
-      <AlertDialogHeader>
-        <AlertDialogTitle>{{ $t("account.addresses.deleteTitle") }}</AlertDialogTitle>
-        <AlertDialogDescription>{{ $t("account.addresses.deleteBody") }}</AlertDialogDescription>
+      <AlertDialogHeader class="place-items-start gap-2 px-4 pt-5 text-left md:px-8 md:pt-8">
+        <AlertDialogTitle class="text-h3 font-normal">
+          {{ $t("account.addresses.deleteTitle") }}
+        </AlertDialogTitle>
+        <AlertDialogDescription class="text-body-sm text-muted-foreground">
+          {{ $t("account.addresses.deleteBody") }}
+        </AlertDialogDescription>
       </AlertDialogHeader>
 
-      <div
-        v-if="address"
-        class="flex flex-col gap-1 rounded-lg border p-3"
-        data-testid="delete-summary"
-      >
-        <p class="flex flex-wrap items-center gap-2 font-medium">
-          {{ titleOf(address) }}
-          <Badge v-if="address.is_default_shipping">{{ $t("account.addresses.default") }}</Badge>
-        </p>
-        <p class="text-body-sm text-muted-foreground">
-          <template v-if="fullName">{{ fullName }} · </template>{{ line }}
-        </p>
+      <div class="flex flex-col gap-4 px-4 py-6 md:px-8">
+        <div
+          v-if="address"
+          class="flex flex-col gap-1 bg-secondary px-5 py-4"
+          data-testid="delete-summary"
+        >
+          <p class="flex flex-wrap items-center gap-2 text-body font-medium">
+            {{ titleOf(address) }}
+            <Badge v-if="address.is_default_shipping">{{ $t("account.addresses.default") }}</Badge>
+          </p>
+          <p class="text-body-sm text-muted-foreground">
+            <template v-if="fullName">{{ fullName }} · </template>{{ line }}
+          </p>
+        </div>
+
+        <Alert v-if="nextDefault" data-testid="delete-new-default">
+          <Info :stroke-width="1.5" aria-hidden="true" />
+          <AlertDescription>
+            {{ $t("account.addresses.newDefault", { label: titleOf(nextDefault) }) }}
+          </AlertDescription>
+        </Alert>
+        <Alert v-else-if="isOnly" data-testid="delete-only">
+          <Info :stroke-width="1.5" aria-hidden="true" />
+          <AlertDescription>{{ $t("account.addresses.onlyAddress") }}</AlertDescription>
+        </Alert>
+
+        <Alert v-if="error" variant="destructive">
+          <CircleAlert :stroke-width="1.5" aria-hidden="true" />
+          <AlertDescription>{{ $t("account.addresses.deleteError") }}</AlertDescription>
+        </Alert>
       </div>
 
-      <Alert v-if="nextDefault" variant="info" data-testid="delete-new-default">
-        <Info aria-hidden="true" />
-        <AlertDescription>
-          {{ $t("account.addresses.newDefault", { label: titleOf(nextDefault) }) }}
-        </AlertDescription>
-      </Alert>
-      <Alert v-else-if="isOnly" variant="info" data-testid="delete-only">
-        <Info aria-hidden="true" />
-        <AlertDescription>{{ $t("account.addresses.onlyAddress") }}</AlertDescription>
-      </Alert>
-
-      <Alert v-if="error" variant="destructive">
-        <AlertDescription>{{ $t("account.addresses.deleteError") }}</AlertDescription>
-      </Alert>
-
+      <!-- The content has no padding, so the footer needs no negative margins. The bottom padding
+           keeps the buttons above the home bar of a phone. -->
       <AlertDialogFooter
-        class="rounded-b-none pb-[calc(1rem+env(safe-area-inset-bottom))] md:rounded-b-xl md:pb-4"
+        class="mx-0 mb-0 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] md:px-8 md:pb-8"
       >
         <AlertDialogCancel data-testid="delete-cancel" :disabled="deleting">
           {{ $t("common.cancel") }}

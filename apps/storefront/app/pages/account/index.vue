@@ -1,33 +1,39 @@
 <script setup lang="ts">
 import type { HttpTypes } from "@medusajs/types"
-import { Phone } from "@lucide/vue"
+import { CircleAlert, CircleCheck, Phone } from "@lucide/vue"
+import { joinFullName, splitFullName } from "~/utils/addressForm"
 
 definePageMeta({ middleware: "auth" })
 
 const { t } = useI18n()
 const { customer, updateProfile } = useCustomer()
 
-const form = reactive({ first_name: "", last_name: "", phone: "" })
+const form = reactive({ full_name: "", phone: "" })
 const busy = ref(false)
 const saved = ref(false)
 const failed = ref(false)
 
 // Copies the profile fields of the customer into the form.
 function fill(current: HttpTypes.StoreCustomer | null): void {
-  form.first_name = current?.first_name ?? ""
-  form.last_name = current?.last_name ?? ""
+  form.full_name = joinFullName(current?.first_name, current?.last_name)
   form.phone = current?.phone ?? ""
 }
 
 watch(customer, fill, { immediate: true })
 
-// Saves the profile fields of the form.
+// A change by the customer after a save makes the saved text old. The input event does not
+// fire when fill() copies the saved profile into the form.
+function edited(): void {
+  saved.value = false
+}
+
+// Saves the profile. The profile does not require a name, so an empty name saves empty names.
 async function save(): Promise<void> {
   saved.value = false
   failed.value = false
   busy.value = true
   try {
-    await updateProfile({ ...form })
+    await updateProfile({ ...splitFullName(form.full_name), phone: form.phone })
     saved.value = true
   } catch {
     failed.value = true
@@ -41,57 +47,67 @@ useHead({ title: () => t("account.title") })
 
 <template>
   <AccountNav>
-    <!-- The form holds the whole Card, so the button in the Card footer submits it. -->
-    <form class="max-w-[640px]" @submit.prevent="save">
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            <h2>{{ $t("account.profile") }}</h2>
-          </CardTitle>
-        </CardHeader>
+    <section aria-labelledby="profile-title" class="flex flex-col gap-8">
+      <div class="border-b border-border pb-4">
+        <h2 id="profile-title" class="text-h3 font-normal">{{ $t("account.profile") }}</h2>
+      </div>
 
-        <CardContent class="flex flex-col gap-5">
-          <div class="flex flex-col gap-1">
-            <span class="text-body-sm font-semibold">{{ $t("auth.email") }}</span>
-            <span>{{ customer?.email }}</span>
+      <form
+        class="flex max-w-[640px] flex-col gap-8"
+        novalidate
+        @submit.prevent="save"
+        @input="edited"
+      >
+        <div class="flex flex-col gap-2">
+          <p class="text-field-label text-foreground uppercase">{{ $t("account.email") }}</p>
+          <p class="text-body">{{ customer?.email }}</p>
+        </div>
+
+        <Field>
+          <FieldLabel for="account-full-name">{{ $t("account.fullName") }}</FieldLabel>
+          <Input
+            id="account-full-name"
+            v-model="form.full_name"
+            name="full_name"
+            autocomplete="name"
+          />
+        </Field>
+
+        <Field>
+          <FieldLabel for="account-phone">{{ $t("account.phone") }}</FieldLabel>
+          <div class="relative flex items-center">
+            <Input
+              id="account-phone"
+              v-model="form.phone"
+              name="phone"
+              type="tel"
+              autocomplete="tel"
+              class="pr-11"
+            />
+            <Phone
+              :size="18"
+              :stroke-width="1.5"
+              aria-hidden="true"
+              class="pointer-events-none absolute right-1 text-icon-subtle"
+            />
           </div>
+        </Field>
 
-          <FieldGroup class="two-col">
-            <Field>
-              <FieldLabel for="account-first-name">{{ $t("auth.firstName") }}</FieldLabel>
-              <Input id="account-first-name" v-model="form.first_name" name="first_name" />
-            </Field>
-            <Field>
-              <FieldLabel for="account-last-name">{{ $t("auth.lastName") }}</FieldLabel>
-              <Input id="account-last-name" v-model="form.last_name" name="last_name" />
-            </Field>
-          </FieldGroup>
+        <Alert v-if="failed" variant="destructive">
+          <CircleAlert :stroke-width="1.5" aria-hidden="true" />
+          <AlertDescription>{{ $t("account.saveError") }}</AlertDescription>
+        </Alert>
 
-          <Field>
-            <FieldLabel for="account-phone">{{ $t("account.phone") }}</FieldLabel>
-            <InputGroup>
-              <InputGroupInput id="account-phone" v-model="form.phone" name="phone" type="tel" />
-              <InputGroupAddon>
-                <Phone aria-hidden="true" />
-              </InputGroupAddon>
-            </InputGroup>
-          </Field>
-
-          <Alert v-if="failed" variant="destructive">
-            <AlertDescription>{{ $t("common.error") }}</AlertDescription>
-          </Alert>
-        </CardContent>
-
-        <CardFooter class="flex items-center gap-4">
-          <Button type="submit" :disabled="busy">
-            <Spinner v-if="busy" />
-            {{ $t("common.save") }}
+        <div class="flex flex-wrap items-center gap-x-6 gap-y-4 pt-2">
+          <Button type="submit" :loading="busy">
+            {{ busy ? $t("account.saving") : $t("common.save") }}
           </Button>
-          <p v-if="saved" role="status" class="text-body-sm text-success">
+          <p v-if="saved" role="status" class="flex items-center gap-2 text-body-sm text-success">
+            <CircleCheck :size="16" :stroke-width="1.5" aria-hidden="true" />
             {{ $t("account.saved") }}
           </p>
-        </CardFooter>
-      </Card>
-    </form>
+        </div>
+      </form>
+    </section>
   </AccountNav>
 </template>

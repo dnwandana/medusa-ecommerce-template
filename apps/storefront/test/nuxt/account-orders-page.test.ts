@@ -1,7 +1,7 @@
 import { mockNuxtImport, mountSuspended } from "@nuxt/test-utils/runtime"
 import { flushPromises } from "@vue/test-utils"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { AccountNav, ReviewForm } from "#components"
+import { AccountNav, HairlineAccordion, ReviewForm, Skeleton } from "#components"
 import OrdersPage from "~/pages/account/orders.vue"
 
 const { orders, reviews } = vi.hoisted(() => ({
@@ -9,8 +9,21 @@ const { orders, reviews } = vi.hoisted(() => ({
   reviews: { listReviewableItems: vi.fn(), submit: vi.fn(), listForProduct: vi.fn() },
 }))
 
+// The auth middleware of /account/orders reads customer and ensureLoaded.
+const { customerState } = await vi.hoisted(async () => {
+  const { ref } = await import("vue")
+  return {
+    customerState: {
+      customer: ref<unknown>({ id: "cus_1", email: "sari@example.com", first_name: "Sari" }),
+      ensureLoaded: vi.fn(),
+      logout: vi.fn(),
+    },
+  }
+})
+
 mockNuxtImport("useOrders", () => () => orders)
 mockNuxtImport("useReviews", () => () => reviews)
+mockNuxtImport("useCustomer", () => () => customerState)
 
 const order = (id: string, displayId: number, total: number) => ({
   id,
@@ -20,36 +33,47 @@ const order = (id: string, displayId: number, total: number) => ({
   items: [],
 })
 
-const shirtItem = {
-  order_id: "order_1",
-  order_display_id: 12,
-  order_line_item_id: "ordli_1",
-  product_id: "prod_1",
-  product_title: "Plain T-Shirt",
-  variant_title: "M",
-  thumbnail: null,
-}
-
-const orderWithLines = {
-  ...order("order_1", 12, 300000),
+const order1042 = {
+  id: "order_1",
+  display_id: 1042,
+  total: 1056000,
+  created_at: "2026-10-14T03:00:00.000Z",
   items: [
     {
       id: "ordli_1",
-      product_title: "Plain T-Shirt",
-      variant_title: "M",
+      product_title: "Silk Slip Dress",
+      variant_title: "Clay / S",
+      thumbnail: null,
+      quantity: 1,
+    },
+    {
+      id: "ordli_2",
+      product_title: "Everyday Crew Tee",
+      variant_title: "White / M",
       thumbnail: null,
       quantity: 2,
     },
   ],
 }
 
+const dressItem = {
+  order_id: "order_1",
+  order_display_id: 1042,
+  order_line_item_id: "ordli_1",
+  product_id: "prod_1",
+  product_title: "Silk Slip Dress",
+  variant_title: "Clay / S",
+  thumbnail: null,
+}
+
 const mountPage = async () => {
-  const wrapper = await mountSuspended(OrdersPage)
+  const wrapper = await mountSuspended(OrdersPage, { route: "/account/orders" })
   await flushPromises()
   return wrapper
 }
 
 beforeEach(() => {
+  customerState.ensureLoaded.mockReset().mockResolvedValue(undefined)
   orders.listOrders.mockReset().mockResolvedValue({ orders: [], count: 0 })
   reviews.listReviewableItems.mockReset().mockResolvedValue([])
   reviews.submit.mockReset().mockResolvedValue(undefined)
@@ -104,13 +128,6 @@ describe("order history page", () => {
     )
   })
 
-  it("shows an error when the orders do not load", async () => {
-    orders.listOrders.mockRejectedValue(new Error("HTTP 500"))
-    const wrapper = await mountPage()
-
-    expect(wrapper.text()).toContain("An error occurred. Try again.")
-  })
-
   it("shows the orders in the account nav", async () => {
     const wrapper = await mountPage()
 
@@ -126,35 +143,58 @@ describe("order history page", () => {
     expect(empty.find('a[href="/products"]').text()).toBe("Continue shopping")
   })
 
-  it("shows each line of an order as an item with the quantity", async () => {
-    orders.listOrders.mockResolvedValue({ orders: [orderWithLines], count: 1 })
+  it("shows Date, Items and Total for each order", async () => {
+    orders.listOrders.mockResolvedValue({ orders: [order1042], count: 1 })
     const wrapper = await mountPage()
-    const card = wrapper.find('[data-testid="order-order_1"]')
+    const block = wrapper.get('[data-testid="order-order_1"]')
+    const labels = block.findAll("dt").map((term) => term.text())
 
-    expect(card.find('[data-slot="item"]').text()).toContain("Plain T-Shirt")
-    expect(card.find('[data-slot="item"]').text()).toContain("2")
-    expect(card.find('a[href="/orders/order_1"]').text()).toBe("View the order")
+    expect(labels).toEqual(["Date", "Items", "Total"])
+    expect(block.findAll("dd")[0]!.text()).toBe("14 October 2026")
+    expect(block.findAll("dd")[1]!.text()).toBe("3")
+    expect(block.findAll("dd")[2]!.text()).toBe("Rp 1.056.000")
+    expect(block.get("h3").text()).toBe("Order #1042")
+    expect(block.get('a[href="/orders/order_1"]').text()).toBe("View the order")
   })
 
-  it("opens the review form in a collapsible with the product name", async () => {
-    orders.listOrders.mockResolvedValue({ orders: [orderWithLines], count: 1 })
-    reviews.listReviewableItems.mockResolvedValue([shirtItem])
+  it("shows each line with its variant and its quantity", async () => {
+    orders.listOrders.mockResolvedValue({ orders: [order1042], count: 1 })
     const wrapper = await mountPage()
-    const trigger = wrapper.find('[data-testid="order-order_1"] button[aria-expanded]')
+    const lines = wrapper.get('[data-testid="order-order_1"]').findAll("li")
 
-    expect(trigger.text()).toBe("Write a review: Plain T-Shirt")
-    expect(trigger.attributes("aria-expanded")).toBe("false")
-    await trigger.trigger("click")
-
-    expect(trigger.attributes("aria-expanded")).toBe("true")
+    expect(lines).toHaveLength(2)
+    expect(lines[1]!.text()).toContain("Everyday Crew Tee")
+    expect(lines[1]!.text()).toContain("White / M")
+    expect(lines[1]!.text()).toContain("× 2")
   })
 
-  it("shows the load error in a destructive alert", async () => {
-    orders.listOrders.mockRejectedValue(new Error("HTTP 500"))
+  it("puts the review forms of an order in a hairline accordion", async () => {
+    orders.listOrders.mockResolvedValue({ orders: [order1042], count: 1 })
+    reviews.listReviewableItems.mockResolvedValue([dressItem])
+    const wrapper = await mountPage()
+    const group = wrapper.get('[aria-label="Review the items"]')
+
+    expect(group.findComponent(HairlineAccordion).exists()).toBe(true)
+    expect(group.text()).toContain("Write a review: Silk Slip Dress")
+  })
+
+  it("shows skeletons while the orders load", async () => {
+    orders.listOrders.mockReturnValue(new Promise(() => {}))
+    const wrapper = await mountSuspended(OrdersPage, { route: "/account/orders" })
+
+    expect(wrapper.get('[role="status"]').text()).toContain("Loading…")
+    expect(wrapper.findAllComponents(Skeleton).length).toBeGreaterThan(0)
+  })
+
+  it("loads again after Try again", async () => {
+    orders.listOrders.mockRejectedValueOnce(new Error("HTTP 500"))
     const wrapper = await mountPage()
 
-    expect(wrapper.find('[data-slot="alert"][role="alert"]').text()).toBe(
-      "An error occurred. Try again."
-    )
+    expect(wrapper.get('[role="alert"]').text()).toContain("Your orders did not load.")
+    await wrapper.get('[role="alert"] button').trigger("click")
+    await flushPromises()
+
+    expect(orders.listOrders).toHaveBeenCalledTimes(2)
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
   })
 })

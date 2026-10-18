@@ -6,7 +6,11 @@ import { AccountNav } from "#components"
 // The auth middleware of /account/orders reads customer and ensureLoaded.
 // A logged-in customer keeps the test on the account route.
 const { customerState, navigateToMock } = vi.hoisted(() => ({
-  customerState: { customer: { value: { id: "cus_1" } }, ensureLoaded: vi.fn(), logout: vi.fn() },
+  customerState: {
+    customer: { value: { id: "cus_1", first_name: "Sari" } },
+    ensureLoaded: vi.fn(),
+    logout: vi.fn(),
+  },
   navigateToMock: vi.fn(),
 }))
 
@@ -23,10 +27,10 @@ const mountNav = () =>
   mountSuspended(AccountNav, { route: "/account/orders", slots: { default: () => "Orders body" } })
 
 describe("AccountNav", () => {
-  it("shows the title, the links, and the page content", async () => {
+  it("shows the greeting, the links, and the page content", async () => {
     const wrapper = await mountNav()
 
-    expect(wrapper.find("h1").text()).toBe("Your account")
+    expect(wrapper.find("h1").text()).toBe("Welcome, Sari.")
     expect(wrapper.find('a[href="/account"]').exists()).toBe(true)
     expect(wrapper.find('a[href="/account/addresses"]').exists()).toBe(true)
     expect(wrapper.find('a[href="/account/orders"]').exists()).toBe(true)
@@ -34,39 +38,51 @@ describe("AccountNav", () => {
     expect(wrapper.text()).toContain("Orders body")
   })
 
-  it("puts the Addresses link after Profile and before Orders", async () => {
+  it("lists Profile, Orders, Addresses and Wishlist in this order", async () => {
     const wrapper = await mountNav()
-
-    const hrefs = wrapper.findAll("nav a").map((link) => link.attributes("href"))
+    const hrefs = wrapper
+      .findAll('[data-testid="side-nav"] a')
+      .map((link) => link.attributes("href"))
     expect(hrefs).toEqual([
       "/account",
-      "/account/addresses",
       "/account/orders",
+      "/account/addresses",
       "/account/wishlist",
     ])
   })
 
-  it("marks the link of the current page", async () => {
+  it("lists the same links in the phone tabs", async () => {
     const wrapper = await mountNav()
+    const hrefs = wrapper
+      .findAll('[data-testid="account-tabs"] a')
+      .map((link) => link.attributes("href"))
+    expect(hrefs).toEqual([
+      "/account",
+      "/account/orders",
+      "/account/addresses",
+      "/account/wishlist",
+    ])
+  })
 
-    expect(wrapper.find('nav a[href="/account/orders"]').attributes("aria-current")).toBe("page")
+  it("marks the current page in the side nav and in the tabs", async () => {
+    const wrapper = await mountNav()
     expect(
-      wrapper.find('nav a[href="/account/wishlist"]').attributes("aria-current")
-    ).toBeUndefined()
+      wrapper.findAll('a[aria-current="page"]').map((link) => link.attributes("href"))
+    ).toEqual(["/account/orders", "/account/orders"])
   })
 
-  it("has one logout button", async () => {
+  it("shows no item counts", async () => {
     const wrapper = await mountNav()
-
-    expect(wrapper.findAll('[data-testid="logout"]')).toHaveLength(1)
+    expect(wrapper.get('[data-testid="side-nav"]').text()).not.toMatch(/\d/)
   })
 
-  it("logs out and opens the home page", async () => {
+  it("has one Sign out button that signs out and opens the home page", async () => {
     const wrapper = await mountNav()
-
-    await wrapper.find('[data-testid="logout"]').trigger("click")
+    const buttons = wrapper.findAll('[data-testid="sign-out"]')
+    expect(buttons).toHaveLength(1)
+    expect(buttons[0]!.text()).toBe("Sign out")
+    await buttons[0]!.trigger("click")
     await flushPromises()
-
     expect(customerState.logout).toHaveBeenCalledTimes(1)
     expect(navigateToMock).toHaveBeenCalledWith("/")
   })

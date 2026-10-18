@@ -2,7 +2,7 @@ import { mockNuxtImport, mountSuspended } from "@nuxt/test-utils/runtime"
 import type { HttpTypes } from "@medusajs/types"
 import { flushPromises } from "@vue/test-utils"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { AccountNav, AddressDeleteDialog, AddressDialog } from "#components"
+import { AccountNav, AddressDeleteDialog, AddressDialog, Card, Skeleton } from "#components"
 import AddressesPage from "~/pages/account/addresses.vue"
 
 const { addresses, customerState } = await vi.hoisted(async () => {
@@ -210,5 +210,29 @@ describe("addresses page", () => {
     wrapper.findComponent(AddressDeleteDialog).vm.$emit("deleted")
     await flushPromises()
     expect(toast.success).toHaveBeenCalledWith("Address deleted.")
+  })
+
+  it("draws the skeletons with no Card", async () => {
+    addresses.load.mockReturnValue(new Promise(() => {}))
+    const wrapper = await mountPage()
+    expect(wrapper.findAllComponents(Card)).toHaveLength(0)
+    for (const block of wrapper.findAll('[data-testid="address-skeleton"]')) {
+      expect(block.classes()).toContain("border-t")
+      expect(block.findAllComponents(Skeleton)).toHaveLength(4)
+    }
+  })
+
+  it("shows the add button as an outline button", async () => {
+    list = [home]
+    const wrapper = await mountPage()
+    expect(wrapper.get('[data-testid="add-address"]').attributes("data-variant")).toBe("outline")
+  })
+
+  it("puts the address blocks in one column on phones and two from md", async () => {
+    list = [home, office]
+    const wrapper = await mountPage()
+    const grid = wrapper.get('[data-testid="address-card-a1"]').element.parentElement!
+    expect(grid.className).toContain("grid-cols-1")
+    expect(grid.className).toContain("md:grid-cols-2")
   })
 })

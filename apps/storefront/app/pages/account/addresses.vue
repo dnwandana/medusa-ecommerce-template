@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { HttpTypes } from "@medusajs/types"
-import { MapPin, Plus } from "@lucide/vue"
+import { CircleAlert, MapPin, Plus } from "@lucide/vue"
 import { toast } from "vue-sonner"
 
 definePageMeta({ middleware: "auth" })
@@ -78,39 +78,52 @@ useHead({ title: () => t("account.addresses.title") })
 
 <template>
   <AccountNav>
-    <section class="flex flex-col gap-6">
-      <div class="flex flex-wrap items-end justify-between gap-4">
-        <div class="flex flex-col gap-1">
-          <h2 class="text-h2">{{ $t("account.addresses.title") }}</h2>
+    <section aria-labelledby="addresses-title" class="flex flex-col gap-8">
+      <div
+        class="flex flex-wrap items-end justify-between gap-x-6 gap-y-4 border-b border-border pb-4"
+      >
+        <div class="flex flex-col gap-2">
+          <h2 id="addresses-title" class="text-h3 font-normal">
+            {{ $t("account.addresses.title") }}
+          </h2>
           <p class="text-body-sm text-muted-foreground">{{ $t("account.addresses.intro") }}</p>
         </div>
         <!-- The empty block has its own button. The loading state and the error have none. -->
         <Button
           v-if="ready && !loadFailed && list.length > 0"
           type="button"
+          variant="outline"
+          size="sm"
+          class="w-full md:w-auto"
           data-testid="add-address"
           :disabled="!!busyId"
           @click="openDialog(null)"
         >
-          <Plus aria-hidden="true" />
+          <Plus :stroke-width="1.5" aria-hidden="true" />
           {{ $t("account.addresses.add") }}
         </Button>
       </div>
 
-      <div v-if="!ready" role="status" class="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div v-if="!ready" role="status" class="grid grid-cols-1 gap-8 md:grid-cols-2">
         <span class="sr-only">{{ $t("common.loading") }}</span>
-        <Card v-for="index in 3" :key="index" data-testid="address-skeleton">
-          <CardContent class="flex flex-col gap-3">
-            <Skeleton class="h-5 w-2/5" />
+        <div
+          v-for="index in 3"
+          :key="index"
+          aria-hidden="true"
+          data-testid="address-skeleton"
+          class="flex flex-col gap-4 border-t border-border pt-5"
+        >
+          <Skeleton class="h-6 w-2/5" />
+          <div class="flex flex-col gap-2">
             <Skeleton class="h-4 w-3/5" />
             <Skeleton class="h-4 w-11/12" />
-            <Skeleton class="h-4 w-3/4" />
-            <Skeleton class="mt-4 h-8 w-2/5" />
-          </CardContent>
-        </Card>
+          </div>
+          <Skeleton class="mt-2 h-6 w-2/5" />
+        </div>
       </div>
 
       <Alert v-else-if="loadFailed" variant="destructive">
+        <CircleAlert :stroke-width="1.5" aria-hidden="true" />
         <AlertDescription>{{ $t("account.addresses.loadError") }}</AlertDescription>
         <AlertAction>
           <Button
@@ -125,24 +138,26 @@ useHead({ title: () => t("account.addresses.title") })
         </AlertAction>
       </Alert>
 
-      <Empty v-else-if="list.length === 0" variant="outline">
+      <Empty v-else-if="list.length === 0">
         <EmptyHeader>
-          <EmptyMedia>
-            <MapPin class="size-6" aria-hidden="true" />
+          <EmptyMedia class="mb-2">
+            <MapPin :size="28" :stroke-width="1.5" aria-hidden="true" />
           </EmptyMedia>
           <EmptyTitle>{{ $t("account.addresses.emptyTitle") }}</EmptyTitle>
-          <EmptyDescription>{{ $t("account.addresses.emptyBody") }}</EmptyDescription>
+          <EmptyDescription class="text-body-sm">
+            {{ $t("account.addresses.emptyBody") }}
+          </EmptyDescription>
         </EmptyHeader>
         <EmptyContent>
           <Button type="button" data-testid="empty-add-address" @click="openDialog(null)">
-            <Plus aria-hidden="true" />
+            <Plus :stroke-width="1.5" aria-hidden="true" />
             {{ $t("account.addresses.add") }}
           </Button>
         </EmptyContent>
       </Empty>
 
       <!-- useAddresses sorts the list: the default address first, then the order of creation. -->
-      <div v-else class="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div v-else class="grid grid-cols-1 gap-x-8 gap-y-8 md:grid-cols-2">
         <AddressCard
           v-for="address in list"
           :key="address.id"

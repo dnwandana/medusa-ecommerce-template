@@ -59,7 +59,9 @@ describe("wishlist page", () => {
     expect(wrapper.text()).toContain("Plain T-Shirt")
     expect(wrapper.text()).toContain("M")
     expect(wrapper.text()).toContain("Rp 150.000")
-    expect(wrapper.find('a[href="/products/plain-t-shirt"]').text()).toBe("View the product")
+    const link = wrapper.get('[data-testid="view-wi_1"]')
+    expect(link.attributes("href")).toBe("/products/plain-t-shirt")
+    expect(link.text()).toBe("View the product")
   })
 
   it("shows no price text for a variant with no price", async () => {
@@ -108,21 +110,6 @@ describe("wishlist page", () => {
     expect(empty.find('a[href="/products"]').text()).toBe("Continue shopping")
   })
 
-  it("shows each item as an outline item in a grid of two columns", async () => {
-    wishlist.wishlist.value = {
-      id: "wl_1",
-      items: [item("wi_1", "Plain T-Shirt", 150000), item("wi_2", "Linen Shirt", 250000)],
-    }
-    const wrapper = await mountPage()
-    const items = wrapper.findAll('[data-slot="item"]')
-
-    expect(items).toHaveLength(2)
-    const first = items[0]!
-    expect(first.attributes("data-variant")).toBe("outline")
-    expect(first.element.parentElement?.className).toContain("md:grid-cols-2")
-    expect(first.find('[style*="padding-bottom: 133.3"]').exists()).toBe(true)
-  })
-
   it("removes an item with an icon button that has a label", async () => {
     wishlist.wishlist.value = { id: "wl_1", items: [item("wi_1", "Plain T-Shirt", 150000)] }
     const wrapper = await mountPage()
@@ -144,6 +131,65 @@ describe("wishlist page", () => {
     expect(wrapper.find('[data-slot="alert"][role="alert"]').text()).toBe(
       "The wishlist did not change. Try again."
     )
-    expect(wrapper.find('[data-slot="item"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="wishlist-wi_1"]').exists()).toBe(true)
+  })
+
+  it("shows the items as cards in two columns, three from md", async () => {
+    wishlist.wishlist.value = {
+      id: "wl_1",
+      items: [item("wi_1", "Plain T-Shirt", 150000), item("wi_2", "Linen Shirt", 250000)],
+    }
+    const wrapper = await mountPage()
+    const card = wrapper.get('[data-testid="wishlist-wi_1"]')
+
+    expect(card.element.tagName).toBe("ARTICLE")
+    expect(card.element.parentElement!.className).toContain("grid-cols-2")
+    expect(card.element.parentElement!.className).toContain("md:grid-cols-3")
+    expect(card.find('[style*="4 / 5"]').exists()).toBe(true)
+    expect(wrapper.find('[data-slot="item"]').exists()).toBe(false)
+  })
+
+  it("removes the item with a filled heart", async () => {
+    wishlist.wishlist.value = { id: "wl_1", items: [item("wi_1", "Plain T-Shirt", 150000)] }
+    const wrapper = await mountPage()
+    const heart = wrapper.get('[data-testid="remove-wi_1"]')
+
+    expect(heart.attributes("aria-pressed")).toBe("true")
+    expect(heart.get("svg").classes()).toContain("fill-current")
+  })
+
+  it("disables the hearts while a removal runs", async () => {
+    wishlist.wishlist.value = {
+      id: "wl_1",
+      items: [item("wi_1", "Plain T-Shirt", 150000), item("wi_2", "Linen Shirt", 250000)],
+    }
+    wishlist.remove.mockReturnValue(new Promise(() => {}))
+    const wrapper = await mountPage()
+
+    await wrapper.get('[data-testid="remove-wi_1"]').trigger("click")
+    await wrapper.get('[data-testid="remove-wi_2"]').trigger("click")
+
+    expect(wishlist.remove).toHaveBeenCalledTimes(1)
+    expect(wrapper.get('[data-testid="remove-wi_2"]').attributes("disabled")).toBeDefined()
+  })
+
+  it("shows skeleton cards while the wishlist loads", async () => {
+    wishlist.load.mockReturnValue(new Promise(() => {}))
+    const wrapper = await mountSuspended(WishlistPage)
+
+    expect(wrapper.get('[role="status"]').text()).toContain("Loading…")
+    expect(wrapper.findAll('[data-testid="wishlist-skeleton"]')).toHaveLength(6)
+  })
+
+  it("loads again after Try again", async () => {
+    wishlist.load.mockRejectedValueOnce(new Error("HTTP 500"))
+    const wrapper = await mountPage()
+
+    expect(wrapper.get('[role="alert"]').text()).toContain("Try again")
+    await wrapper.get('[role="alert"] button').trigger("click")
+    await flushPromises()
+
+    expect(wishlist.load).toHaveBeenCalledTimes(2)
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
   })
 })
