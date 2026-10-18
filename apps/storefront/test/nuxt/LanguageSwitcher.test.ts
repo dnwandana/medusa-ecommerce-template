@@ -7,16 +7,15 @@ const { i18n } = await vi.hoisted(async () => {
   return {
     i18n: {
       locale: ref("en"),
-      locales: ref([
-        { code: "en", name: "English" },
-        { code: "id", name: "Bahasa Indonesia" },
-      ]),
+      // No name here: the names must come from the locale files.
+      locales: ref([{ code: "en" }, { code: "id" }]),
       setLocale: vi.fn(),
     },
   }
 })
 
-mockNuxtImport("useI18n", () => () => i18n)
+// The real t() reads the locale files. The mock keeps control of the locale and setLocale.
+mockNuxtImport("useI18n", () => () => ({ ...i18n, t: useNuxtApp().$i18n.t }))
 
 afterEach(() => {
   document.body.innerHTML = ""
@@ -37,21 +36,26 @@ const radioItems = () =>
   [...document.body.querySelectorAll('[role="menuitemradio"]')] as HTMLElement[]
 
 describe("LanguageSwitcher", () => {
-  it("shows the code of the current language in the header form", async () => {
+  it("shows the short code in the header and the language names in the menu", async () => {
     const wrapper = await mountSuspended(LanguageSwitcher, { attachTo: document.body })
+    const button = wrapper.get("button")
 
-    expect(wrapper.find("button").text()).toBe("EN")
-    expect(wrapper.find("button").attributes("aria-label")).toBe("Language")
-  })
-
-  it("shows one radio item for each language", async () => {
-    const wrapper = await mountSuspended(LanguageSwitcher, { attachTo: document.body })
+    expect(button.text()).toBe("EN")
+    expect(button.attributes("aria-label")).toBe("Language")
+    expect(button.classes()).toEqual(expect.arrayContaining(["h-11", "text-nav"]))
     await open(wrapper)
-
+    expect(document.body.querySelector("[role='menu']")?.textContent).toContain("Language")
     expect(radioItems().map((item) => item.textContent?.trim())).toEqual([
       "English",
       "Bahasa Indonesia",
     ])
+  })
+
+  it("shows the code and the name in the footer", async () => {
+    const wrapper = await mountSuspended(LanguageSwitcher, { props: { variant: "footer" } })
+
+    expect(wrapper.get("button").text()).toBe("EN · English")
+    expect(wrapper.get("button").find("svg").exists()).toBe(true)
   })
 
   it("checks the current language", async () => {

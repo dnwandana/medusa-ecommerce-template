@@ -40,21 +40,20 @@ describe("default layout", () => {
     expect(wrapper.findComponent(Sonner).props("position")).toBe("top-right")
   })
 
-  it("gives main the max width and the padding of the design", async () => {
+  it("gives main the max width and the side padding of the design", async () => {
     const wrapper = await mountLayout()
     const main = wrapper.find("main").classes()
 
-    expect(main).toEqual(
-      expect.arrayContaining([
-        "max-w-[1280px]",
-        "px-4",
-        "md:px-6",
-        "pt-6",
-        "pb-16",
-        "md:pt-12",
-        "md:pb-24",
-      ])
-    )
+    expect(main).toEqual(expect.arrayContaining(["max-w-[1440px]", "px-4", "md:px-12"]))
+    // Each page sets its own section spacing.
+    expect(main.some((name) => /^(md:)?p[tby]-/.test(name))).toBe(false)
+  })
+
+  it("shows the announcement bar above the header and a 1440 px main", async () => {
+    const wrapper = await mountLayout()
+    const html = wrapper.html()
+    expect(html.indexOf("Delivered to your door")).toBeLessThan(html.indexOf("<header"))
+    expect(wrapper.get("main").classes()).toContain("max-w-[1440px]")
   })
 
   it("loads the cart and the customer after the mount", async () => {

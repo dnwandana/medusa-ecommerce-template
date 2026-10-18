@@ -1,55 +1,97 @@
 <script setup lang="ts">
-import { LayoutGrid, ShoppingBag } from "@lucide/vue"
+import { Heart, Search, ShoppingBag } from "@lucide/vue"
+import { useEventListener } from "@vueuse/core"
+
+// The header gets the shadow after this scroll distance.
+const SHADOW_SCROLL_PX = 40
 
 // The layout loads the cart and the customer. The header only reads them.
 const { itemCount } = useCart()
 const { customer } = useCustomer()
-const { brand } = useAppConfig()
+const { wishlist, load } = useWishlist()
+const { categories } = useNavCategories()
+
+const wishlistCount = computed(() => wishlist.value?.items.length ?? 0)
+
+const scrolled = ref(false)
+const searchOpen = ref(false)
+
+// The listener starts after the mount, so the server render has no shadow.
+onMounted(() => {
+  const update = () => {
+    scrolled.value = window.scrollY > SHADOW_SCROLL_PX
+  }
+  update()
+  useEventListener(window, "scroll", update, { passive: true })
+})
+
+// A guest has no wishlist, so the header asks for it only after the sign-in.
+if (import.meta.client) {
+  watch(
+    () => customer.value?.id,
+    (id) => {
+      // The count is not important enough to break the header.
+      if (id) load().catch(() => {})
+    },
+    { immediate: true }
+  )
+}
 </script>
 
 <template>
-  <header class="border-b border-border bg-background">
-    <div class="mx-auto flex h-14 max-w-[1280px] items-center gap-2 pr-2 pl-4 md:h-[72px] md:px-6">
-      <div class="flex items-center gap-6">
-        <NuxtLinkLocale
-          to="/"
-          class="font-heading text-2xl font-bold tracking-[-0.02em] text-foreground"
+  <header
+    :data-scrolled="scrolled ? 'true' : undefined"
+    :class="scrolled ? 'shadow-md' : ''"
+    class="sticky top-0 z-40 border-b border-border bg-background transition-shadow duration-250"
+  >
+    <div
+      class="mx-auto grid h-[60px] max-w-[1440px] grid-cols-[1fr_auto_1fr] items-center gap-4 px-4 md:px-12 lg:h-20"
+    >
+      <div class="flex items-center justify-self-start">
+        <div class="-ml-3 lg:hidden">
+          <AppMobileMenu />
+        </div>
+        <nav :aria-label="$t('nav.categories')" class="hidden items-center gap-8 lg:flex">
+          <NuxtLinkLocale
+            v-for="category in categories"
+            :key="category.id"
+            :to="`/categories/${category.handle}`"
+            class="inline-flex min-h-11 items-center text-nav text-foreground outline-none hover:underline hover:underline-offset-4 focus-visible:shadow-focus"
+          >
+            {{ category.name }}
+          </NuxtLinkLocale>
+        </nav>
+      </div>
+
+      <AppWordmark />
+
+      <div class="-mr-3 flex items-center justify-self-end lg:gap-1">
+        <IconCountButton
+          data-slot="search"
+          :label="$t('nav.search')"
+          aria-haspopup="dialog"
+          :aria-expanded="searchOpen ? 'true' : 'false'"
+          class="lg:hidden"
+          @click="searchOpen = true"
         >
-          {{ brand.name }}
-        </NuxtLinkLocale>
-        <Button as-child variant="ghost" class="hidden lg:inline-flex">
-          <NuxtLinkLocale to="/products">
-            <LayoutGrid class="size-[18px]" aria-hidden="true" />
-            {{ $t("nav.products") }}
-          </NuxtLinkLocale>
-        </Button>
-      </div>
-
-      <div class="ml-auto hidden items-center gap-4 lg:flex">
-        <LanguageSwitcher />
-        <AccountMenu v-if="customer" />
-        <Button v-else as-child variant="ghost">
-          <NuxtLinkLocale to="/account/login">{{ $t("nav.login") }}</NuxtLinkLocale>
-        </Button>
-        <Button as-child variant="ghost">
-          <NuxtLinkLocale to="/cart">
-            <ShoppingBag class="size-[22px]" aria-hidden="true" />
-            <span>{{ $t("nav.cart") }}</span>
-            <!-- v-if, not v-show: an empty cart must show no "0" badge. -->
-            <Badge v-if="itemCount > 0">{{ itemCount }}</Badge>
-          </NuxtLinkLocale>
-        </Button>
-      </div>
-
-      <div class="ml-auto flex items-center lg:hidden">
-        <!-- The link has only an icon and a badge, so it needs an aria-label. -->
-        <Button as-child variant="ghost" size="icon" class="relative">
-          <NuxtLinkLocale to="/cart" :aria-label="$t('nav.cart')">
-            <ShoppingBag class="size-[22px]" aria-hidden="true" />
-            <Badge v-if="itemCount > 0" variant="dot">{{ itemCount }}</Badge>
-          </NuxtLinkLocale>
-        </Button>
-        <AppMobileMenu />
+          <Search :stroke-width="1.5" aria-hidden="true" />
+        </IconCountButton>
+        <SearchSheet v-model:open="searchOpen" />
+        <div class="hidden items-center gap-1 lg:flex">
+          <SearchBox class="mr-4" />
+          <LanguageSwitcher />
+          <AccountMenu />
+          <IconCountButton
+            to="/account/wishlist"
+            :label="$t('nav.wishlistLabel', wishlistCount)"
+            :count="wishlistCount"
+          >
+            <Heart :stroke-width="1.5" aria-hidden="true" />
+          </IconCountButton>
+        </div>
+        <IconCountButton to="/cart" :label="$t('nav.cartLabel', itemCount)" :count="itemCount">
+          <ShoppingBag :stroke-width="1.5" aria-hidden="true" />
+        </IconCountButton>
       </div>
     </div>
   </header>

@@ -1,19 +1,24 @@
 import { mockNuxtImport, mountSuspended } from "@nuxt/test-utils/runtime"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { AppFooter, TrustLines } from "#components"
-import { clearNuxtData } from "#imports"
+import { AppFooter, HairlineAccordion, LanguageSwitcher, TrustLines } from "#components"
 
-const { catalog } = vi.hoisted(() => ({ catalog: { listCategories: vi.fn() } }))
+const { homeCategories } = await vi.hoisted(async () => {
+  const { ref } = await import("vue")
+  return {
+    homeCategories: ref<{ id: string; name: string; handle: string; image: string | null }[]>([]),
+  }
+})
 
-mockNuxtImport("useCatalog", () => () => catalog)
+mockNuxtImport("useHomeCategories", () => () => ({
+  categories: computed(() => homeCategories.value),
+  pending: ref(false),
+}))
 
 beforeEach(() => {
-  // The footer and the products page share the categories key, so each test starts with no cached data.
-  clearNuxtData()
-  catalog.listCategories.mockReset().mockResolvedValue([
-    { id: "pcat_1", name: "Shirts", handle: "shirts" },
-    { id: "pcat_2", name: "Trousers", handle: "trousers" },
-  ])
+  homeCategories.value = [
+    { id: "c1", name: "Women", handle: "women", image: null },
+    { id: "c2", name: "Men", handle: "men", image: null },
+  ]
 })
 
 describe("TrustLines", () => {
@@ -26,30 +31,61 @@ describe("TrustLines", () => {
 })
 
 describe("AppFooter", () => {
-  it("shows one link for each category", async () => {
+  it("lists the shop, help and about links", async () => {
     const wrapper = await mountSuspended(AppFooter)
+    const desktop = wrapper.get("[data-slot='footer-columns']")
+    const hrefs = desktop.findAll("a").map((a) => a.attributes("href"))
 
-    expect(wrapper.find('a[href="/categories/shirts"]').text()).toBe("Shirts")
-    expect(wrapper.find('a[href="/categories/trousers"]').text()).toBe("Trousers")
-    expect(wrapper.find('a[href="/products"]').exists()).toBe(true)
+    expect(hrefs).toEqual([
+      "/categories/women",
+      "/categories/men",
+      "/products",
+      "/delivery",
+      "/returns",
+      "/contact",
+      "/account/orders",
+      "/about",
+    ])
+    expect(desktop.findAll("h2").map((h) => h.text())).toEqual(["Shop", "Help", "About"])
   })
 
-  // Review Focus: a failed category request must not break the footer.
-  it("keeps the Products link when the categories do not load", async () => {
-    catalog.listCategories.mockRejectedValue(new Error("HTTP 500"))
+  it("shows only All products in the shop column when no home category exists", async () => {
+    homeCategories.value = []
     const wrapper = await mountSuspended(AppFooter)
+    const desktop = wrapper.get("[data-slot='footer-columns']")
 
-    expect(wrapper.find('a[href="/products"]').exists()).toBe(true)
-    expect(wrapper.find('a[href^="/categories/"]').exists()).toBe(false)
-    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+    expect(desktop.find("a[href^='/categories/']").exists()).toBe(false)
+    expect(desktop.find("a[href='/products']").text()).toBe("All products")
   })
 
-  it("shows the account links, the brand text, and the copyright line", async () => {
+  it("gives the phone view a closed accordion with the same columns", async () => {
+    const wrapper = await mountSuspended(AppFooter)
+    const accordion = wrapper.getComponent(HairlineAccordion)
+
+    expect(accordion.props("items").map((item: { id: string }) => item.id)).toEqual([
+      "shop",
+      "help",
+      "about",
+    ])
+    expect(accordion.props("defaultOpen") ?? []).toEqual([])
+    expect(accordion.find("a[href='/contact']").exists()).toBe(true)
+  })
+
+  it("shows the bottom row with the copyright and the payment line", async () => {
+    const wrapper = await mountSuspended(AppFooter)
+    const bottom = wrapper.get("[data-slot='footer-bottom']")
+
+    expect(bottom.text()).toContain(`© ${new Date().getFullYear()} Everyday`)
+    expect(bottom.text()).toContain("We accept bank transfer")
+    expect(bottom.find("a[href='/privacy']").exists()).toBe(true)
+    expect(bottom.find("a[href='/terms']").exists()).toBe(true)
+    expect(bottom.findComponent(LanguageSwitcher).props("variant")).toBe("footer")
+  })
+
+  it("has no newsletter and no trust lines", async () => {
     const wrapper = await mountSuspended(AppFooter)
 
-    expect(wrapper.find('a[href="/account/orders"]').exists()).toBe(true)
-    expect(wrapper.find('a[href="/account/wishlist"]').exists()).toBe(true)
-    expect(wrapper.text()).toContain("Everyday is a clothing label for ordinary days")
-    expect(wrapper.text()).toContain("© Everyday")
+    expect(wrapper.find("input[type='email']").exists()).toBe(false)
+    expect(wrapper.text()).not.toContain("Secure payment.")
   })
 })

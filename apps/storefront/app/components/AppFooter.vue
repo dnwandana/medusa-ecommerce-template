@@ -1,76 +1,115 @@
 <script setup lang="ts">
-const { locale } = useI18n()
+const { t } = useI18n()
 const { brand } = useAppConfig()
-const catalog = useCatalog()
+// The request does not block the render. With no home category, the Shop column shows only
+// "All products".
+const { categories } = useHomeCategories()
 
-// The key is the same as on the products page, so the two share one request.
-// The footer ignores the error: it then shows no category links, but the Products link stays.
-const { data: categories } = await useAsyncData(
-  () => `categories:${locale.value}`,
-  () => catalog.listCategories()
-)
+const year = new Date().getFullYear()
+
+type FooterColumn = { id: string; title: string; links: { to: string; label: string }[] }
+
+// The grid and the accordion both render this list, so the two views cannot differ.
+const columns = computed<FooterColumn[]>(() => [
+  {
+    id: "shop",
+    title: t("footer.shop"),
+    links: [
+      ...categories.value.map((category) => ({
+        to: `/categories/${category.handle}`,
+        label: category.name,
+      })),
+      { to: "/products", label: t("nav.allProducts") },
+    ],
+  },
+  {
+    id: "help",
+    title: t("footer.help"),
+    links: [
+      { to: "/delivery", label: t("footer.delivery") },
+      { to: "/returns", label: t("footer.returns") },
+      { to: "/contact", label: t("footer.contact") },
+      { to: "/account/orders", label: t("footer.track") },
+    ],
+  },
+  {
+    id: "about",
+    title: t("footer.aboutTitle"),
+    links: [{ to: "/about", label: t("footer.story") }],
+  },
+])
+
+const accordionItems = computed(() => columns.value.map(({ id, title }) => ({ id, title })))
+
+// Each link is a 44 px target, so the rows need no extra gap.
+const LINK_CLASS =
+  "flex min-h-11 items-center text-body-sm text-foreground outline-none hover:text-muted-foreground focus-visible:shadow-[var(--focus-ring)]"
+const SMALL_LINK_CLASS =
+  "inline-flex min-h-11 items-center text-caption text-muted-foreground outline-none hover:text-foreground focus-visible:shadow-[var(--focus-ring)]"
 </script>
 
 <template>
-  <footer class="border-t border-border bg-card">
-    <div class="mx-auto grid max-w-[1280px] gap-8 px-4 py-12 md:grid-cols-[2fr_1fr_1fr] md:px-6">
-      <div class="flex flex-col gap-4">
-        <p class="text-h4">{{ brand.name }}</p>
-        <p class="max-w-sm text-body-sm text-muted-foreground">{{ $t("footer.about") }}</p>
-        <TrustLines />
+  <footer class="bg-secondary text-foreground">
+    <div
+      class="mx-auto flex max-w-[1440px] flex-col gap-12 px-4 pt-16 pb-8 md:gap-20 md:px-12 md:pt-24 md:pb-10"
+    >
+      <div
+        data-slot="footer-columns"
+        class="hidden md:grid md:grid-cols-[repeat(3,minmax(0,240px))] md:gap-x-12"
+      >
+        <nav
+          v-for="column in columns"
+          :key="column.id"
+          :aria-labelledby="`footer-${column.id}`"
+          class="flex flex-col"
+        >
+          <h2 :id="`footer-${column.id}`" class="mb-2 text-eyebrow">{{ column.title }}</h2>
+          <NuxtLinkLocale
+            v-for="link in column.links"
+            :key="link.to"
+            :to="link.to"
+            :class="LINK_CLASS"
+          >
+            {{ link.label }}
+          </NuxtLinkLocale>
+        </nav>
       </div>
 
-      <nav :aria-label="$t('footer.shop')" class="flex flex-col gap-3">
-        <h2 class="text-h4">{{ $t("footer.shop") }}</h2>
-        <ul class="flex flex-col gap-2 text-body-sm">
-          <li>
-            <NuxtLinkLocale to="/products" class="text-muted-foreground hover:text-foreground">
-              {{ $t("nav.products") }}
-            </NuxtLinkLocale>
-          </li>
-          <li v-for="category in categories ?? []" :key="category.id">
+      <!-- The phone view starts with all items closed, so the footer stays short. -->
+      <HairlineAccordion :items="accordionItems" :heading-level="2" class="md:hidden">
+        <template v-for="column in columns" :key="column.id" #[column.id]>
+          <nav :aria-label="column.title" class="flex flex-col">
             <NuxtLinkLocale
-              :to="`/categories/${category.handle}`"
-              class="text-muted-foreground hover:text-foreground"
+              v-for="link in column.links"
+              :key="link.to"
+              :to="link.to"
+              :class="LINK_CLASS"
             >
-              {{ category.name }}
+              {{ link.label }}
             </NuxtLinkLocale>
-          </li>
-        </ul>
-      </nav>
+          </nav>
+        </template>
+      </HairlineAccordion>
 
-      <nav :aria-label="$t('nav.account')" class="flex flex-col gap-3">
-        <h2 class="text-h4">{{ $t("nav.account") }}</h2>
-        <ul class="flex flex-col gap-2 text-body-sm">
-          <li>
-            <NuxtLinkLocale to="/account" class="text-muted-foreground hover:text-foreground">
-              {{ $t("account.profile") }}
-            </NuxtLinkLocale>
-          </li>
-          <li>
-            <NuxtLinkLocale
-              to="/account/orders"
-              class="text-muted-foreground hover:text-foreground"
-            >
-              {{ $t("account.orders") }}
-            </NuxtLinkLocale>
-          </li>
-          <li>
-            <NuxtLinkLocale
-              to="/account/wishlist"
-              class="text-muted-foreground hover:text-foreground"
-            >
-              {{ $t("account.wishlist") }}
-            </NuxtLinkLocale>
-          </li>
-        </ul>
-      </nav>
-    </div>
-
-    <div class="border-t border-border">
-      <p class="mx-auto max-w-[1280px] px-4 py-6 text-caption text-muted-foreground md:px-6">
-        © {{ brand.name }}
-      </p>
+      <div
+        data-slot="footer-bottom"
+        class="flex flex-wrap items-center justify-between gap-x-8 gap-y-4 border-t border-border pt-6"
+      >
+        <AppWordmark size="footer" />
+        <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
+          <span class="text-caption text-muted-foreground">
+            {{ t("footer.copyright", { year, brand: brand.name }) }}
+          </span>
+          <NuxtLinkLocale to="/privacy" :class="SMALL_LINK_CLASS">
+            {{ t("footer.privacy") }}
+          </NuxtLinkLocale>
+          <NuxtLinkLocale to="/terms" :class="SMALL_LINK_CLASS">
+            {{ t("footer.terms") }}
+          </NuxtLinkLocale>
+          <span class="text-caption text-muted-foreground">{{ t("footer.payment") }}</span>
+          <LanguageSwitcher variant="footer" />
+        </div>
+      </div>
     </div>
   </footer>
 </template>

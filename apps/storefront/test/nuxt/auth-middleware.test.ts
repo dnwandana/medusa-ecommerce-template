@@ -1,6 +1,7 @@
 import { mockNuxtImport } from "@nuxt/test-utils/runtime"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import authMiddleware from "~/middleware/auth"
+import { SIGN_IN_PATH } from "~/utils/authPaths"
 
 const { customerState, navigateToMock } = vi.hoisted(() => ({
   customerState: {
@@ -30,7 +31,7 @@ describe("auth middleware", () => {
 
     expect(customerState.ensureLoaded).toHaveBeenCalledTimes(1)
     expect(navigateToMock).toHaveBeenCalledWith({
-      path: "/account/login",
+      path: SIGN_IN_PATH,
       query: { redirect: "/account/orders" },
     })
     expect(result).toBe("redirect")
@@ -42,7 +43,7 @@ describe("auth middleware", () => {
     const result = await authMiddleware(to, from)
 
     expect(navigateToMock).toHaveBeenCalledWith({
-      path: "/account/login",
+      path: SIGN_IN_PATH,
       query: { redirect: "/account/orders" },
     })
     expect(result).toBe("redirect")

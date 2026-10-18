@@ -1,4 +1,4 @@
-// Sends a guest to the login page. The login page comes back to the target path.
+// Sends a guest to the sign-in page. The sign-in page comes back to the target path.
 // The Nuxt server does not have the session cookie, so the check runs in the browser only.
 export default defineNuxtRouteMiddleware(async (to) => {
   if (import.meta.server) {
@@ -18,6 +18,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
   }
 
   if (!loggedIn) {
-    return navigateTo({ path: localePath("/account/login"), query: { redirect: to.fullPath } })
+    const target = signInTarget(to.fullPath)
+    return navigateTo({ ...target, path: localePath(target.path) })
   }
 })

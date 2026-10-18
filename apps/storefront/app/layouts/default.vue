@@ -15,8 +15,10 @@ onMounted(() => {
 
 <template>
   <div class="flex min-h-screen flex-col bg-background">
+    <AnnouncementBar />
     <AppHeader />
-    <main class="mx-auto w-full max-w-[1280px] flex-1 px-4 pt-6 pb-16 md:px-6 md:pt-12 md:pb-24">
+    <!-- Each page sets its own section spacing, so the main has no top or bottom padding. -->
+    <main class="mx-auto w-full max-w-[1440px] flex-1 px-4 md:px-12">
       <slot />
     </main>
     <AppFooter />
