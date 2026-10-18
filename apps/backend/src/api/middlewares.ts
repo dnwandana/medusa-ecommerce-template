@@ -7,6 +7,7 @@ import {
 import { PostAdminBankAccountUpdateSchema } from "./admin/bank-accounts/[id]/route"
 import { PostAdminBankAccountSchema } from "./admin/bank-accounts/route"
 import { adminHomeCampaignRoutes } from "./admin/home-campaigns/middlewares"
+import { adminReceiptRoutes } from "./admin/orders/[id]/receipts/middlewares"
 import { ADMIN_REVIEW_FIELDS, GetAdminReviewsSchema } from "./admin/reviews/route"
 import { PostAdminReviewStatusSchema } from "./admin/reviews/status/route"
 import { PostAdminStoreContactSchema } from "./admin/store-contact/route"
@@ -14,6 +15,8 @@ import { adminStorefrontRoutes } from "./admin/storefront/middlewares"
 import { storeWelcomeRoutes } from "./store/customers/me/welcome/middlewares"
 import { PostWishlistItemSchema } from "./store/customers/me/wishlist/items/route"
 import { storeMagicLinkRoutes } from "./store/magic-link/middlewares"
+import { storeReceiptRoutes } from "./store/orders/[id]/receipts/middlewares"
+import { storePaymentStateRoutes } from "./store/payment-states/middlewares"
 import { GetStoreReviewsSchema } from "./store/products/[id]/reviews/route"
 import { PostStoreReviewSchema } from "./store/reviews/route"
 import { storeStorefrontRoutes } from "./store/storefront/middlewares"
@@ -82,5 +85,8 @@ export default defineMiddlewares({
     ...adminHomeCampaignRoutes,
     ...storeMagicLinkRoutes,
     ...storeWelcomeRoutes,
+    ...storeReceiptRoutes,
+    ...storePaymentStateRoutes,
+    ...adminReceiptRoutes,
   ],
 })
