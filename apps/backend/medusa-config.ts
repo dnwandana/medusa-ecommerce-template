@@ -17,6 +17,8 @@ module.exports = defineConfig({
       authCors: process.env.AUTH_CORS!,
       jwtSecret: process.env.JWT_SECRET,
       cookieSecret: process.env.COOKIE_SECRET,
+      // Customers sign in only through the magic link routes. Admin users keep the password.
+      authMethodsPerActor: { user: ["emailpass"], customer: [] },
     },
   },
   admin: {

@@ -46,11 +46,14 @@ export async function getOrderItems(
     }))
 }
 
-// Creates one fulfillment for the given items and marks it as shipped.
+export type ShipmentLabel = { tracking_number: string; tracking_url: string; label_url: string }
+
+// Creates one fulfillment for the given items and marks it as shipped with the given labels.
 export async function shipOrderItems(
   container: MedusaContainer,
   orderId: string,
-  items: { id: string; quantity: number }[]
+  items: { id: string; quantity: number }[],
+  labels: ShipmentLabel[] = [{ tracking_number: "TEST-1", tracking_url: "#", label_url: "#" }]
 ): Promise<void> {
   const { result: fulfillment } = await createOrderFulfillmentWorkflow(container).run({
     input: { order_id: orderId, items },
@@ -60,7 +63,7 @@ export async function shipOrderItems(
       order_id: orderId,
       fulfillment_id: fulfillment.id,
       items,
-      labels: [{ tracking_number: "TEST-1", tracking_url: "#", label_url: "#" }],
+      labels,
     },
   })
 }

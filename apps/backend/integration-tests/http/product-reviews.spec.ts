@@ -3,6 +3,7 @@ import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { PRODUCT_REVIEW_MODULE } from "../../src/modules/product-review"
 import ProductReviewModuleService from "../../src/modules/product-review/service"
 import { runSeed } from "../../src/seed"
+import { placeOrder } from "../helpers/checkout"
 
 jest.setTimeout(180 * 1000)
 
@@ -10,9 +11,19 @@ medusaIntegrationTestRunner({
   testSuite: ({ api, getContainer }) => {
     describe("GET /store/products/:id/reviews", () => {
       let headers: Record<string, string>
+      let seed: Awaited<ReturnType<typeof runSeed>>
       let toteId: string
       let panId: string
       let counter = 0
+
+      const review = {
+        customer_id: "cus_secret",
+        rating: 5,
+        title: null,
+        content: "Text",
+        first_name: "Budi",
+        last_name: "Santoso",
+      }
 
       const add = (
         productId: string,
@@ -41,7 +52,7 @@ medusaIntegrationTestRunner({
 
       beforeEach(async () => {
         const container = getContainer()
-        const seed = await runSeed(container)
+        seed = await runSeed(container)
         headers = { "x-publishable-api-key": seed.publishableKey }
         const { data } = await container.resolve(ContainerRegistrationKeys.QUERY).graph({
           entity: "product",
@@ -91,6 +102,7 @@ medusaIntegrationTestRunner({
           "last_name",
           "product_id",
           "rating",
+          "size",
           "title",
         ])
         expect(response.data.reviews[0]).toEqual(
@@ -102,6 +114,7 @@ medusaIntegrationTestRunner({
             content: "Text",
             first_name: "Budi",
             last_name: "Santoso",
+            size: null,
           })
         )
       })
@@ -150,6 +163,47 @@ medusaIntegrationTestRunner({
         expect(response.data.reviews).toHaveLength(10)
         expect(response.data.count).toBe(12)
         expect(response.data.limit).toBe(10)
+      })
+
+      it("adds the size of the purchased variant to each review", async () => {
+        const container = getContainer()
+        const { data } = await container.resolve(ContainerRegistrationKeys.QUERY).graph({
+          entity: "product",
+          fields: ["id", "variants.sku", "variants.options.value", "variants.options.option.title"],
+          filters: { handle: "plain-t-shirt" },
+        })
+        const shirt = data[0]
+        const medium = shirt.variants.find((v: any) =>
+          v.options.some((o: any) => o.option.title === "Size" && o.value === "M")
+        )!
+        const order = await placeOrder({ api, headers, regionId: seed.regionId }, [
+          [medium.sku!, 1],
+          ["TOTE-DEFAULT", 1],
+        ])
+        const lineOf = (sku: string) => order.items.find((i: any) => i.variant_sku === sku).id
+        const service: ProductReviewModuleService = container.resolve(PRODUCT_REVIEW_MODULE)
+        await service.createReviews([
+          {
+            ...review,
+            product_id: shirt.id,
+            order_line_item_id: lineOf(medium.sku!),
+            status: "approved",
+          },
+          {
+            ...review,
+            product_id: toteId,
+            order_line_item_id: lineOf("TOTE-DEFAULT"),
+            status: "approved",
+          },
+        ])
+
+        expect((await get(shirt.id)).data.reviews[0]).toMatchObject({
+          first_name: "Budi",
+          size: "M",
+        })
+        const tote = (await get(toteId)).data.reviews[0]
+        expect(tote.size).toBeNull()
+        expect(tote).not.toHaveProperty("order_line_item_id")
       })
 
       it("returns an empty list for an unknown product", async () => {
