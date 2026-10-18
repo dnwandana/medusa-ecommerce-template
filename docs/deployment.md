@@ -318,6 +318,19 @@ store contact. Replace them before you sell.
 
 To add a payment gateway, read `docs/payments/`.
 
+## Brevo click tracking
+
+Turn off click tracking in Brevo before you sell. When click tracking is on, Brevo changes the
+links in each email. The sign-in link then opens a Brevo URL first. Brevo has no switch for one
+message, so turn off click tracking for all transactional email.
+
+1. Sign in to the Brevo dashboard.
+2. Open **Transactional**.
+3. Open **Settings**, then **Tracking**.
+4. Turn off click tracking.
+5. Sign in to the store with a magic link. Make sure that the link in the email opens the store
+   URL.
+
 ## Backups
 
 A backup is a directory `backups/<time>` with two files:

@@ -62,10 +62,31 @@ pnpm format:check
   `x-medusa-locale` (`en-US` or `id-ID`) with each request.
 - Customer auth uses the SDK `session` mode (an httpOnly cookie). Thus the storefront account pages
   are client-only, and the storefront and the API must be on the same site.
-- Custom Store API routes that the storefront uses: `/store/reviews`,
-  `/store/products/:id/reviews`, `/store/customers/me/reviewable-items`,
-  `/store/customers/me/wishlist`, `/store/customers/me/wishlist/items[/:id]`,
-  `/store/bank-transfer`.
+- Customers sign in with a magic link. They have no password.
+  - The storefront gets a JWT from `POST /store/magic-link/session`. It sends the JWT one time to
+    `POST /auth/session`. The session cookie then replaces the JWT.
+  - `medusa-config.ts` sets `authMethodsPerActor: { user: ["emailpass"], customer: [] }`. This
+    closes the customer `emailpass` routes. Admin users keep `emailpass`.
+- Custom Store API routes that the storefront uses:
+  - `/store/reviews`, `/store/products/:id/reviews`, `/store/customers/me/reviewable-items`.
+  - `/store/customers/me/wishlist`, `/store/customers/me/wishlist/items[/:id]`.
+  - `/store/bank-transfer`.
+  - `/store/storefront/settings`, `/store/storefront/home-campaign`,
+    `/store/storefront/home-categories`.
+  - `/store/storefront/catalog/filters`, `/store/storefront/catalog/products`. The catalog routes
+    take `category_id` as a list. The category page sends the category and all its descendant
+    categories.
+  - `/store/magic-link[/verify|/confirm|/status|/session]`, `/store/customers/me/welcome`.
+  - `/store/orders/:id/tracking`.
+- `apps/storefront/AGENTS.md` gives the composable that calls each route. `apps/backend/AGENTS.md`
+  gives the modules, the workflows, and the subscribers behind the routes.
+- The option names and the metadata keys have one copy in each app. Change the two copies
+  together.
+  - Option names: `apps/backend/src/lib/option-names.ts` and
+    `apps/storefront/app/utils/optionNames.ts`.
+  - Metadata keys: `apps/backend/src/lib/storefront-metadata.ts`. The storefront reads
+    `product_details`, `colour_hex`, and `welcome_sent_at` in `app/utils/productDetails.ts`,
+    `app/utils/colourDots.ts`, and `app/composables/useCustomer.ts`.
 - The store has one region (Indonesia), one currency (`idr`), and amounts in whole rupiah. No code
   divides an amount by 100.
 - Provider ids that both apps depend on:
@@ -92,6 +113,10 @@ pnpm format:check
    - The job `check-paid-carts`, which runs every 15 minutes. It checks the providers in
      `RECOVERY_ADAPTERS` (`apps/backend/src/recovery/adapters.ts`). The list is empty in the
      template.
+7. Staff create a shipment in the admin. The `shipment.created` subscriber sends the
+   `order-shipped` email with the tracking number. `GET /store/orders/:id/tracking` returns the
+   shipments. The order page does not use this route yet. The order tracker waits for part 2 of
+   the payment base.
 
 ## Production
 
