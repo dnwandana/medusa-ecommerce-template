@@ -1,7 +1,7 @@
 import { medusaIntegrationTestRunner } from "@medusajs/test-utils"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { runSeed } from "../../src/seed"
-import checkPaidCartsJob, { config } from "../../src/jobs/check-paid-carts"
+import checkPaidCartsJob, { config, runCheckPaidCarts } from "../../src/jobs/check-paid-carts"
 import { BANK_TRANSFER_PROVIDER_ID } from "../../src/modules/bank-transfer/constants"
 import type { RecoveryAdapter } from "../../src/recovery/adapters"
 import { createCartWithPaymentSession, type StoreContext } from "../helpers/checkout"
@@ -67,7 +67,7 @@ medusaIntegrationTestRunner({
       it("completes the cart of a paid session", async () => {
         const { cartId } = await createCartWithPaymentSession(ctx, [["TOTE-DEFAULT", 1]])
 
-        await checkPaidCartsJob(getContainer(), [adapter(true)])
+        await runCheckPaidCarts(getContainer(), [adapter(true)])
 
         expect(await orders()).toHaveLength(1)
         expect((await cart(cartId)).completed_at).toEqual(expect.any(Date))
@@ -77,7 +77,7 @@ medusaIntegrationTestRunner({
       it("does nothing for a session that is not paid", async () => {
         const { cartId } = await createCartWithPaymentSession(ctx, [["TOTE-DEFAULT", 1]])
 
-        await checkPaidCartsJob(getContainer(), [adapter(false)])
+        await runCheckPaidCarts(getContainer(), [adapter(false)])
 
         expect(await orders()).toHaveLength(0)
         expect((await cart(cartId)).completed_at).toBeNull()
@@ -91,8 +91,8 @@ medusaIntegrationTestRunner({
         const methods = await cartModule.listShippingMethods({ cart_id: cartId })
         await cartModule.deleteShippingMethods(methods.map((m) => m.id))
 
-        await checkPaidCartsJob(getContainer(), [adapter(true)])
-        await checkPaidCartsJob(getContainer(), [adapter(true)])
+        await runCheckPaidCarts(getContainer(), [adapter(true)])
+        await runCheckPaidCarts(getContainer(), [adapter(true)])
 
         expect(await orders()).toHaveLength(0)
         const sent = await alerts()
