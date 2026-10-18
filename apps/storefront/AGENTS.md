@@ -26,8 +26,8 @@ pnpm --filter @store/storefront lint                       # ESLint, eslint.conf
 
 ## Configuration (`nuxt.config.ts`)
 
-- The modules are `shadcn-nuxt` and `@nuxtjs/i18n`. Tailwind loads through `@tailwindcss/vite`.
-  There is no Tailwind config file.
+- The modules are `shadcn-nuxt`, `@nuxtjs/i18n`, and `@nuxt/eslint`. Tailwind loads through
+  `@tailwindcss/vite`. There is no Tailwind config file.
 - `runtimeConfig`:
   - `medusaBackendUrl` (`NUXT_MEDUSA_BACKEND_URL`): server side.
   - `public.medusaBackendUrl` (`NUXT_PUBLIC_MEDUSA_BACKEND_URL`): browser side.
@@ -36,7 +36,8 @@ pnpm --filter @store/storefront lint                       # ESLint, eslint.conf
   - Locales `en` (default) and `id`, with the strategy `prefix_except_default`. The files are in
     `i18n/locales/`.
   - The locale cookie is `i18n_redirected`.
-- `routeRules` set `ssr: false` for `/account/**` and `/id/account/**`.
+- `routeRules` set `ssr: false` for `/account`, `/account/**`, `/id/account`, and `/id/account/**`.
+- `app/app.config.ts` has the store name (`brand.name`, "Everyday"). The name is not a locale text.
 - `components.json` (shadcn-vue) uses the style `reka-nova` and the base color `neutral`. It puts
   the components in `app/components/ui/`, with no prefix.
 
@@ -46,36 +47,156 @@ pnpm --filter @store/storefront lint                       # ESLint, eslint.conf
   - On the server it uses the private backend URL. In the browser it uses the public URL.
   - The client uses `auth: { type: "session" }` and the header `x-medusa-locale` (from
     `app/utils/medusaClient.ts`).
+  - A client keeps the locale of the time it was made. Thus a composable that stays mounted after
+    a language change makes a new client for each request.
 - The composables in `app/composables/` contain the Medusa calls. Pages and components call the
   composables, not the SDK.
 - Shared state uses `useState` with the keys `cart`, `region`, `customer`, `customer-loaded`,
-  `wishlist`, and `addresses`. `logout` sets `wishlist` and `addresses` to `null`.
+  `wishlist`, `addresses`, and `storefront-settings`. `logout` sets `wishlist` and `addresses` to
+  `null`.
+- Shared `useAsyncData` keys:
+  - `nav-categories` (`useNavCategories`): the top-level categories. The header, the mobile menu,
+    `/products`, and `error.vue` share the request.
+  - `home-categories` (`useHomeCategories`): the categories that staff select for the home page.
+    The home page and the footer share the request.
+  - `storefront-settings`: `ProductGrid`, `RelatedProducts`, and the product page load the
+    settings with `useStorefront().ensureSettings()`. The product cards read them.
 - The cart id is in the cookie `cart_id` (`useCartId.ts`): 30 days, `sameSite: "lax"`. The `lax`
   value keeps the cookie on the top-level return from a payment page.
 - `useRegion().ensureRegion()` uses the first region from the backend. There is no region or
   currency selector.
-- Custom backend routes (reviews, wishlist, and bank transfer) use `sdk.client.fetch` in
-  `useReviews.ts`, `useWishlist.ts`, and `useBankTransfer.ts`.
+
+### Layouts and errors
+
+- `app/layouts/default.vue` has the announcement bar, the header, and the footer.
+- `app/layouts/checkout.vue` has "Back to cart", the wordmark, "Secure checkout", and a short
+  footer. The header has no navigation, so the customer stays in the checkout. `/checkout` and
+  `/checkout/return` use it with `definePageMeta({ layout: "checkout" })`.
+- The two layouts load the cart and the customer in `onMounted`.
+- The 404 rule: a page throws `createError({ statusCode: 404, data: { messageKey }, fatal: true })`.
+  `app/error.vue` shows the text of the locale key `messageKey`. The product page, the category
+  page, and the order page use this rule.
+- `error.vue` renders in the default layout. It never shows the status code or the Nuxt
+  `statusMessage`. A 404 also shows the category links. Another status makes no catalog request,
+  because the backend can be down.
+
+### Custom backend routes
+
+The composables call the custom routes with `sdk.client.fetch`:
+
+| Route                                                                     | Composable                     |
+| ------------------------------------------------------------------------- | ------------------------------ |
+| `/store/reviews`, `/store/products/:id/reviews`, `.../reviewable-items`   | `useReviews.ts`                |
+| `/store/customers/me/wishlist[/items[/:id]]`                              | `useWishlist.ts`               |
+| `/store/bank-transfer`                                                    | `useBankTransfer.ts`           |
+| `/store/storefront/settings`, `/store/storefront/home-campaign`           | `useStorefront.ts`             |
+| `/store/storefront/home-categories`                                       | `useHomeCategories.ts`         |
+| `/store/storefront/catalog/filters`, `/store/storefront/catalog/products` | `useCatalogListing.ts`         |
+| `/store/magic-link`, and `/status`, `/verify`, `/confirm`, `/session`     | `useMagicLink.ts`              |
+| `/auth/session`, `/store/customers/me/welcome`                            | `useCustomer.ts`               |
+| `/store/orders/:id/tracking`                                              | `useOrders.ts` (`getTracking`) |
+
+### Catalog
+
+- `useCatalog()` reads the products and the categories.
+  - `PRODUCT_FIELDS` has the fields of a product card. `PRODUCT_PAGE_FIELDS` adds
+    `*variants.images` and `*categories`.
+  - The Store product route drops a field that is not on its allowed list, with no error. Thus
+    the product page asks for `variants.images`, not `images.variants`, and not
+    `categories.parent_category`.
+  - `getProductByHandle` makes one more category request, which returns the parent categories
+    for the breadcrumbs. If that request fails, the page shows with no parent.
+  - `getCategoryByHandle` makes two requests. One request returns the parent and the children.
+    The other request returns the descendants tree, because the Store API drops the parent from
+    a descendants tree.
+  - `listVariantStock(productIds)` reads the stock for the cart page. The cart route does not
+    return `inventory_quantity`.
+- `useCatalogListing()` reads the filter values and one page of a listing.
+  - The scope is `{ categoryId, descendantIds, q }`. The category page lists the products of the
+    category and of all its descendant categories.
+  - A price filter or a price sort uses `/store/storefront/catalog/products`, because the Store
+    product list cannot filter or sort by the calculated price. Each other list uses
+    `sdk.store.product.list`.
+- `CatalogListing.vue` keeps the filters, the sort, and the page in the URL query, for example
+  `?colour=sage&size=m&sort=price-asc&page=2`. `PAGE_SIZE` is 12. A reload loads at most 10
+  pages.
+- `useSearchSuggestions(query)` starts at 2 characters, 300 ms after the last key, and returns up
+  to 5 products.
+- `useRelatedProducts(key, source)` reads 12 products of the first category and returns up to 4,
+  with no sold-out product. The product page and the cart page use it.
+- `useStorefront()` returns the settings (badge rules, colours, price limits) and the live home
+  campaign. A failed settings request gives `STOREFRONT_DEFAULTS`.
+- `useMoveToWishlist()` moves a cart line to the wishlist. A guest goes to the sign-in page, and
+  the cart does not change.
+
+### Sign-in with a magic link
+
+- The customer has no password. The sign-in page sends the email to `/store/magic-link`, and the
+  backend sends a link. `useMagicLink()` has the state and the requests of the flow.
+- The browser keeps `{ request_id, secret, email, redirect, sent_at }` in `localStorage` under the
+  key `everyday.magicLink` (`app/utils/magicLinkStorage.ts`). The record has no token. Only the
+  email link has the token.
+- The original tab asks `/store/magic-link/status` every 3 seconds (`MAGIC_LINK_POLL_MS`). A link
+  expires after 15 minutes. "Send the link again" is available after 60 seconds. A new link makes
+  the older link of the email invalid.
+- The link opens `/account/sign-in/verify?id=<request id>&token=<token>`.
+  - Same browser: the verify page gets the session. It sends a message on the `BroadcastChannel`
+    `everyday-sign-in` (`app/utils/signInChannel.ts`). If the original tab answers, the verify
+    tab closes. If not, the verify tab continues as the signed-in tab.
+  - Other device: the verify page shows the browser and the time of the request. The customer
+    clicks "Yes, sign me in". The original tab then gets the session at its next status request.
+    The device with the link gets no session.
+- A blocked `localStorage` (a private window) still shows "Check your email". The link then takes
+  the other-device path.
+- `/store/magic-link/session` returns a token. `signInWithToken` (`useCustomer`) sends it one time
+  to `/auth/session` as `Authorization: Bearer <token>`. The backend answers with the httpOnly
+  session cookie. The storefront does not keep the token. Then the guest cart goes to the
+  customer.
+- `needsWelcome` is true when the customer has no `metadata.welcome_sent_at`. After the first
+  sign-in, the storefront opens `/account/welcome`. That page sends the optional full name to
+  `/store/customers/me/welcome`, and the backend sends the welcome email.
 - `app/middleware/auth.ts` is a named middleware. It does nothing on the server. On the client it
-  sends a guest to `/account/login?redirect=<path>`.
-- Data loading:
-  - Public catalog data uses `useAsyncData` with keys that contain the locale, for example
-    `products:${locale}:${page}`.
-  - Data that needs the session or the cart cookie loads in `onMounted`. This covers the cart, the
-    customer, the wishlist, and the account pages.
-- `app/utils/` has pure functions with unit tests in `test/unit/`:
-  - Price format: `formatPrice` gives `Rp 150.000`, and `-` for no value.
-  - Checkout form validation, with Indonesian mobile numbers and 5-digit postal codes.
-  - `completeCartWithRetry`: 5 tries, 2000 ms apart.
-  - `safeRedirectPath`.
-  - The variant selection rules.
-  - Bank transfer: `isAwaitingBankTransfer`, `bankTransferDeadline` (the order time plus 24 hours),
-    and `formatDeadline` (WIB).
+  sends a guest to `SIGN_IN_PATH` (`/account/sign-in`, in `app/utils/authPaths.ts`) with the
+  `redirect` parameter. All code that opens the sign-in page uses `SIGN_IN_PATH` or
+  `signInTarget(redirect)`.
+
+### Data loading
+
+- Public catalog data uses `useAsyncData` with keys that contain the locale, for example
+  `category:${locale}:${handle}`.
+- Data that needs the session or the cart cookie loads in `onMounted`. This covers the cart, the
+  customer, the wishlist, the addresses, and the account pages.
+- A section that must not block the page uses `useLazyAsyncData` or `useAsyncData` with no
+  `await`, for example "You may also like" and the category menus.
+
+### Orders and payment
+
 - `/checkout/return` gets the locale from the `i18n_redirected` cookie, because the redirect URL
   of a payment gateway has no locale prefix.
 - The checkout country is fixed to `id`. Prices are always IDR.
 - The storefront code has no payment provider id. Only `app/utils/bankTransfer.ts` and the locale
   files name `pp_bank-transfer_bank-transfer`.
+- The order tracker parts exist: `OrderTracker`, `OrderShipments`, `OrderStatusBlock`,
+  `app/utils/orderTracker.ts`, `trackingLink.ts`, and `orderNotices.ts`. `pages/orders/[id].vue`
+  does not use them yet. The wiring waits for part 2 of the payment base, which adds
+  `customerStatus` in `app/utils/orderStatus.ts`. Until then, `orderTracker.ts` has its own
+  `CustomerStatus` type.
+
+### Pure functions
+
+`app/utils/` has pure functions with unit tests in `test/unit/`. Some examples:
+
+- Price format: `formatPrice` gives `Rp 150.000`, and `-` for no value. `formatDeliveryPrice`
+  gives the free label for 0.
+- Address form: `splitFullName` and `joinFullName`, the 38 provinces (`provinces.ts`), Indonesian
+  mobile numbers, and 5-digit postal codes.
+- `completeCartWithRetry`: 5 tries, 2000 ms apart.
+- `safeRedirectPath`.
+- The variant selection rules, the product badges, the colour dots, the gallery images, and the
+  product details.
+- The catalog URL query (`catalogQuery.ts`) and the price ranges (`priceRanges.ts`).
+- Bank transfer: `isAwaitingBankTransfer`, `bankTransferDeadline` (the order time plus 24 hours),
+  and `formatDeadline` (WIB).
 
 ## Code conventions
 
@@ -99,8 +220,14 @@ pnpm --filter @store/storefront lint                       # ESLint, eslint.conf
 - `errorStatus(error)` reads the HTTP status from an SDK error.
 - Tests find elements by `data-testid`.
 - Styling:
-  - Tailwind utility classes and the shadcn tokens (`text-muted-foreground`, `text-destructive`).
+  - The design tokens and the fonts come from `app/assets/css/tailwind.css`. The fonts are the
+    `.woff2` files in `public/fonts/`, with `@font-face`. Do not add a font package.
+  - Use Tailwind utility classes, the color tokens (`text-muted-foreground`, `bg-backdrop-sand`),
+    and the type utilities (`text-display`, `text-h1`, `text-body`, `text-price`).
   - `cn()` from `app/lib/utils.ts` appears only in `app/components/ui/`.
+  - When you add a `text-*` type utility to `tailwind.css`, add its name to the tailwind-merge
+    list in `app/lib/utils.ts`. Otherwise `cn()` reads it as a color and removes it.
+- Icons come from `@lucide/vue` with a stroke width of 1.5.
 - Quotes:
   - App code uses double quotes with no semicolons.
   - The generated shadcn files in `app/components/ui/` use single quotes.
@@ -108,7 +235,7 @@ pnpm --filter @store/storefront lint                       # ESLint, eslint.conf
 ## Tests
 
 - `vitest.config.ts` has two projects:
-  - `unit`: `test/unit/**/*.test.ts`, environment `node`.
+  - `unit`: `test/unit/**/*.test.ts`, environment `node`. The `~` alias points to `app/`.
   - `nuxt`: `test/nuxt/**/*.test.ts`, environment `nuxt` with happy-dom.
 - The nuxt tests:
   - Mock the SDK with `mockNuxtImport("useMedusa", () => () => sdk)` and a `vi.hoisted` object of
@@ -116,6 +243,8 @@ pnpm --filter @store/storefront lint                       # ESLint, eslint.conf
   - Mock `useCartId` the same way.
   - Call `clearNuxtState()` in `beforeEach`.
   - Mount components and pages with `mountSuspended`.
+- A test that mounts `ProductCard` or `ProductGrid`, also through a page, must mock
+  `useStorefront` and `useCustomer`.
 - Tests make a fake SDK error with `Object.assign(new Error(), { status })`.
 - No test calls a real backend.
 

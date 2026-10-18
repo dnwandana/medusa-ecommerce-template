@@ -36,41 +36,57 @@ Nuxt reads the keys when the server starts. A new value does not need a new buil
 
 ## Pages
 
-| Route                      | Content                                                                  |
-| -------------------------- | ------------------------------------------------------------------------ |
-| `/`                        | The eight newest products                                                |
-| `/products`                | All products, 12 on each page, and the categories                        |
-| `/products/:handle`        | Product detail, variant selection, add to cart, wishlist, reviews        |
-| `/categories/:handle`      | The products of one category                                             |
-| `/cart`                    | Cart items and the subtotal                                              |
-| `/checkout`                | Contact, address, shipping option, and payment                           |
-| `/checkout/return`         | The return page after the payment on a gateway page                      |
-| `/orders/:id`              | Order confirmation, and the bank details for a bank transfer order       |
-| `/account`                 | Profile. Needs a login.                                                  |
-| `/account/login`           | Log in                                                                   |
-| `/account/register`        | Register                                                                 |
-| `/account/forgot-password` | Ask for a password-reset link                                            |
-| `/account/reset-password`  | Set a new password from the link in the email                            |
-| `/account/orders`          | Order history and the items that the customer can review. Needs a login. |
-| `/account/wishlist`        | Wishlist. Needs a login.                                                 |
+| Route                     | Content                                                                                                     |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `/`                       | The home campaign or a text hero, the four newest products, the home categories, and the service row        |
+| `/products`               | All products with filters, a sort, and the category links. 12 products load at a time.                      |
+| `/categories/:handle`     | The products of one category and of its descendant categories, with filters and a sort                      |
+| `/search`                 | The products that match the `q` text. With no match, the four newest products. No search engine indexes it. |
+| `/products/:handle`       | Gallery, colour and size, add to cart, wishlist, details, reviews, and "You may also like"                  |
+| `/cart`                   | Cart lines, stock limits, move to the wishlist, the summary with "You save", and "You may also like"        |
+| `/checkout`               | Email, delivery address, delivery method, and payment on one page. Uses the checkout layout.                |
+| `/checkout/return`        | The return page after the payment on a gateway page. Uses the checkout layout.                              |
+| `/orders/:id`             | Order confirmation, the order summary, and the bank details for a bank transfer order that is not paid      |
+| `/account/sign-in`        | Sign-in form for the email. Then "Check your email", which waits for the link.                              |
+| `/account/sign-in/verify` | The page of the link in the email. It signs in this browser, or confirms the sign-in of another device.     |
+| `/account/welcome`        | The first sign-in only: an optional full name. Needs a sign-in.                                             |
+| `/account`                | Profile: full name and phone. Needs a sign-in.                                                              |
+| `/account/orders`         | Order history and the items that the customer can review. Needs a sign-in.                                  |
+| `/account/addresses`      | Saved addresses: add, edit, delete, and set the default. Needs a sign-in.                                   |
+| `/account/wishlist`       | Wishlist. Needs a sign-in.                                                                                  |
+| `/delivery`               | Delivery information                                                                                        |
+| `/returns`                | Returns information                                                                                         |
+| `/about`                  | The story of the store                                                                                      |
+| `/privacy`                | Privacy policy                                                                                              |
+| `/terms`                  | Terms                                                                                                       |
+| `/contact`                | The WhatsApp number and the email of the store, from `/store/bank-transfer`                                 |
 
-Each route also exists with the prefix `/id`.
+Each route also exists with the prefix `/id`. The text of the five static pages (`/delivery`,
+`/returns`, `/about`, `/privacy`, `/terms`) is in the locale files, below `pages`.
+
+The home hero shows the live campaign that staff publish in the admin: a full-width photo, then
+a row of two text columns. With no live campaign, the hero shows the text of the locale files.
 
 ## Source layout
 
-| Path                          | Content                                                                                 |
-| ----------------------------- | --------------------------------------------------------------------------------------- |
-| `app/pages/`                  | Pages                                                                                   |
-| `app/layouts/default.vue`     | The header with the navigation, the cart count, and the language switcher               |
-| `app/components/`             | Store components                                                                        |
-| `app/components/ui/`          | shadcn-vue components                                                                   |
-| `app/composables/`            | Medusa SDK client, cart, region, catalog, checkout, customer, orders, reviews, wishlist |
-| `app/utils/`                  | Pure functions: price format, form validation, retry, redirect check, bank transfer     |
-| `app/middleware/auth.ts`      | Sends a guest to the login page                                                         |
-| `app/assets/css/tailwind.css` | Tailwind and the theme colors                                                           |
-| `i18n/locales/`               | Interface text in `en.json` and `id.json`                                               |
-| `test/unit/`                  | Unit tests of `app/utils` and of the locale files                                       |
-| `test/nuxt/`                  | Tests of components, pages, composables, and middleware                                 |
+| Path                          | Content                                                                                                                                           |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `app/pages/`                  | Pages                                                                                                                                             |
+| `app/layouts/default.vue`     | The announcement bar, the header (navigation, search, language, account, wishlist, cart), and the footer                                          |
+| `app/layouts/checkout.vue`    | "Back to cart", the wordmark, "Secure checkout", and a short footer. The checkout pages use it.                                                   |
+| `app/error.vue`               | The error page. A 404 shows the text of its `messageKey` and the category links.                                                                  |
+| `app/app.config.ts`           | The store name                                                                                                                                    |
+| `app/components/`             | Store components                                                                                                                                  |
+| `app/components/ui/`          | shadcn-vue components                                                                                                                             |
+| `app/composables/`            | Medusa SDK client, cart, region, catalog, listing, search, storefront settings, checkout, customer, sign-in, addresses, orders, reviews, wishlist |
+| `app/utils/`                  | Pure functions: price format, address form, catalog query, price ranges, badges, sign-in storage, retry, redirect check, bank transfer            |
+| `app/types/storefront.ts`     | The types of the storefront settings and the home campaign                                                                                        |
+| `app/middleware/auth.ts`      | Sends a guest to the sign-in page                                                                                                                 |
+| `app/assets/css/tailwind.css` | Tailwind, the design tokens, the type utilities, and the `@font-face` rules                                                                       |
+| `public/fonts/`               | The font files: Cormorant Garamond (regular and italic) and Instrument Sans                                                                       |
+| `i18n/locales/`               | Interface text in `en.json` and `id.json`                                                                                                         |
+| `test/unit/`                  | Unit tests of `app/utils` and of the locale files                                                                                                 |
+| `test/nuxt/`                  | Tests of components, pages, composables, layouts, and middleware                                                                                  |
 
 ## Languages
 
@@ -88,20 +104,45 @@ The language changes the text only. Prices stay in Rupiah.
 
 - The cart id is in the cookie `cart_id` for 30 days.
 - The storefront uses the first region of the backend. The seed creates one region: Indonesia.
-- A customer who logs in gets the guest cart.
+- A customer who signs in gets the guest cart.
 
 ## Accounts
 
-The storefront uses a session cookie for the login. The browser keeps the cookie, so the pages
+The customer signs in with a link in an email. There is no password. The same link creates the
+account of a new customer.
+
+The storefront uses a session cookie for the sign-in. The browser keeps the cookie, so the pages
 below `/account` render in the browser only. Thus the storefront and the backend must be on the
 same site in production (for example `store.example.com` and `api.example.com`).
 
-The password-reset email links to `/account/reset-password`. The backend makes the link from its
+The sign-in on the same device:
+
+1. The customer types the email on `/account/sign-in`. The page shows "Check your email".
+2. The customer opens the link in the email. The link opens `/account/sign-in/verify` in a new
+   tab.
+3. The new tab signs in the browser and tells the first tab. The first tab continues, and the new
+   tab closes.
+
+The sign-in on another device, for example a laptop with the email on a phone:
+
+1. The customer types the email on `/account/sign-in` on the laptop.
+2. The customer opens the link on the phone. The phone shows the browser and the time of the
+   request.
+3. The customer clicks "Yes, sign me in" on the phone. The laptop signs in within 3 seconds. The
+   phone does not sign in.
+
+A link works one time, for 15 minutes. A new link makes the older links of the email invalid. The
+backend sends at most one link for each email in 60 seconds. The backend makes the link from its
 `STOREFRONT_URL` key.
+
+The first sign-in opens `/account/welcome`. The customer can type a full name or skip the step.
+Then the backend sends the welcome email.
 
 ## Checkout
 
-1. The customer enters the contact data and an Indonesian address.
+1. The customer enters the email and an Indonesian address. The contact is an email only. The
+   address has one "Full name" field and no country field. A signed-in customer can select a
+   saved address or save the new address.
 2. The storefront saves the data on the cart and shows the shipping options.
 3. The customer selects a shipping option.
 4. The customer selects a payment method. The storefront lists the payment providers of the region.
