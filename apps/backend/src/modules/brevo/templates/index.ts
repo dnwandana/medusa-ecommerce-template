@@ -1,17 +1,21 @@
 import { RenderedEmail } from "./html"
 import { renderMagicLink } from "./magic-link"
+import { renderMorePaymentNeeded } from "./more-payment-needed"
 import { renderOrderPlaced } from "./order-placed"
 import { renderOrderShipped } from "./order-shipped"
 import { renderPaidCartAlert } from "./paid-cart-alert"
 import { renderPasswordReset } from "./password-reset"
+import { renderReceiptUploaded } from "./receipt-uploaded"
 import { renderWelcome } from "./welcome"
 
 const templates: Record<string, (data: any) => RenderedEmail> = {
   "magic-link": renderMagicLink,
+  "more-payment-needed": renderMorePaymentNeeded,
   "order-placed": renderOrderPlaced,
   "order-shipped": renderOrderShipped,
   "paid-cart-alert": renderPaidCartAlert,
   "password-reset": renderPasswordReset,
+  "receipt-uploaded": renderReceiptUploaded,
   welcome: renderWelcome,
 }
 
