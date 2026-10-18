@@ -58,7 +58,9 @@ pnpm --filter @store/backend lint                         # ESLint, eslint.confi
 - `src/api/`: file-based routes. Each `route.ts` exports `GET`, `POST`, or `DELETE` and its zod
   schema.
 - `src/api/middlewares.ts`: applies `authenticate`, `validateAndTransformBody`, and
-  `validateAndTransformQuery` to the custom routes.
+  `validateAndTransformQuery` to the custom routes. A newer route group has its own
+  `middlewares.ts` that exports a `MiddlewareRoute[]`, for example
+  `api/admin/storefront/middlewares.ts`. `src/api/middlewares.ts` spreads each array.
 - `src/modules/`:
   - `bank-transfer/`: payment provider (identifier `bank-transfer`, stored id
     `pp_bank-transfer_bank-transfer`). The constants `BANK_TRANSFER_PROVIDER_ID` and
@@ -67,38 +69,80 @@ pnpm --filter @store/backend lint                         # ESLint, eslint.confi
     The service adds `getContact()` and `setContact()`, because the module keeps one contact row.
   - `weight-shipping/`: fulfillment provider. `calculate.ts` has the weight rule: grams, rounded up
     to whole kg, minimum 1 kg, and 1000 g for a variant with no weight.
-  - `brevo/`: notification provider. The templates are in `templates/`: `order-placed`,
-    `paid-cart-alert`, and `password-reset`.
+  - `brevo/`: notification provider. The templates are in `templates/`: `magic-link`, `welcome`,
+    `order-placed`, `order-shipped`, `paid-cart-alert`, and `password-reset`. `html.ts` has the
+    shared parts, for example `layout()`, `emailButton()`, and `greeting()`.
   - `product-review/`: data module `productReview` with the model `review`.
   - `wishlist/`: data module `wishlist` with the models `wishlist` and `wishlist_item`.
+  - `storefront/`: data module `storefront` (`STOREFRONT_MODULE`) with the models
+    `storefront_setting`, `store_colour`, and `home_campaign`. The module keeps one settings row.
+    A unique partial index allows one `live` campaign. `settings-rules.ts` and
+    `campaign-rules.ts` have no Medusa import, so the routes, the admin helpers, and the tests
+    share them.
+  - `magic-link/`: data module `magicLink` (`MAGIC_LINK_MODULE`) with the model
+    `magic_link_request`. `tokens.ts` has the token helpers and the lifetimes. `browser.ts`
+    makes the browser text, for example "Chrome on Windows". The table keeps only SHA-256 hashes
+    of the token and the secret.
   - Each data module has its own `migrations/`.
+- `src/lib/`: pure code with no module.
+  - `option-names.ts`: the option names of a colour (`colour`, `color`, `warna`) and of a size
+    (`size`, `ukuran`), and the fabric tag prefix `Fabric:`.
+  - `storefront-metadata.ts`: the metadata keys `show_on_home`, `tile_image_url`,
+    `product_details`, `colour_hex`, and `welcome_sent_at`, and their safe readers. The storefront
+    uses the same keys.
+  - `catalog-filters.ts`, `catalog-price.ts`, and `home-categories.ts`: the logic of the catalog
+    routes and the home categories route.
 - `src/links/`: read-only links (`readOnly: true`) from `review`, `wishlist`, and `wishlist_item`
   to product, customer, and productVariant.
-- `src/workflows/`: `create-review`, `update-review-status`, `add-wishlist-item`, and
-  `remove-wishlist-item`. Shared steps are in `src/workflows/steps/`.
-- `src/subscribers/`: `order.placed` sends the order email. For an unpaid bank transfer order,
-  the email has the amount, the active bank accounts, and the deadline in WIB.
-  `auth.password_reset` sends the reset link.
+- `src/workflows/`: `create-review`, `update-review-status`, `add-wishlist-item`,
+  `remove-wishlist-item`, `publish-home-campaign`, and `resolve-customer-account`. Shared steps
+  are in `src/workflows/steps/`.
+  - `publish-home-campaign` ends the old live campaign first, then makes the new campaign live.
+  - `resolve-customer-account` finds or makes the account customer and the `magic-link` auth
+    identity for an email. A guest customer with the email becomes the account.
+- `src/subscribers/`:
+  - `order.placed`: `order-placed` sends the order email. For an unpaid bank transfer order, the
+    email has the amount, the active bank accounts, and the deadline in WIB.
+    `customer-name-from-order` copies the name of the delivery address into a customer with no
+    name.
+  - `shipment.created`: `shipment-created` sends the `order-shipped` email, except when the
+    event has `no_notification: true`.
+  - `auth.password_reset`: `password-reset` sends the reset link only to an admin user
+    (`actor_type` `user`).
 - `src/jobs/check-paid-carts.ts` is the job definition (`*/15 * * * *`).
-  - The logic is in `src/recovery/check-paid-carts.ts`.
+  - Medusa calls a job as `(container, { scheduledFor })`. Thus the default export takes only the
+    container. The named export `runCheckPaidCarts(container, adapters)` has the logic, and the
+    tests call it with a test adapter.
+  - The check is in `src/recovery/check-paid-carts.ts`.
   - The wiring to Query, Notification, and Cart is in `src/recovery/dependencies.ts`. The
     adapters are in `src/recovery/adapters.ts`.
   - `RECOVERY_ADAPTERS` is empty, so the job returns at once and writes no log line.
-- `src/seed/`: idempotent seed steps for the region, the bank account, fulfillment, products, and
-  the API key. `bank-account.ts` adds the "Sample Bank" account and the sample contact only when
-  the owner has no data. `src/scripts/seed.ts` runs the seed steps and prints the publishable
-  key.
-- `src/admin/`: the admin **Reviews** page (`routes/reviews/page.tsx`) and the **Settings → Bank
-  transfer** page (`routes/settings/bank-transfer/page.tsx`). The pure helpers are in `lib/` and
-  have unit tests. The admin code has its own `tsconfig.json`. The root `tsconfig.json` excludes
-  `src/admin`.
+- `src/seed/`: idempotent seed steps for the region, the bank account, fulfillment, products, the
+  storefront settings, and the API key. `bank-account.ts` adds the "Sample Bank" account and the
+  sample contact only when the owner has no data. `storefront.ts` saves the price limits only
+  when the module has no settings row. `src/scripts/seed.ts` runs the seed steps and prints the
+  publishable key.
+- `src/admin/`: the admin dashboard extension.
+  - Pages: **Reviews** (`routes/reviews/page.tsx`), **Home campaigns**
+    (`routes/home-campaigns/page.tsx` and `routes/home-campaigns/[id]/page.tsx`), **Settings →
+    Bank transfer** (`routes/settings/bank-transfer/page.tsx`), and **Settings → Storefront**
+    (`routes/settings/storefront/page.tsx`).
+  - Widgets: `category-tile` (zone `product_category.details.side`), `product-details` (zone
+    `product.details`), and `colour-dots` (zone `product.details.side`). The `.after` suffix of a
+    zone has no effect in Medusa 2.21.2.
+  - The pure helpers are in `lib/` and have unit tests in `lib/__tests__/`. Shared forms are in
+    `components/`.
+  - The admin code has its own `tsconfig.json`. The root `tsconfig.json` excludes `src/admin`.
+    Run the admin type check with `pnpm --filter @store/backend exec tsc --noEmit -p
+src/admin/tsconfig.json`.
 
 ## Code conventions
 
 - Mutations go through workflows (`createWorkflow`, `createStep`, `StepResponse`). Each step has a
   compensation function.
-  The Admin routes for the bank accounts and the store contact call the `bankAccount` service
-  directly. Each request changes one record of one module, so there is nothing to compensate.
+  A route that changes one record of one module calls the module service directly, for example
+  the Admin routes for the bank accounts, the store contact, the storefront settings, the store
+  colours, and most home campaign actions. There is nothing to compensate.
 - Reads use `query.graph` or the module services.
 - Routes do not catch errors. They throw `MedusaError` and Medusa's error handler formats the
   response.
@@ -107,6 +151,8 @@ pnpm --filter @store/backend lint                         # ESLint, eslint.confi
 - List queries use `createFindParams` from `@medusajs/medusa/api/utils/validators`.
 - Routes take `customer_id` from `auth_context.actor_id`. The review data (`product_id` and the
   names) comes from the database, not from the request.
+- `medusa-config.ts` sets `http.authMethodsPerActor` to `{ user: ["emailpass"], customer: [] }`.
+  Customers sign in only with the magic link. Do not add a customer `emailpass` route.
 - Log and error messages do not contain secrets, tokens, or email addresses.
 - Files are kebab-case. Data modules export a module constant, for example
   `PRODUCT_REVIEW_MODULE = "productReview"`.
