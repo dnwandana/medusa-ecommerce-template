@@ -1,83 +1,153 @@
 <script setup lang="ts">
+import { toast } from "vue-sonner"
+import type { Review } from "~/composables/useReviews"
+import { relativeTime } from "~/utils/relativeTime"
+
 const props = defineProps<{ productId: string }>()
 
 const reviews = useReviews()
-const page = ref(1)
+const { t, locale } = useI18n()
 
-const { data, error } = await useAsyncData(
-  () => `reviews:${props.productId}:${page.value}`,
-  () =>
-    reviews.listForProduct(props.productId, {
-      limit: REVIEW_PAGE_SIZE,
-      offset: (page.value - 1) * REVIEW_PAGE_SIZE,
-    })
+// The page does not wait for the reviews. The product page reads the same cache key for the
+// rating link, so the page sends one review request.
+const { data, error } = useLazyAsyncData(`reviews:${props.productId}`, () =>
+  reviews.listForProduct(props.productId, { limit: REVIEW_FIRST_COUNT, offset: 0 })
 )
 
-const hasNext = computed(() => page.value * REVIEW_PAGE_SIZE < (data.value?.count ?? 0))
+// The list starts from the first page. "Show more reviews" adds the next reviews to it.
+const list = ref<Review[]>([])
+watch(
+  () => data.value?.reviews,
+  (first) => {
+    list.value = [...(first ?? [])]
+  },
+  { immediate: true }
+)
 
-// Returns the upper-case first letters of the first name and the last name, for example "SD".
-// The text shows only the first name. The initials give one letter of the last name, as in the mockup.
-function initials(first: string | null | undefined, last: string | null | undefined): string {
-  return [first, last]
-    .map((name) => name?.trim().charAt(0) ?? "")
-    .join("")
-    .toUpperCase()
+const count = computed(() => data.value?.count ?? 0)
+const hasMore = computed(() => list.value.length < count.value)
+const loadingMore = ref(false)
+
+async function showMore(): Promise<void> {
+  // A second click while the request runs does nothing.
+  if (loadingMore.value) {
+    return
+  }
+  loadingMore.value = true
+  try {
+    const next = await reviews.listForProduct(props.productId, {
+      limit: REVIEW_MORE_COUNT,
+      offset: list.value.length,
+    })
+    list.value = [...list.value, ...next.reviews]
+  } catch {
+    toast.error(t("common.error"))
+  } finally {
+    loadingMore.value = false
+  }
+}
+
+function byline(review: Review): string {
+  const name = review.first_name ?? ""
+  return review.size ? t("reviews.byline", { name, size: review.size }) : name
 }
 </script>
 
 <template>
-  <section class="flex flex-col gap-6">
-    <h2 class="text-h2">{{ $t("reviews.title") }}</h2>
+  <section id="reviews" aria-labelledby="reviews-title" class="scroll-mt-24">
+    <div
+      v-if="error || data?.count === 0"
+      class="flex flex-col gap-6 border-t border-border pt-8 md:pt-16"
+    >
+      <h2 id="reviews-title" class="text-h2">{{ $t("reviews.title") }}</h2>
+      <Alert v-if="error" variant="destructive">
+        <AlertDescription>{{ $t("common.error") }}</AlertDescription>
+      </Alert>
+      <p v-else class="text-body text-muted-foreground">{{ $t("reviews.empty") }}</p>
+    </div>
 
-    <Alert v-if="error" variant="destructive">
-      <AlertDescription>{{ $t("common.error") }}</AlertDescription>
-    </Alert>
-
-    <template v-else-if="data">
-      <p v-if="data.count === 0" class="text-muted-foreground">{{ $t("reviews.empty") }}</p>
-
-      <template v-else>
-        <div class="flex flex-wrap items-center gap-2">
-          <template v-if="typeof data.average_rating === 'number'">
-            <StarRating :rating="data.average_rating" />
-            <span class="font-semibold">
-              {{ $t("reviews.average", { rating: data.average_rating.toFixed(1) }) }}
-            </span>
-          </template>
-          <span class="text-body-sm text-muted-foreground">{{
-            $t("reviews.count", data.count)
-          }}</span>
+    <div
+      v-else
+      class="grid gap-y-6 border-t border-border pt-8 md:pt-16 lg:grid-cols-11 lg:gap-x-24 lg:gap-y-12"
+      :aria-busy="data ? undefined : 'true'"
+    >
+      <!-- The summary stays in view while the list scrolls, from 1024 px only. -->
+      <div class="flex flex-col gap-6 lg:sticky lg:top-24 lg:col-span-4 lg:self-start">
+        <h2 id="reviews-title" class="text-h2">{{ $t("reviews.title") }}</h2>
+        <div v-if="data" class="flex items-baseline gap-4">
+          <p
+            v-if="typeof data.average_rating === 'number'"
+            data-testid="review-average"
+            class="font-heading text-[40px] leading-10 tabular-nums md:text-[64px] md:leading-[64px]"
+          >
+            {{ data.average_rating.toFixed(1) }}
+          </p>
+          <div class="flex flex-col gap-1">
+            <StarRating
+              v-if="typeof data.average_rating === 'number'"
+              :rating="data.average_rating"
+              size="md"
+            />
+            <span class="text-caption text-muted-foreground">{{
+              $t("reviews.basedOn", { count: data.count }, data.count)
+            }}</span>
+          </div>
         </div>
-
-        <div class="flex flex-col gap-6">
-          <template v-for="(review, index) in data.reviews" :key="review.id">
-            <Separator v-if="index > 0" />
-            <article class="flex gap-4">
-              <Avatar>
-                <AvatarFallback>{{ initials(review.first_name, review.last_name) }}</AvatarFallback>
-              </Avatar>
-              <div class="flex min-w-0 flex-col gap-1">
-                <p class="font-semibold">{{ review.first_name }}</p>
-                <StarRating :rating="review.rating" />
-                <p class="text-caption text-muted-foreground">
-                  {{ review.created_at.slice(0, 10) }}
-                </p>
-                <h3 v-if="review.title" class="mt-1 text-h4">{{ review.title }}</h3>
-                <p class="whitespace-pre-line">{{ review.content }}</p>
-              </div>
-            </article>
-          </template>
+        <div v-else class="flex flex-col gap-4" aria-hidden="true">
+          <Skeleton class="h-16 w-40" />
+          <Skeleton class="h-4 w-48" />
         </div>
+      </div>
 
-        <div v-if="page > 1 || hasNext" class="flex gap-2">
-          <Button v-if="page > 1" type="button" variant="outline" size="sm" @click="page--">
-            {{ $t("common.previous") }}
+      <div class="flex flex-col lg:col-span-7">
+        <template v-if="data">
+          <article
+            v-for="review in list"
+            :key="review.id"
+            class="flex flex-col gap-2.5 border-b border-border py-6 md:py-8"
+          >
+            <div class="flex items-start justify-between gap-4">
+              <h3 v-if="review.title" class="text-h4">{{ review.title }}</h3>
+              <time
+                :datetime="review.created_at"
+                class="ml-auto shrink-0 text-caption text-muted-foreground"
+              >
+                {{ relativeTime(review.created_at, locale) }}
+              </time>
+            </div>
+            <StarRating :rating="review.rating" size="sm" />
+            <p class="max-w-[640px] text-body whitespace-pre-line">{{ review.content }}</p>
+            <p data-testid="review-byline" class="text-caption text-muted-foreground">
+              {{ byline(review) }}
+            </p>
+          </article>
+          <Button
+            v-if="hasMore"
+            type="button"
+            variant="outline"
+            class="mt-6 w-full md:mt-8 lg:w-auto lg:self-start"
+            :aria-busy="loadingMore ? 'true' : undefined"
+            @click="showMore"
+          >
+            <Spinner v-if="loadingMore" />
+            {{ $t("reviews.showMore") }}
           </Button>
-          <Button v-if="hasNext" type="button" variant="outline" size="sm" @click="page++">
-            {{ $t("common.next") }}
-          </Button>
-        </div>
-      </template>
-    </template>
+        </template>
+        <template v-else>
+          <div
+            v-for="n in REVIEW_FIRST_COUNT"
+            :key="n"
+            data-testid="review-skeleton"
+            class="flex flex-col gap-2.5 border-b border-border py-6 md:py-8"
+            aria-hidden="true"
+          >
+            <Skeleton class="h-3.5 w-24" />
+            <Skeleton class="h-6 w-1/2" />
+            <Skeleton class="h-4 w-full" />
+            <Skeleton class="h-4 w-2/3" />
+          </div>
+        </template>
+      </div>
+    </div>
   </section>
 </template>

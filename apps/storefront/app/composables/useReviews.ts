@@ -8,6 +8,8 @@ export type Review = {
   content: string
   first_name: string | null
   last_name: string | null
+  // The size of the purchased variant, or null when the product has no size option.
+  size: string | null
   created_at: string
 }
 
@@ -29,7 +31,9 @@ export type ReviewableItem = {
   thumbnail: string | null
 }
 
-export const REVIEW_PAGE_SIZE = 5
+// The product page shows 3 reviews first, then 5 more for each click of "Show more reviews".
+export const REVIEW_FIRST_COUNT = 3
+export const REVIEW_MORE_COUNT = 5
 
 // Returns the functions for the review routes of the backend.
 export function useReviews(): {
@@ -46,7 +50,7 @@ export function useReviews(): {
     listForProduct(productId, options = {}) {
       return sdk.client.fetch<ReviewPage>(`/store/products/${productId}/reviews`, {
         query: {
-          limit: options.limit ?? REVIEW_PAGE_SIZE,
+          limit: options.limit ?? REVIEW_FIRST_COUNT,
           offset: options.offset ?? 0,
         },
       })

@@ -12,13 +12,13 @@ beforeEach(() => {
 
 describe("useReviews", () => {
   it("lists the reviews of a product with the default page size", async () => {
-    const page = { reviews: [], count: 0, limit: 5, offset: 0, average_rating: null }
+    const page = { reviews: [], count: 0, limit: 3, offset: 0, average_rating: null }
     sdk.client.fetch.mockResolvedValue(page)
 
     const result = await useReviews().listForProduct("prod_1")
 
     expect(sdk.client.fetch).toHaveBeenCalledWith("/store/products/prod_1/reviews", {
-      query: { limit: 5, offset: 0 },
+      query: { limit: 3, offset: 0 },
     })
     expect(result).toEqual(page)
   })
@@ -26,7 +26,7 @@ describe("useReviews", () => {
   it("passes the page to the review list", async () => {
     sdk.client.fetch.mockResolvedValue({ reviews: [], count: 12, limit: 5, offset: 10 })
 
-    await useReviews().listForProduct("prod_1", { offset: 10 })
+    await useReviews().listForProduct("prod_1", { limit: 5, offset: 10 })
 
     expect(sdk.client.fetch).toHaveBeenCalledWith("/store/products/prod_1/reviews", {
       query: { limit: 5, offset: 10 },

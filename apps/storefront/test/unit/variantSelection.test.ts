@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest"
-import { findVariant, isPurchasable, variantPrice } from "../../app/utils/variantSelection"
+import {
+  findVariant,
+  isPurchasable,
+  optionValueStock,
+  stockLimit,
+  variantPrice,
+} from "../../app/utils/variantSelection"
 
 const variant = (id: string, options: Record<string, string>, extra: object = {}) =>
   ({
@@ -66,5 +72,82 @@ describe("variantPrice", () => {
   it("returns null when there is no variant or no price", () => {
     expect(variantPrice(null)).toBeNull()
     expect(variantPrice(variant("v", {}, { calculated_price: null }))).toBeNull()
+  })
+})
+
+const colourShirt = {
+  options: [
+    { id: "opt_c", title: "Colour", values: [{ value: "Sand" }, { value: "Sage" }] },
+    { id: "opt_s", title: "Size", values: [{ value: "M" }, { value: "L" }] },
+  ],
+  variants: [
+    {
+      id: "v1",
+      inventory_quantity: 3,
+      manage_inventory: true,
+      options: [
+        { option_id: "opt_c", value: "Sand" },
+        { option_id: "opt_s", value: "M" },
+      ],
+    },
+    {
+      id: "v2",
+      inventory_quantity: 0,
+      manage_inventory: true,
+      options: [
+        { option_id: "opt_c", value: "Sand" },
+        { option_id: "opt_s", value: "L" },
+      ],
+    },
+    {
+      id: "v3",
+      inventory_quantity: 4,
+      manage_inventory: true,
+      options: [
+        { option_id: "opt_c", value: "Sage" },
+        { option_id: "opt_s", value: "L" },
+      ],
+    },
+  ],
+} as never
+
+describe("optionValueStock", () => {
+  it("strikes a size with no stock in the selected colour", () => {
+    expect(optionValueStock(colourShirt, { opt_c: "Sand", opt_s: "M" }, "opt_s")).toEqual([
+      { value: "M", soldOut: false },
+      { value: "L", soldOut: true },
+    ])
+    expect(optionValueStock(colourShirt, { opt_c: "Sage" }, "opt_s")).toEqual([
+      { value: "M", soldOut: true },
+      { value: "L", soldOut: false },
+    ])
+  })
+
+  it("ignores an option with no selected value", () => {
+    expect(optionValueStock(colourShirt, {}, "opt_s")).toEqual([
+      { value: "M", soldOut: false },
+      { value: "L", soldOut: false },
+    ])
+  })
+
+  it("does not use the selected value of the option itself as a condition", () => {
+    expect(optionValueStock(colourShirt, { opt_c: "Sand", opt_s: "L" }, "opt_c")).toEqual([
+      { value: "Sand", soldOut: true },
+      { value: "Sage", soldOut: false },
+    ])
+  })
+
+  it("gives an empty list for an unknown option", () => {
+    expect(optionValueStock(colourShirt, {}, "opt_x")).toEqual([])
+  })
+})
+
+describe("stockLimit", () => {
+  it("gives the stock limit of a variant that tracks stock", () => {
+    expect(stockLimit({ inventory_quantity: 3, manage_inventory: true } as never)).toBe(3)
+    expect(stockLimit({ inventory_quantity: -2, manage_inventory: true } as never)).toBe(0)
+    expect(stockLimit({ inventory_quantity: 3, allow_backorder: true } as never)).toBeNull()
+    expect(stockLimit({ manage_inventory: false } as never)).toBeNull()
+    expect(stockLimit(null)).toBeNull()
   })
 })
