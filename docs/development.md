@@ -52,7 +52,8 @@ docker exec postgres psql -U user -d postgres -c 'CREATE DATABASE medusa_ecommer
 
 ## 3. Prepare Garage
 
-Garage stores the product images. The backend does not start without a Garage key. The commands
+Garage stores the product images and the payment receipts. The backend does not start without a
+Garage key. The commands
 use the Compose service `garage`, so start the Compose services first.
 
 Do this step one time. Garage keeps the bucket and the key in its volumes.
@@ -99,12 +100,20 @@ $G key create medusa-app-key
 $G bucket allow --read --write --owner store-assets --key medusa-app-key
 ```
 
-6. Copy the two values that `key create` printed. In
+6. Make the private bucket for the payment receipts, and give the key access to it. Do not run
+   `bucket website` for this bucket. The receipts must stay private.
+
+```bash
+$G bucket create store-receipts
+$G bucket allow --read --write --owner store-receipts --key medusa-app-key
+```
+
+7. Copy the two values that `key create` printed. In
    [step 4](#4-set-the-backend-environment), you put them into `apps/backend/.env`:
    - The `Key ID` goes into `S3_ACCESS_KEY_ID`.
    - The `Secret key` goes into `S3_SECRET_ACCESS_KEY`.
 
-7. Check the alias. Open `http://assets.localhost:3902/` in a browser, or use `curl`.
+8. Check the alias. Open `http://assets.localhost:3902/` in a browser, or use `curl`.
 
 ```bash
 curl -s http://assets.localhost:3902/
@@ -139,19 +148,21 @@ S3_SECRET_ACCESS_KEY=<Secret key>
 The other keys have development values in the example file. This table shows the keys that you
 can change in development.
 
-| Key                    | Development value              | Note                                                                       |
-| ---------------------- | ------------------------------ | -------------------------------------------------------------------------- |
-| `DATABASE_URL`         | your database                  | Required.                                                                  |
-| `DATABASE_SSL`         | empty                          | Set `false` only if Medusa cannot connect because the server has no TLS.   |
-| `REDIS_URL`            | `redis://localhost:6379`       | If it is empty, Medusa uses its in-memory modules.                         |
-| `BREVO_API_KEY`        | empty                          | If it is empty, the backend writes each email to the log.                  |
-| `STORE_OWNER_EMAIL`    | empty                          | If it is empty, the backend writes the `paid-cart-alert` email to the log. |
-| `S3_BUCKET`            | `store-assets`                 | If it is empty, Medusa keeps the product images in local storage.          |
-| `S3_FILE_URL`          | `http://assets.localhost:3902` | The Garage web endpoint with the bucket alias.                             |
-| `S3_REGION`            | `garage`                       | The region in `garage.toml`.                                               |
-| `S3_ENDPOINT`          | `http://localhost:3900`        | The Garage S3 API.                                                         |
-| `S3_ACCESS_KEY_ID`     | empty                          | Required. The `Key ID` from step 3.                                        |
-| `S3_SECRET_ACCESS_KEY` | empty                          | Required. The `Secret key` from step 3.                                    |
+| Key                    | Development value              | Note                                                                            |
+| ---------------------- | ------------------------------ | ------------------------------------------------------------------------------- |
+| `DATABASE_URL`         | your database                  | Required.                                                                       |
+| `DATABASE_SSL`         | empty                          | Set `false` only if Medusa cannot connect because the server has no TLS.        |
+| `REDIS_URL`            | `redis://localhost:6379`       | If it is empty, Medusa uses its in-memory modules.                              |
+| `BREVO_API_KEY`        | empty                          | If it is empty, the backend writes each email to the log.                       |
+| `STORE_OWNER_EMAIL`    | empty                          | If it is empty, the backend writes the `paid-cart-alert` email to the log.      |
+| `S3_BUCKET`            | `store-assets`                 | If it is empty, Medusa keeps the product images in local storage.               |
+| `S3_FILE_URL`          | `http://assets.localhost:3902` | The Garage web endpoint with the bucket alias.                                  |
+| `S3_REGION`            | `garage`                       | The region in `garage.toml`.                                                    |
+| `S3_ENDPOINT`          | `http://localhost:3900`        | The Garage S3 API.                                                              |
+| `S3_ACCESS_KEY_ID`     | empty                          | Required. The `Key ID` from step 3.                                             |
+| `S3_SECRET_ACCESS_KEY` | empty                          | Required. The `Secret key` from step 3.                                         |
+| `S3_RECEIPTS_BUCKET`   | `store-receipts`               | Private bucket for the payment receipts. Required when `S3_BUCKET` has a value. |
+| `RECEIPTS_DIR`         | empty                          | Receipt directory when `S3_BUCKET` is empty. Default `uploads/receipts`.        |
 
 `apps/backend/README.md` has the full list of the backend keys.
 

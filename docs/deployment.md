@@ -93,14 +93,22 @@ Do not use the characters `$` and `` ` `` in a value. Compose can expand these c
 | `BREVO_API_KEY`          | The backend sends the order emails through Brevo with this key.                           | A key from the Brevo dashboard.                                                                 |
 | `BREVO_SENDER_EMAIL`     | The sender address of the emails.                                                         | An address that Brevo verified for your account.                                                |
 | `BREVO_SENDER_NAME`      | The sender name of the emails.                                                            | The name of the store.                                                                          |
-| `STORE_OWNER_EMAIL`      | The address that gets the `paid-cart-alert` email.                                        | Your email address.                                                                             |
+| `STORE_OWNER_EMAIL`      | The address that gets the `paid-cart-alert` and `receipt-uploaded` emails.                | Your email address.                                                                             |
 
 Set all values now, but keep the example values of `S3_ACCESS_KEY_ID` and `S3_SECRET_ACCESS_KEY`.
 The next section gives these two values.
 
+`docker-compose.yml` sets the two bucket keys. You do not set them in `.env`.
+
+| Key                  | Purpose                                                                         | Value            |
+| -------------------- | ------------------------------------------------------------------------------- | ---------------- |
+| `S3_BUCKET`          | The public bucket for the product images.                                       | `store-assets`   |
+| `S3_RECEIPTS_BUCKET` | Private bucket for the payment receipts. Required when `S3_BUCKET` has a value. | `store-receipts` |
+
 ## Garage: one-time commands
 
-Garage stores the product images. Do these steps one time, before the first deploy.
+Garage stores the product images and the payment receipts. Do these steps one time, before the
+first deploy.
 
 1. Set the Compose command, and start Garage. Compose reads `docker-compose.yml` and `.env` from the
    directory, so `$C` needs no options. The later sections also use `$C`, so set it again in each
@@ -153,7 +161,15 @@ $G key create medusa-app-key
 $G bucket allow --read --write --owner store-assets --key medusa-app-key
 ```
 
-7. Put the values that `key create` printed into `.env`:
+7. Make the private bucket for the payment receipts, and give the key access to it. Do not run
+   `bucket website` for this bucket. The receipts must stay private.
+
+```bash
+$G bucket create store-receipts
+$G bucket allow --read --write --owner store-receipts --key medusa-app-key
+```
+
+8. Put the values that `key create` printed into `.env`:
    - Put the `Key ID` into `S3_ACCESS_KEY_ID`.
    - Put the `Secret key` into `S3_SECRET_ACCESS_KEY`.
 
@@ -338,6 +354,10 @@ A backup is a directory `backups/<time>` with two files:
 - `database.sql.gz` is a dump of the database.
 - `garage.tar.gz` is an archive of the Garage directories `meta/` and `data/`. Garage keeps small
   objects in its metadata database, so the archive must have the two directories.
+
+The archive has all the buckets. Thus the same procedure backs up `store-assets` and
+`store-receipts`. The `store-receipts` bucket holds customer data. Keep each copy of the backup
+private, and do not put it in a place that the internet can read.
 
 Keep a copy of each backup on a different server. A backup only on the store server is lost with
 the server. In this section, `<backup target>` is the `rsync` target on that server, for example

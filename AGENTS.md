@@ -78,6 +78,8 @@ pnpm format:check
     categories.
   - `/store/magic-link[/verify|/confirm|/status|/session]`, `/store/customers/me/welcome`.
   - `/store/orders/:id/tracking`.
+  - `/store/orders/:id/receipts`, `/store/payment-states`. The storefront adds the payment state of
+    each order as `order.payment_state`.
 - `apps/storefront/AGENTS.md` gives the composable that calls each route. `apps/backend/AGENTS.md`
   gives the modules, the workflows, and the subscribers behind the routes.
 - The option names and the metadata keys have one copy in each app. Change the two copies
@@ -103,11 +105,15 @@ pnpm format:check
 3. The storefront calls `initiatePaymentSession` with the selected provider id and the customer
    object (`startPayment` in `apps/storefront/app/composables/useCheckout.ts`).
 4. Bank transfer: the session has no `payment_url`. The storefront completes the cart at once and
-   opens `/orders/:id`. The order page shows the bank accounts from `/store/bank-transfer` until
-   the admin captures the payment.
+   opens `/orders/:id`.
+   - The order page shows the bank accounts and the receipt upload until the admin captures the
+     payment. The bank accounts come from `/store/bank-transfer`.
+   - The owner checks the receipts in the order widget.
+   - The job `cancel-unpaid-orders` cancels an unpaid order with no receipt after 24 hours.
 5. Redirect gateway: the session has an https `payment_url`. The browser goes to that page. The
    gateway redirects to `${STOREFRONT_URL}/checkout/return`, a URL with no locale prefix. The
    return page calls `cart.complete` with retries.
+   - To add a gateway, read `docs/payments/README.md` and the doc of the gateway.
 6. Two other paths complete a paid gateway cart:
    - The webhook: `POST /hooks/payment/<provider_id>`. This is the Medusa built-in route.
    - The job `check-paid-carts`, which runs every 15 minutes. It checks the providers in
@@ -115,8 +121,7 @@ pnpm format:check
      template.
 7. Staff create a shipment in the admin. The `shipment.created` subscriber sends the
    `order-shipped` email with the tracking number. `GET /store/orders/:id/tracking` returns the
-   shipments. The order page does not use this route yet. The order tracker waits for part 2 of
-   the payment base.
+   shipments. The order page shows them below the order tracker.
 
 ## Production
 
