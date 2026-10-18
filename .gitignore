@@ -17,6 +17,7 @@ dist/
 
 # Coding agents
 .agents/
+.claude/
 .superpowers/
 docs/superpowers/
 skills-lock.json
