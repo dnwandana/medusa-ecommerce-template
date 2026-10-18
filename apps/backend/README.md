@@ -47,42 +47,47 @@ The file is `apps/backend/.env`. Copy it from `.env.example`.
 | `BREVO_API_KEY`                            | empty                                                      | Brevo API key. If it is empty, the backend writes each email to the log.                                                    |
 | `BREVO_SENDER_EMAIL`                       | empty                                                      | Sender address. Required when `BREVO_API_KEY` has a value.                                                                  |
 | `BREVO_SENDER_NAME`                        | `My Store`                                                 | Sender name                                                                                                                 |
-| `STORE_OWNER_EMAIL`                        | empty                                                      | The address that gets the `paid-cart-alert` email. If it is empty, the backend writes the alert to the log.                 |
+| `STORE_OWNER_EMAIL`                        | empty                                                      | The address that gets the `paid-cart-alert` and `receipt-uploaded` emails. If it is empty, the backend writes a log line.   |
 | `S3_BUCKET`                                | `store-assets`                                             | Garage bucket for the product images. If it is empty, Medusa keeps the images in `static/`. Only `.env.test` sets it empty. |
 | `S3_FILE_URL`                              | `http://assets.localhost:3902`                             | Public address of the product images                                                                                        |
 | `S3_REGION`                                | `garage`                                                   | S3 region of Garage                                                                                                         |
 | `S3_ENDPOINT`                              | `http://localhost:3900`                                    | S3 API of Garage                                                                                                            |
 | `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | empty                                                      | The Garage key from [step 3 of `docs/development.md`](../../docs/development.md). Required when `S3_BUCKET` has a value.    |
+| `S3_RECEIPTS_BUCKET`                       | `store-receipts`                                           | Private Garage bucket for the payment receipts. Required when `S3_BUCKET` has a value. It must not be `S3_BUCKET`.          |
+| `RECEIPTS_DIR`                             | `uploads/receipts`                                         | Private directory for the payment receipts when `S3_BUCKET` is empty. The path is relative to the backend directory.        |
 
 The backend does not start in these conditions:
 
 - `SHIPPING_RATE_PER_KG` is not a positive whole number.
 - `BREVO_API_KEY` has a value and `BREVO_SENDER_EMAIL` is empty.
 - `S3_BUCKET` has a value and one of the other `S3_` keys is empty.
+- `S3_BUCKET` has a value and `S3_RECEIPTS_BUCKET` is the same bucket.
 
 ## Source layout
 
-| Path                               | Content                                                                                                                                             |
-| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `medusa-config.ts`                 | Project configuration. Module list comes from `src/config/modules.ts`.                                                                              |
-| `src/config/`                      | Pure functions that build the module list and the database options from the environment.                                                            |
-| `src/api/`                         | Custom HTTP routes. `middlewares.ts` adds validation and authentication.                                                                            |
-| `src/modules/bank-transfer/`       | Bank transfer payment provider                                                                                                                      |
-| `src/modules/bank-account/`        | Bank account and store contact data module                                                                                                          |
-| `src/modules/weight-shipping/`     | Fulfillment provider that calculates the price from the weight                                                                                      |
-| `src/modules/brevo/`               | Brevo email provider and the email templates                                                                                                        |
-| `src/modules/product-review/`      | Review data module                                                                                                                                  |
-| `src/modules/wishlist/`            | Wishlist data module                                                                                                                                |
-| `src/modules/storefront/`          | Storefront data module: the settings row, the store colours, and the home campaigns                                                                 |
-| `src/modules/magic-link/`          | Magic link data module: the sign-in requests, the token helpers, and the browser text                                                               |
-| `src/lib/`                         | The option names, the metadata keys, and the pure logic of the catalog routes                                                                       |
-| `src/links/`                       | Read-only links from reviews and wishlists to products, variants, and customers                                                                     |
-| `src/workflows/`                   | Workflows for reviews, the wishlist, the publish of a home campaign, and the customer account of a magic link                                       |
-| `src/subscribers/`                 | Email for `order.placed`, `shipment.created`, and `auth.password_reset` (admin users only). The customer name from the first order.                 |
-| `src/jobs/`, `src/recovery/`       | The `check-paid-carts` job and its logic                                                                                                            |
-| `src/seed/`, `src/scripts/seed.ts` | The seed steps and the seed command                                                                                                                 |
-| `src/admin/`                       | Admin dashboard extension: the **Reviews** and **Home campaigns** pages, the **Bank transfer** and **Storefront** settings pages, and three widgets |
-| `integration-tests/http/`          | HTTP integration tests and their helpers                                                                                                            |
+| Path                                | Content                                                                                                                                                     |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `medusa-config.ts`                  | Project configuration. Module list comes from `src/config/modules.ts`.                                                                                      |
+| `src/config/`                       | Pure functions that build the module list and the database options from the environment.                                                                    |
+| `src/api/`                          | Custom HTTP routes. `middlewares.ts` adds validation and authentication.                                                                                    |
+| `src/modules/bank-transfer/`        | Bank transfer payment provider                                                                                                                              |
+| `src/modules/bank-account/`         | Bank account and store contact data module                                                                                                                  |
+| `src/modules/weight-shipping/`      | Fulfillment provider that calculates the price from the weight                                                                                              |
+| `src/modules/brevo/`                | Brevo email provider and the email templates                                                                                                                |
+| `src/modules/product-review/`       | Review data module                                                                                                                                          |
+| `src/modules/wishlist/`             | Wishlist data module                                                                                                                                        |
+| `src/modules/storefront/`           | Storefront data module: the settings row, the store colours, and the home campaigns                                                                         |
+| `src/modules/magic-link/`           | Magic link data module: the sign-in requests, the token helpers, and the browser text                                                                       |
+| `src/modules/payment-receipt/`      | Payment receipt data module: the receipts, the owner notes, the file rules, and the private receipt storage                                                 |
+| `src/lib/`                          | The option names, the metadata keys, the payment rules of a bank transfer order, and the pure logic of the catalog routes                                   |
+| `src/links/`                        | Read-only links from reviews and wishlists to products, variants, and customers                                                                             |
+| `src/workflows/`                    | Workflows for reviews, the wishlist, the publish of a home campaign, the customer account of a magic link, and the receipt upload                           |
+| `src/subscribers/`                  | Email for `order.placed`, `shipment.created`, `auth.password_reset` (admin users only), and the two receipt events. The customer name from the first order. |
+| `src/jobs/`, `src/recovery/`        | The `check-paid-carts` job and its logic                                                                                                                    |
+| `src/jobs/`, `src/payment-timeout/` | The `cancel-unpaid-orders` job and its logic                                                                                                                |
+| `src/seed/`, `src/scripts/seed.ts`  | The seed steps and the seed command                                                                                                                         |
+| `src/admin/`                        | Admin dashboard extension: the **Reviews** and **Home campaigns** pages, the **Bank transfer** and **Storefront** settings pages, and four widgets          |
+| `integration-tests/http/`           | HTTP integration tests and their helpers                                                                                                                    |
 
 ## Seed data
 
@@ -125,14 +130,19 @@ The provider id is `weight-shipping_weight-shipping`.
 
 The backend sends these emails:
 
-| Template          | Event                                                                      |
-| ----------------- | -------------------------------------------------------------------------- |
-| `magic-link`      | A customer asks for a sign-in link.                                        |
-| `welcome`         | A customer signs in for the first time. The storefront asks for the email. |
-| `order-placed`    | A customer places an order.                                                |
-| `order-shipped`   | Staff mark a shipment as shipped.                                          |
-| `password-reset`  | An admin user asks for a password reset.                                   |
-| `paid-cart-alert` | The recovery job cannot complete a paid cart.                              |
+| Template              | Event                                                                       | To                  |
+| --------------------- | --------------------------------------------------------------------------- | ------------------- |
+| `magic-link`          | A customer asks for a sign-in link.                                         | The customer        |
+| `welcome`             | A customer signs in for the first time. The storefront asks for the email.  | The customer        |
+| `order-placed`        | A customer places an order.                                                 | The customer        |
+| `order-shipped`       | Staff mark a shipment as shipped.                                           | The customer        |
+| `password-reset`      | An admin user asks for a password reset.                                    | The admin user      |
+| `paid-cart-alert`     | The recovery job cannot complete a paid cart.                               | `STORE_OWNER_EMAIL` |
+| `receipt-uploaded`    | A customer uploads a payment receipt. The email links to the order.         | `STORE_OWNER_EMAIL` |
+| `more-payment-needed` | The owner uses **Ask for more**. The email has the note and the order link. | The customer        |
+
+The emails are in English. The `receipt-uploaded` email has no image and no file link, because
+the receipt is private. The owner opens the receipt in the admin dashboard.
 
 Customers have no password, so the backend sends no password reset email to a customer.
 
@@ -152,12 +162,14 @@ Bank transfer is the only payment provider of the store. The provider id is
 3. The order page of the storefront (`/orders/:id`) and the `order-placed` email show the amount,
    the active bank accounts, and the deadline. The deadline is the order time plus 24 hours, in
    WIB.
-4. The customer transfers the money.
-5. When the money arrives in the bank account, capture the payment of the order in the Medusa
-   Admin.
+4. The customer transfers the money and uploads the receipt on the order page.
+5. When the money arrives in the bank account, click **Accept payment** on the order in the admin
+   dashboard. See [Payment receipts](#payment-receipts).
 
 The bank details show only while the payment is `authorized`. After the capture, the order page
 does not show them.
+
+An order with no receipt and no captured payment is cancelled 24 hours after the order time.
 
 ### Bank accounts
 
@@ -182,6 +194,67 @@ after the other accounts.
 | `GET /admin/store-contact`        | Admin  | Returns the store contact.                                      |
 | `POST /admin/store-contact`       | Admin  | Saves the store contact. `null` clears a value.                 |
 
+### Payment receipts
+
+The customer sends a proof of payment for a bank transfer order. The owner checks it in the admin
+dashboard.
+
+Customer:
+
+- The customer uploads 1 to 3 receipts on the order page. A guest needs only the order link.
+- A receipt is a JPG, PNG, or WebP file of at most 5 MB. The backend checks the file bytes, not the
+  file name.
+- The upload is open while the order is not cancelled and the payment is not captured. After 3
+  receipts, the order page shows the store contact.
+- The customer cannot delete a receipt.
+
+Owner:
+
+1. The `receipt-uploaded` email arrives at `STORE_OWNER_EMAIL`. Click **Open the order**.
+2. The **Payment receipts** section of the order shows the receipts. Click a receipt to open the
+   full image.
+3. Select one action:
+   - **Accept payment**: Medusa captures the full amount. The customer gets no email.
+   - **Ask for more**: write a note of at most 500 characters. The order goes back to "Waiting for
+     payment". The customer sees the note on the order page and gets the `more-payment-needed`
+     email. The customer can then upload one more receipt, if the order has fewer than 3.
+   - **Cancel order**: Medusa cancels the order and releases the stock.
+
+The section shows only on a bank transfer order. The actions go away after the capture or the
+cancellation.
+
+The receipts are private. With `S3_BUCKET` set, they go to the bucket `S3_RECEIPTS_BUCKET`, which
+has no web endpoint. With `S3_BUCKET` empty, they go to `RECEIPTS_DIR`. Only an admin user can read
+a receipt file.
+
+The job `cancel-unpaid-orders` runs each 15 minutes. It cancels a bank transfer order that is
+not cancelled, has no captured payment, has no receipt, and is older than 24 hours. After the
+first receipt, the job never cancels the order. The job reads only the orders of the last 7 days
+and cancels at most 50 orders in one run. It sets `metadata.cancel_reason` to `payment_timeout`.
+
+| Route                                          | Access | Function                                                                                                                                     |
+| ---------------------------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST /store/orders/:id/receipts`              | Public | Saves a receipt. The body is `{ file_name, content }` with the file as base64. Returns 201 and `{ receipt: { id, file_name, created_at } }`. |
+| `GET /store/payment-states?order_id=`          | Public | Takes 1 to 50 order ids. Returns the provider, the capture time, the receipts, and the newest note of each order.                            |
+| `GET /admin/orders/:id/receipts`               | Admin  | Returns the receipts of the order, oldest first, and the newest note.                                                                        |
+| `GET /admin/payment-receipts/:id/file`         | Admin  | Returns the image of a receipt.                                                                                                              |
+| `POST /admin/orders/:id/receipts/accept`       | Admin  | Captures the open bank transfer payment of the order.                                                                                        |
+| `POST /admin/orders/:id/receipts/ask-for-more` | Admin  | Saves the note `{ note }` and sends the `more-payment-needed` email.                                                                         |
+
+The answers of the Store routes have no file key, no file URL, and no file bytes.
+
+Errors of `POST /store/orders/:id/receipts`:
+
+| Status | `type`         | Cause                                                                                            |
+| ------ | -------------- | ------------------------------------------------------------------------------------------------ |
+| 400    | `invalid_data` | The file is not a JPG, PNG, or WebP file, or it is larger than 5 MB.                             |
+| 400    | `invalid_data` | The order is not a bank transfer order, is cancelled, has a captured payment, or has 3 receipts. |
+| 404    | `not_found`    | The order does not exist.                                                                        |
+
+The ask-for-more route refuses an empty note and a note of more than 500 characters with 400
+`invalid_data`. Medusa adds `Invalid request: ` before the message, for example
+`Invalid request: Write a note for the customer.`
+
 ### Recovery job
 
 The job `check-paid-carts` runs each 15 minutes. For each adapter in `RECOVERY_ADAPTERS`
@@ -191,7 +264,8 @@ job checks `maxSessionsPerRun` sessions of each adapter maximum in one run.
 
 The list is empty now, so the job does nothing. A bank transfer needs no recovery, because its cart
 completes at checkout. A project that adds a payment gateway adds one adapter for the gateway. The
-type `RecoveryAdapter` in the same file describes the adapter.
+type `RecoveryAdapter` in the same file describes the adapter. The adapter rules are in
+[`docs/payments/README.md`](../../docs/payments/README.md).
 
 If the completion fails, the job sends one `paid-cart-alert` email to `STORE_OWNER_EMAIL`. If
 `STORE_OWNER_EMAIL` is empty, the job writes the alert to the log.

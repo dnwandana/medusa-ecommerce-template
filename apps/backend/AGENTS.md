@@ -47,11 +47,17 @@ pnpm --filter @store/backend lint                         # ESLint, eslint.confi
     Development sets it to the Garage of `docker-compose.local.yml`. The key comes from step 3
     of `docs/development.md`. `.env.test` sets `S3_BUCKET=` empty, so the tests store the files
     in `static/`.
+  - `S3_BUCKET` set: the `paymentReceipt` module keeps the receipts in the private bucket
+    `S3_RECEIPTS_BUCKET`, with the endpoint, the region, and the key of the File Module.
+    `docker-compose.yml` sets `S3_RECEIPTS_BUCKET=store-receipts` in production. `S3_BUCKET`
+    empty: the module keeps the receipts in `RECEIPTS_DIR` (default `uploads/receipts`, relative
+    to the backend directory). `.gitignore` ignores `/uploads`.
 - The bank transfer payment provider is always registered. It needs no env key.
 - These conditions stop startup with an error:
   - `SHIPPING_RATE_PER_KG` is not a positive integer.
   - `BREVO_API_KEY` has a value and `BREVO_SENDER_EMAIL` is empty.
   - `S3_BUCKET` has a value and an `S3_` key is missing.
+  - `S3_BUCKET` has a value and `S3_RECEIPTS_BUCKET` is empty or is the same as `S3_BUCKET`.
 
 ## Source layout
 
@@ -83,6 +89,21 @@ pnpm --filter @store/backend lint                         # ESLint, eslint.confi
     `magic_link_request`. `tokens.ts` has the token helpers and the lifetimes. `browser.ts`
     makes the browser text, for example "Chrome on Windows". The table keeps only SHA-256 hashes
     of the token and the secret.
+  - `payment-receipt/`: data module `paymentReceipt` (`PAYMENT_RECEIPT_MODULE`) with the models
+    `payment_receipt` (id prefix `prcpt`) and `payment_note` (id prefix `pnote`). Each model has
+    an indexed `order_id` column. This column is the link to the order. There is no module link.
+    - `constants.ts`: `MAX_RECEIPTS` (3), `MAX_RECEIPT_BYTES` (5 MB), `MAX_NOTE_LENGTH` (500), the
+      three image types, the two event names, and the type and size messages.
+    - `file-rules.ts`: `decodeReceipt` (strict base64), `detectReceiptType` (magic numbers of JPG,
+      PNG, and WebP), and `cleanFileName` (no path, no control characters, at most 120
+      characters).
+    - `storage/`: `createReceiptStorage(options)` gives `S3ReceiptStorage` (private bucket, no
+      ACL) or `LocalReceiptStorage` (a directory, refuses a key outside it).
+      `src/config/modules.ts` sets the storage option.
+    - `service.ts`: `receiptStates(orderIds)` gives the receipts (oldest first) and the newest note
+      of each order in two queries. `countReceipts`, `putFile`, `getFile`, and `removeFile`. A
+      summary has no `file_key`.
+    - The file key is `<order_id>/<receipt_id>.<jpg|png|webp>`.
   - Each data module has its own `migrations/`.
 - `src/lib/`: pure code with no module.
   - `option-names.ts`: the option names of a colour (`colour`, `color`, `warna`) and of a size
@@ -92,14 +113,25 @@ pnpm --filter @store/backend lint                         # ESLint, eslint.confi
     uses the same keys.
   - `catalog-filters.ts`, `catalog-price.ts`, and `home-categories.ts`: the logic of the catalog
     routes and the home categories route.
+  - `bank-transfer-order.ts`: the payment rules of an order: `isBankTransferOrder`,
+    `isPaymentCaptured`, `capturablePaymentId`, and `receiptBlockReason` with the messages
+    `RECEIPT_BLOCK_MESSAGES`. The receipt routes and the job read the order with
+    `ORDER_PAYMENT_FIELDS` from `api/store/orders/[id]/receipts/route.ts`.
 - `src/links/`: read-only links (`readOnly: true`) from `review`, `wishlist`, and `wishlist_item`
   to product, customer, and productVariant.
 - `src/workflows/`: `create-review`, `update-review-status`, `add-wishlist-item`,
-  `remove-wishlist-item`, `publish-home-campaign`, and `resolve-customer-account`. Shared steps
-  are in `src/workflows/steps/`.
+  `remove-wishlist-item`, `publish-home-campaign`, `resolve-customer-account`, and
+  `upload-payment-receipt`. Shared steps are in `src/workflows/steps/`.
   - `publish-home-campaign` ends the old live campaign first, then makes the new campaign live.
   - `resolve-customer-account` finds or makes the account customer and the `magic-link` auth
     identity for an email. A guest customer with the email becomes the account.
+  - `upload-payment-receipt` writes the file (`store-receipt-file`), then the row
+    (`create-payment-receipt`), then emits `payment_receipt.uploaded` `{ id, order_id }`. Each
+    step removes its write when a later step fails. The result is `{ id, file_name, created_at }`.
+    `created_at` is an ISO string, because the workflow engine sends the result through JSON.
+  - The upload route checks the bytes, the size, and `receiptBlockReason` before it runs the
+    workflow. The count and the workflow run inside the `Modules.LOCKING` key
+    `payment-receipt:<order_id>`, so two uploads at the same time cannot make a fourth receipt.
 - `src/subscribers/`:
   - `order.placed`: `order-placed` sends the order email. For an unpaid bank transfer order, the
     email has the amount, the active bank accounts, and the deadline in WIB.
@@ -109,6 +141,13 @@ pnpm --filter @store/backend lint                         # ESLint, eslint.confi
     event has `no_notification: true`.
   - `auth.password_reset`: `password-reset` sends the reset link only to an admin user
     (`actor_type` `user`).
+  - `payment_receipt.uploaded`: `payment-receipt-uploaded` sends the `receipt-uploaded` email to
+    `STORE_OWNER_EMAIL`. If `STORE_OWNER_EMAIL` is empty, it sends nothing and logs a warning. The
+    link is `<admin.backendUrl><admin.path>/orders/<order_id>`. When `backendUrl` is empty or `/`,
+    the link starts with `http://localhost:9000`, as in `password-reset`.
+  - `payment_receipt.more_requested` `{ order_id, note_id }`: `payment-more-requested` sends the
+    `more-payment-needed` email with the note to the order email. The link is
+    `<STOREFRONT_URL>/orders/<order_id>`.
 - `src/jobs/check-paid-carts.ts` is the job definition (`*/15 * * * *`).
   - Medusa calls a job as `(container, { scheduledFor })`. Thus the default export takes only the
     container. The named export `runCheckPaidCarts(container, adapters)` has the logic, and the
@@ -117,6 +156,16 @@ pnpm --filter @store/backend lint                         # ESLint, eslint.confi
   - The wiring to Query, Notification, and Cart is in `src/recovery/dependencies.ts`. The
     adapters are in `src/recovery/adapters.ts`.
   - `RECOVERY_ADAPTERS` is empty, so the job returns at once and writes no log line.
+- `src/jobs/cancel-unpaid-orders.ts` is the job definition (`*/15 * * * *`). The logic is in
+  `src/payment-timeout/`.
+  - `select-expired.ts` is pure. `selectExpiredOrders` keeps the bank transfer orders that are
+    not cancelled, have no captured payment, have no receipt, and were placed at least
+    `PAYMENT_DEADLINE_MS` ago. It gives at most `MAX_CANCELS_PER_RUN` (50) ids, oldest first.
+  - `run.ts` (`runPaymentTimeout`) reads the orders of the last 7 days that are older than the
+    deadline. It cancels each selected order with `cancelOrderWorkflow`, which releases the stock.
+    Then it writes `metadata.cancel_reason = "payment_timeout"`. The tracking route returns this
+    reason.
+  - A failed order does not stop the run. The job catches and logs all errors itself.
 - `src/seed/`: idempotent seed steps for the region, the bank account, fulfillment, products, the
   storefront settings, and the API key. `bank-account.ts` adds the "Sample Bank" account and the
   sample contact only when the owner has no data. `storefront.ts` saves the price limits only
@@ -128,8 +177,13 @@ pnpm --filter @store/backend lint                         # ESLint, eslint.confi
     Bank transfer** (`routes/settings/bank-transfer/page.tsx`), and **Settings → Storefront**
     (`routes/settings/storefront/page.tsx`).
   - Widgets: `category-tile` (zone `product_category.details.side`), `product-details` (zone
-    `product.details`), and `colour-dots` (zone `product.details.side`). The `.after` suffix of a
-    zone has no effect in Medusa 2.21.2.
+    `product.details`), `colour-dots` (zone `product.details.side`), and `payment-receipts` (zone
+    `order.details`). The `.after` suffix of a zone has no effect in Medusa 2.21.2.
+  - `payment-receipts.tsx` shows only for a bank transfer order. It shows the uploaded receipts,
+    the newest owner note, and the buttons **Accept payment**, **Ask for more**, and **Cancel
+    order**. The buttons go away after the cancellation or the capture. **Ask for more** opens
+    `components/ask-for-more-drawer.tsx`. The helpers are in `lib/payment-receipts.ts`. They copy
+    the limits and the provider id, because the admin bundle must not import server code.
   - The pure helpers are in `lib/` and have unit tests in `lib/__tests__/`. Shared forms are in
     `components/`.
   - The admin code has its own `tsconfig.json`. The root `tsconfig.json` excludes `src/admin`.
@@ -166,11 +220,34 @@ src/admin/tsconfig.json`.
 - The session data has no customer data. The order already has the customer contact.
 - `getWebhookActionAndData` returns `not_supported`. A bank transfer sends no webhook.
 - `capturePayment` does nothing. The owner captures the payment in the Medusa Admin after the
-  money arrives.
+  money arrives, with **Accept payment** in the `payment-receipts` widget.
 - `refundPayment` does nothing. The owner returns the money outside of Medusa.
-- The deadline is the order time plus `PAYMENT_DEADLINE_MS` (24 hours).
+- The deadline is the order time plus `PAYMENT_DEADLINE_MS` (24 hours). After the deadline, the
+  job `cancel-unpaid-orders` cancels the order if it has no receipt and no captured payment.
 - An unpaid bank transfer order has a payment collection with the status `authorized` and a payment
   session with the provider id `pp_bank-transfer_bank-transfer`.
+
+## Payment receipt facts
+
+- Never serve a receipt from a public path. A receipt goes only to `S3_RECEIPTS_BUCKET` or
+  `RECEIPTS_DIR`, never to `S3_BUCKET`, `static/`, or a bucket with a web endpoint. Only
+  `GET /admin/payment-receipts/:id/file` sends the bytes, with `Cache-Control: private, no-store`.
+- The Store routes `POST /store/orders/:id/receipts` and `GET /store/payment-states` need only
+  the publishable key, because a guest uses the order id. Their answers have no `file_key`, no
+  URL, and no file bytes.
+- The upload body is JSON `{ file_name, content }` with the file as base64. The body limit of the
+  route is `7mb`. The backend takes the type from the bytes, not from the name.
+- The customer can upload while the order is a bank transfer order, is not cancelled, has no
+  captured payment, and has fewer than 3 receipts.
+- An order is "payment submitted" when it has a receipt and no note is newer than the newest
+  receipt. Else it waits for payment.
+- **Accept** captures the open bank transfer payment with `capturePaymentWorkflow`. It sends no
+  email. It does not need a receipt.
+- **Ask for more** saves a `payment_note` and emits the event. The note is required, and has at
+  most 500 characters after `trim()`. The schema uses `refine()`, because the Medusa validator
+  replaces the messages of `min()` and `max()`. Medusa adds `Invalid request: ` before each
+  message, for example `Invalid request: Write a note for the customer.`
+- **Cancel order** in the widget calls the Medusa order cancellation, which releases the stock.
 
 ## Docker
 
