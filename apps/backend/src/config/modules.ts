@@ -1,3 +1,5 @@
+import type { ReceiptStorageOptions } from "../modules/payment-receipt/storage/types"
+
 export type ModuleEntry = { resolve: string; options?: Record<string, unknown> }
 export type Env = Record<string, string | undefined>
 
@@ -140,14 +142,44 @@ function paymentModule(): ModuleEntry {
   }
 }
 
+const DEFAULT_RECEIPTS_DIR = "uploads/receipts"
+
+// Returns the storage of the payment receipts. The receipts are private, so they never go to
+// S3_BUCKET, which assets.<domain> serves. Without S3 they go to a directory outside static/.
+// The messages name the keys only, because a value can be a secret.
+function receiptStorage(env: Env): ReceiptStorageOptions {
+  if (!env.S3_BUCKET) {
+    return { type: "local", dir: env.RECEIPTS_DIR || DEFAULT_RECEIPTS_DIR }
+  }
+
+  const bucket = env.S3_RECEIPTS_BUCKET
+  if (!bucket) {
+    throw new Error("S3_RECEIPTS_BUCKET is missing. Set it when S3_BUCKET has a value.")
+  }
+  if (bucket === env.S3_BUCKET) {
+    throw new Error("S3_RECEIPTS_BUCKET must not be the S3_BUCKET of the product images.")
+  }
+
+  // fileModule() stops the start when one of these keys is missing.
+  return {
+    type: "s3",
+    bucket,
+    endpoint: env.S3_ENDPOINT!,
+    region: env.S3_REGION!,
+    accessKeyId: env.S3_ACCESS_KEY_ID!,
+    secretAccessKey: env.S3_SECRET_ACCESS_KEY!,
+  }
+}
+
 // Returns the custom modules that have their own data models.
-function customModules(): ModuleEntry[] {
+function customModules(env: Env): ModuleEntry[] {
   return [
     { resolve: "./src/modules/product-review" },
     { resolve: "./src/modules/wishlist" },
     { resolve: "./src/modules/bank-account" },
     { resolve: "./src/modules/storefront" },
     { resolve: "./src/modules/magic-link" },
+    { resolve: "./src/modules/payment-receipt", options: { storage: receiptStorage(env) } },
   ]
 }
 
@@ -222,7 +254,7 @@ export function buildModules(env: Env): ModuleEntry[] {
     notificationModule(env),
     paymentModule(),
     translationModule(),
-    ...customModules(),
+    ...customModules(env),
     ...fileModule(env),
   ]
 }

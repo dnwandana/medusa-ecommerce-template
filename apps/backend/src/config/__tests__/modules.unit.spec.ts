@@ -1,4 +1,4 @@
-import { buildModules } from "../modules"
+import { buildModules, type Env } from "../modules"
 
 const resolves = (env: Record<string, string | undefined>) =>
   buildModules(env).map((m) => m.resolve)
@@ -224,6 +224,7 @@ describe("buildModules: S3 file provider", () => {
     S3_REGION: "garage",
     S3_BUCKET: "store-assets",
     S3_ENDPOINT: "http://garage:3900",
+    S3_RECEIPTS_BUCKET: "store-receipts",
   }
 
   const fileModule = (env: Record<string, string | undefined>) =>
@@ -295,5 +296,59 @@ describe("buildModules: magic link module", () => {
     const list = buildModules({ REDIS_URL: "redis://localhost:6379" })
     expect(list.filter((m) => m.resolve === "./src/modules/magic-link")).toHaveLength(1)
     expect(list).toContainEqual({ resolve: "./src/modules/magic-link" })
+  })
+})
+
+describe("buildModules: payment receipt module", () => {
+  const s3Env = {
+    S3_FILE_URL: "https://assets.example.com",
+    S3_ACCESS_KEY_ID: "GK3515373e4c851ebaad366558",
+    S3_SECRET_ACCESS_KEY: "secret-value",
+    S3_REGION: "garage",
+    S3_BUCKET: "store-assets",
+    S3_ENDPOINT: "http://garage:3900",
+  }
+
+  const receipt = (env: Env) =>
+    buildModules(env).find((m) => m.resolve === "./src/modules/payment-receipt")
+
+  it("keeps the receipts in a local directory with no S3 bucket", () => {
+    expect(receipt({})?.options).toEqual({ storage: { type: "local", dir: "uploads/receipts" } })
+    expect(receipt({ RECEIPTS_DIR: "" })?.options).toEqual({
+      storage: { type: "local", dir: "uploads/receipts" },
+    })
+    expect(receipt({ RECEIPTS_DIR: "/srv/receipts" })?.options).toEqual({
+      storage: { type: "local", dir: "/srv/receipts" },
+    })
+  })
+
+  it("keeps the receipts in the private bucket with S3", () => {
+    expect(receipt({ ...s3Env, S3_RECEIPTS_BUCKET: "store-receipts" })?.options).toEqual({
+      storage: {
+        type: "s3",
+        bucket: "store-receipts",
+        endpoint: s3Env.S3_ENDPOINT,
+        region: s3Env.S3_REGION,
+        accessKeyId: s3Env.S3_ACCESS_KEY_ID,
+        secretAccessKey: s3Env.S3_SECRET_ACCESS_KEY,
+      },
+    })
+  })
+
+  it("stops when S3 is on and the receipts bucket is missing", () => {
+    expect(() => buildModules(s3Env)).toThrow(
+      "S3_RECEIPTS_BUCKET is missing. Set it when S3_BUCKET has a value."
+    )
+  })
+
+  it("refuses the public assets bucket for receipts", () => {
+    expect(() => buildModules({ ...s3Env, S3_RECEIPTS_BUCKET: s3Env.S3_BUCKET })).toThrow(
+      "S3_RECEIPTS_BUCKET must not be the S3_BUCKET of the product images."
+    )
+  })
+
+  it("registers the module one time", () => {
+    const list = buildModules({ REDIS_URL: "redis://localhost:6379" })
+    expect(list.filter((m) => m.resolve === "./src/modules/payment-receipt")).toHaveLength(1)
   })
 })

@@ -30,6 +30,7 @@ x-medusa-environment: &medusa-environment
   S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
   S3_REGION: garage
   S3_BUCKET: store-assets
+  S3_RECEIPTS_BUCKET: store-receipts
   S3_ENDPOINT: http://garage:3900
 
 x-medusa-depends-on: &medusa-depends-on
