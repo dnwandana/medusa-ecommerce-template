@@ -1,33 +1,31 @@
 <script setup lang="ts">
-const { t, locale } = useI18n()
-const route = useRoute()
-const catalog = useCatalog()
+const { t } = useI18n()
+// The header loads the same categories, so the page makes no category request of its own.
+const { categories } = useNavCategories()
 
-const page = computed(() => Math.max(1, Number.parseInt(String(route.query.page ?? "1"), 10) || 1))
-
-// The server render has the status "success". The status is "pending" only while a page change on the client loads.
-const { data, error, status } = await useAsyncData(
-  () => `products:${locale.value}:${page.value}`,
-  () => catalog.listProducts({ offset: (page.value - 1) * PAGE_SIZE })
-)
-const { data: categories } = await useAsyncData(
-  () => `categories:${locale.value}`,
-  () => catalog.listCategories()
-)
+const links = computed(() => topCategoryLinks(categories.value, t("listing.all")))
+// The list has no category and no search text.
+const scope = {}
+const emptyAction = computed(() => ({ label: t("listing.backHome"), to: "/" }))
 
 useHead({ title: () => t("products.title") })
 </script>
 
 <template>
-  <div class="flex flex-col gap-6 md:gap-8">
-    <h1 class="text-h1">{{ $t("products.title") }}</h1>
-    <CategoryFilter v-if="categories?.length" :categories="categories" />
-    <ProductGrid
-      :products="data?.products ?? []"
+  <div class="pt-6 pb-16 md:pt-12 md:pb-32">
+    <header
+      class="flex flex-col gap-6 pb-6 md:flex-row md:flex-wrap md:items-end md:justify-between md:gap-x-12 md:pb-10"
+    >
+      <h1 class="text-h1">{{ $t("products.title") }}</h1>
+      <CategoryFilter :links="links" />
+    </header>
+
+    <CatalogListing
+      :scope="scope"
       :empty-text="$t('products.empty')"
-      :loading="status === 'pending'"
-      :error="!!error"
+      :empty-body="$t('listing.productsEmptyBody')"
+      :empty-action="emptyAction"
+      :categories="links"
     />
-    <CatalogPagination :page="page" :count="data?.count ?? 0" path="/products" />
   </div>
 </template>

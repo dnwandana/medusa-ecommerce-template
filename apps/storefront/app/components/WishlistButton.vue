@@ -1,8 +1,13 @@
 <script setup lang="ts">
 import { Heart } from "@lucide/vue"
 import { toast } from "vue-sonner"
+import { signInTarget } from "~/utils/authPaths"
 
-const props = defineProps<{ variantId: string | null }>()
+// "square" sits next to "Add to cart". "overlay" sits on the top right of a card photo.
+const props = withDefaults(
+  defineProps<{ variantId: string | null; look?: "square" | "overlay" }>(),
+  { look: "square" }
+)
 
 const route = useRoute()
 const localePath = useLocalePath()
@@ -28,7 +33,7 @@ onMounted(async () => {
 async function toggle(): Promise<void> {
   // A guest does not call a wishlist route.
   if (!customer.value) {
-    await navigateTo({ path: localePath("/account/login"), query: { redirect: route.fullPath } })
+    await navigateTo(localePath(signInTarget(route.fullPath)))
     return
   }
   if (props.variantId === null) {
@@ -53,14 +58,15 @@ async function toggle(): Promise<void> {
 <template>
   <Button
     type="button"
-    variant="outline"
-    size="lg"
-    class="w-full"
+    :variant="look === 'overlay' ? 'ghost' : 'outline'"
+    size="icon"
+    :class="look === 'overlay' ? 'hover:bg-transparent' : 'size-14'"
     :disabled="busy"
+    :aria-label="item ? $t('wishlist.remove') : $t('wishlist.save')"
     :aria-pressed="item ? 'true' : 'false'"
+    :title="customer ? undefined : $t('wishlist.signInToSave')"
     @click="toggle"
   >
-    <Heart aria-hidden="true" :class="item ? 'fill-current text-sale' : ''" />
-    {{ item ? $t("wishlist.remove") : $t("wishlist.add") }}
+    <Heart aria-hidden="true" class="size-5" :class="item ? 'fill-current' : ''" />
   </Button>
 </template>

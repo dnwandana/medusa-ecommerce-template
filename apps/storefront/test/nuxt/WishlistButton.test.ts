@@ -2,6 +2,7 @@ import { mockNuxtImport, mountSuspended } from "@nuxt/test-utils/runtime"
 import { flushPromises } from "@vue/test-utils"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { WishlistButton } from "#components"
+import { SIGN_IN_PATH } from "~/utils/authPaths"
 
 const { customerState, wishlist, navigateToMock } = await vi.hoisted(async () => {
   const { ref } = await import("vue")
@@ -45,6 +46,37 @@ beforeEach(() => {
 })
 
 describe("WishlistButton", () => {
+  it("is an icon button with a label that tells the state", async () => {
+    const wrapper = await mountButton("variant_1")
+    const button = wrapper.find("button")
+
+    expect(button.text()).toBe("")
+    expect(button.attributes("aria-label")).toBe("Save to wishlist")
+    expect(button.attributes("aria-pressed")).toBe("false")
+
+    wishlist.itemFor.mockReturnValue({ id: "item_1" })
+    const saved = await mountButton("variant_1")
+    expect(saved.find("button").attributes("aria-label")).toBe("Remove from wishlist")
+    expect(saved.find("svg").classes()).toContain("fill-current")
+    expect(saved.find("svg").classes()).not.toContain("text-sale")
+  })
+
+  it("tells a guest to sign in", async () => {
+    customerState.customer.value = null
+    const wrapper = await mountButton("variant_1")
+
+    expect(wrapper.find("button").attributes("title")).toBe("Sign in to save to your wishlist")
+  })
+
+  it("has the overlay look for a card", async () => {
+    const wrapper = await mountSuspended(WishlistButton, {
+      props: { variantId: "variant_1", look: "overlay" },
+    })
+
+    expect(wrapper.find("button").classes()).toContain("size-11")
+    expect(wrapper.find("button").classes()).not.toContain("border")
+  })
+
   it("sends a guest to the login page and comes back to the same page", async () => {
     customerState.customer.value = null
     const wrapper = await mountButton("variant_1")
@@ -53,7 +85,7 @@ describe("WishlistButton", () => {
     await flushPromises()
 
     expect(navigateToMock).toHaveBeenCalledWith({
-      path: "/account/login",
+      path: SIGN_IN_PATH,
       query: { redirect: "/" },
     })
     expect(wishlist.add).not.toHaveBeenCalled()
@@ -62,7 +94,7 @@ describe("WishlistButton", () => {
   it("adds the variant for a logged-in customer", async () => {
     const wrapper = await mountButton("variant_1")
 
-    expect(wrapper.find("button").text()).toBe("Add to wishlist")
+    expect(wrapper.find("button").attributes("aria-label")).toBe("Save to wishlist")
     await wrapper.find("button").trigger("click")
     await flushPromises()
 
@@ -73,7 +105,7 @@ describe("WishlistButton", () => {
     wishlist.itemFor.mockReturnValue({ id: "wi_1", product_variant_id: "variant_1" })
     const wrapper = await mountButton("variant_1")
 
-    expect(wrapper.find("button").text()).toBe("Remove from wishlist")
+    expect(wrapper.find("button").attributes("aria-label")).toBe("Remove from wishlist")
     expect(wrapper.find("button").attributes("aria-pressed")).toBe("true")
     await wrapper.find("button").trigger("click")
     await flushPromises()
@@ -113,7 +145,9 @@ describe("WishlistButton", () => {
     const wrapper = await mountButton("variant_1")
 
     expect(wrapper.find("button svg").classes()).not.toContain("fill-current")
-    expect(wrapper.find("button").classes()).toContain("w-full")
+    // The square look is a 56 px square with an ink border, next to "Add to cart".
+    expect(wrapper.find("button").classes()).toContain("size-14")
+    expect(wrapper.find("button").classes()).toContain("border-foreground")
   })
 
   it("shows no inline message", async () => {
