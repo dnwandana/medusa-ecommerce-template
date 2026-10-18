@@ -77,6 +77,7 @@ function renderBankTransfer(bankTransfer: OrderPlacedBankTransfer): string {
     `<p>${escapeHtml(`Amount: ${formatRupiah(bankTransfer.amount)}`)}</p>`,
     accounts,
     `<p>${escapeHtml(`Transfer the exact amount before ${bankTransfer.deadline}.`)}</p>`,
+    `<p>${escapeHtml(`After the transfer, upload the receipt on the order page before ${bankTransfer.deadline}.`)}</p>`,
   ]
     .filter(Boolean)
     .join("\n")
@@ -91,9 +92,13 @@ export function renderOrderPlaced(data: OrderPlacedData): RenderedEmail {
 
   const title = `Order #${order.display_id} confirmed`
   const items = (order.items ?? []).map(renderItem).join("\n")
+  // An unpaid bank transfer order waits for the payment, so the email does not promise shipping.
+  const intro = data.bank_transfer
+    ? "Thank you for your order. We received your order. We prepare it for shipping after we confirm your payment."
+    : "Thank you for your order. We received it and will prepare it for shipping."
 
   const body = [
-    "<p>Thank you for your order. We received it and will prepare it for shipping.</p>",
+    `<p>${intro}</p>`,
     `<table style="width:100%;border-collapse:collapse;">\n${items}\n</table>`,
     `<p>${escapeHtml(`Shipping: ${formatRupiah(order.shipping_total)}`)}<br>`,
     `<strong>${escapeHtml(`Total: ${formatRupiah(order.total)}`)}</strong></p>`,

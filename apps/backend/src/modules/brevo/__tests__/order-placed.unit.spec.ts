@@ -23,6 +23,15 @@ const data = {
   },
 }
 
+const bankTransferData = {
+  ...data,
+  bank_transfer: {
+    amount: 318000,
+    deadline: "18 October 2026, 14:30 WIB",
+    accounts: [{ bank_name: "BCA", account_number: "0123456789", account_holder: "Toko" }],
+  },
+}
+
 describe("renderOrderPlaced", () => {
   it("uses the display id in the subject", () => {
     expect(renderOrderPlaced(data).subject).toBe("Order #42 confirmed")
@@ -103,6 +112,21 @@ describe("renderOrderPlaced", () => {
   // Review Focus: a gateway order email does not show the bank details.
   it("shows no bank details for an order with no bank_transfer value", () => {
     expect(renderOrderPlaced(data).html).not.toMatch(/bank transfer/i)
+  })
+
+  it("tells a bank transfer customer that the order waits for payment", () => {
+    const html = renderOrderPlaced(bankTransferData).html
+    expect(html).toContain("We prepare it for shipping after we confirm your payment.")
+    expect(html).toContain(
+      "After the transfer, upload the receipt on the order page before 18 October 2026, 14:30 WIB."
+    )
+    expect(html).not.toContain("We received it and will prepare it for shipping")
+  })
+
+  it("keeps the text of a gateway order", () => {
+    const html = renderOrderPlaced(data).html
+    expect(html).toContain("We received it and will prepare it for shipping")
+    expect(html).not.toContain("upload the receipt")
   })
 
   it("escapes the account values", () => {
