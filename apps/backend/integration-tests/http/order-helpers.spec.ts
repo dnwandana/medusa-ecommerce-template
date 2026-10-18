@@ -47,7 +47,7 @@ medusaIntegrationTestRunner({
         }
 
         const order = await placeOrder(ctx, [
-          ["TSHIRT-M", 3],
+          ["TSHIRT-M-BLACK", 3],
           ["TOTE-DEFAULT", 1],
         ])
         // The store response of Medusa 2.21 has no customer_id by default. The Query reads it.
@@ -61,14 +61,14 @@ medusaIntegrationTestRunner({
         expect(saved.customer_id).toBe(customer.id)
 
         const before = await getOrderItems(container, order.id)
-        expect(before.map((item) => item.sku).sort()).toEqual(["TOTE-DEFAULT", "TSHIRT-M"])
+        expect(before.map((item) => item.sku).sort()).toEqual(["TOTE-DEFAULT", "TSHIRT-M-BLACK"])
         expect(before.every((item) => item.shipped_quantity === 0)).toBe(true)
 
-        const shirt = before.find((item) => item.sku === "TSHIRT-M")!
+        const shirt = before.find((item) => item.sku === "TSHIRT-M-BLACK")!
         await shipOrderItems(container, order.id, [{ id: shirt.id, quantity: 1 }])
 
         const after = await getOrderItems(container, order.id)
-        expect(after.find((item) => item.sku === "TSHIRT-M")!.shipped_quantity).toBe(1)
+        expect(after.find((item) => item.sku === "TSHIRT-M-BLACK")!.shipped_quantity).toBe(1)
         expect(after.find((item) => item.sku === "TOTE-DEFAULT")!.shipped_quantity).toBe(0)
       })
 

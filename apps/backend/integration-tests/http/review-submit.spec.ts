@@ -28,11 +28,11 @@ medusaIntegrationTestRunner({
         publishableKey = seed.publishableKey
         headers = { "x-publishable-api-key": publishableKey, ...customer.headers }
         const order = await placeOrder({ api, headers, regionId: seed.regionId }, [
-          ["TSHIRT-M", 3],
+          ["TSHIRT-M-BLACK", 3],
           ["TOTE-DEFAULT", 1],
         ])
         const items = await getOrderItems(container, order.id)
-        shirt = items.find((item) => item.sku === "TSHIRT-M")!
+        shirt = items.find((item) => item.sku === "TSHIRT-M-BLACK")!
         tote = items.find((item) => item.sku === "TOTE-DEFAULT")!
         await shipOrderItems(container, order.id, [{ id: shirt.id, quantity: 1 }])
       })
