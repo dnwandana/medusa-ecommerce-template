@@ -146,6 +146,8 @@ function customModules(): ModuleEntry[] {
     { resolve: "./src/modules/product-review" },
     { resolve: "./src/modules/wishlist" },
     { resolve: "./src/modules/bank-account" },
+    { resolve: "./src/modules/storefront" },
+    { resolve: "./src/modules/magic-link" },
   ]
 }
 

@@ -194,6 +194,17 @@ describe("buildModules: bank account module", () => {
   })
 })
 
+describe("buildModules: storefront module", () => {
+  it("registers the storefront module", () => {
+    expect(buildModules({})).toContainEqual({ resolve: "./src/modules/storefront" })
+  })
+
+  it("adds the module one time", () => {
+    const list = buildModules({ REDIS_URL: "redis://localhost:6379" })
+    expect(list.filter((m) => m.resolve === "./src/modules/storefront")).toHaveLength(1)
+  })
+})
+
 describe("buildModules: translation module", () => {
   it("adds the Translation Module with and without Redis", () => {
     expect(resolves({})).toContain("@medusajs/medusa/translation")
@@ -276,5 +287,13 @@ describe("buildModules: S3 file provider", () => {
     } catch (error) {
       expect((error as Error).message).not.toContain("secret-value")
     }
+  })
+})
+
+describe("buildModules: magic link module", () => {
+  it("registers the magic link module one time", () => {
+    const list = buildModules({ REDIS_URL: "redis://localhost:6379" })
+    expect(list.filter((m) => m.resolve === "./src/modules/magic-link")).toHaveLength(1)
+    expect(list).toContainEqual({ resolve: "./src/modules/magic-link" })
   })
 })
