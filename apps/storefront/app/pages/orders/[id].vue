@@ -13,7 +13,7 @@ const { data: order } = await useAsyncData(
 )
 
 if (!order.value) {
-  throw createError({ statusCode: 404, statusMessage: t("order.notFound"), fatal: true })
+  throw createError({ statusCode: 404, data: { messageKey: "order.notFound" }, fatal: true })
 }
 
 // A captured order or a gateway order must not show the bank details.

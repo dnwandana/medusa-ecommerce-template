@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { ORDER_FIELDS, useOrders } from "#imports"
 
 const { sdk } = vi.hoisted(() => ({
-  sdk: { store: { order: { retrieve: vi.fn(), list: vi.fn() } } },
+  sdk: { store: { order: { retrieve: vi.fn(), list: vi.fn() } }, client: { fetch: vi.fn() } },
 }))
 
 mockNuxtImport("useMedusa", () => () => sdk)
@@ -13,12 +13,13 @@ const httpError = (status: number) => Object.assign(new Error(`HTTP ${status}`),
 beforeEach(() => {
   sdk.store.order.retrieve.mockReset()
   sdk.store.order.list.mockReset()
+  sdk.client.fetch.mockReset()
 })
 
 describe("useOrders", () => {
-  it("asks for the payment collections, so that the order page can find a bank transfer", () => {
+  it("asks for the status, the fulfillments, the shipping methods and the payments", () => {
     expect(ORDER_FIELDS).toBe(
-      "*items,*shipping_address,+item_subtotal,+shipping_total,+total,+created_at,+payment_collections.status,*payment_collections.payment_sessions"
+      "*items,*shipping_address,+item_subtotal,+shipping_total,+total,+created_at,+status,+payment_status,+fulfillment_status,*fulfillments,*shipping_methods,+payment_collections.status,*payment_collections.payment_sessions,*payment_collections.payments"
     )
   })
 
@@ -65,5 +66,21 @@ describe("useOrders", () => {
     expect(sdk.store.order.list).toHaveBeenCalledWith(
       expect.objectContaining({ limit: 20, offset: 0 })
     )
+  })
+
+  it("reads the tracking of one order", async () => {
+    sdk.client.fetch.mockResolvedValue({ cancel_reason: null, shipments: [] })
+    expect(await useOrders().getTracking("order_1")).toEqual({ cancel_reason: null, shipments: [] })
+    expect(sdk.client.fetch).toHaveBeenCalledWith("/store/orders/order_1/tracking")
+  })
+
+  it("returns null tracking for an order that does not exist", async () => {
+    sdk.client.fetch.mockRejectedValue(httpError(404))
+    expect(await useOrders().getTracking("order_x")).toBeNull()
+  })
+
+  it("throws a tracking error that is not 404", async () => {
+    sdk.client.fetch.mockRejectedValue(httpError(500))
+    await expect(useOrders().getTracking("order_1")).rejects.toThrow("HTTP 500")
   })
 })

@@ -1,5 +1,6 @@
 import { mockNuxtImport, mountSuspended } from "@nuxt/test-utils/runtime"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import type { NuxtError } from "#app"
 import { clearNuxtData } from "#imports"
 import OrderPage from "~/pages/orders/[id].vue"
 
@@ -122,5 +123,16 @@ describe("order page", () => {
     expect(wrapper.text()).toContain("The bank details are not available. Contact the store.")
     expect(wrapper.text()).toContain("Thank you for your order")
     expect(wrapper.text()).toContain("Order #12")
+  })
+
+  it("throws a 404 with the message key", async () => {
+    orders.getOrder.mockResolvedValue(null)
+    await mountSuspended(OrderPage, { route: "/orders/missing" })
+    // mountSuspended does not reject. The fatal error goes to the Nuxt error state.
+    const error = useError().value as NuxtError
+    await clearError()
+    expect(error.statusCode).toBe(404)
+    expect(error.data).toEqual({ messageKey: "order.notFound" })
+    expect(error.statusMessage ?? "").not.toContain("not")
   })
 })
