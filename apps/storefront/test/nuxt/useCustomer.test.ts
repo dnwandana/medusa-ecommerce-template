@@ -6,15 +6,12 @@ const { sdk, cart } = vi.hoisted(() => ({
   cart: { transferToCustomer: vi.fn(), clear: vi.fn() },
   sdk: {
     auth: {
-      register: vi.fn(),
-      login: vi.fn(),
       logout: vi.fn(),
-      resetPassword: vi.fn(),
-      updateProvider: vi.fn(),
     },
     store: {
       customer: { retrieve: vi.fn(), create: vi.fn(), update: vi.fn() },
     },
+    client: { fetch: vi.fn() },
   },
 }))
 
@@ -30,6 +27,7 @@ beforeEach(() => {
   Object.values(sdk.store.customer).forEach((mock) => mock.mockReset())
   cart.transferToCustomer.mockReset().mockResolvedValue(undefined)
   cart.clear.mockReset()
+  sdk.client.fetch.mockReset().mockResolvedValue({})
   sdk.store.customer.retrieve.mockResolvedValue({ customer: buyer })
 })
 
@@ -69,72 +67,16 @@ describe("useCustomer: login state", () => {
   })
 })
 
-describe("useCustomer: register and login", () => {
-  it("logs in, loads the customer, and transfers the cart", async () => {
-    sdk.auth.login.mockResolvedValue("jwt_token")
-    const { login, customer } = useCustomer()
-
-    await login("buyer@example.com", "secret-password")
-
-    expect(sdk.auth.login).toHaveBeenCalledWith("customer", "emailpass", {
-      email: "buyer@example.com",
-      password: "secret-password",
-    })
-    expect(customer.value).toEqual(buyer)
-    expect(cart.transferToCustomer).toHaveBeenCalledTimes(1)
-  })
-
-  it("rejects a login result that is not a token", async () => {
-    sdk.auth.login.mockResolvedValue({ location: "https://provider.example" })
-
-    await expect(useCustomer().login("buyer@example.com", "pw")).rejects.toThrow(
-      "This login method is not supported."
-    )
-    expect(sdk.store.customer.retrieve).not.toHaveBeenCalled()
-  })
-
-  it("registers the identity, creates the customer with the token, and logs in", async () => {
-    sdk.auth.register.mockResolvedValue("registration_token")
-    sdk.store.customer.create.mockResolvedValue({ customer: buyer })
-    sdk.auth.login.mockResolvedValue("jwt_token")
-    const { register, customer } = useCustomer()
-
-    await register({
-      email: "buyer@example.com",
-      password: "secret-password",
-      first_name: "Sari",
-      last_name: "Dewi",
-    })
-
-    expect(sdk.auth.register).toHaveBeenCalledWith("customer", "emailpass", {
-      email: "buyer@example.com",
-      password: "secret-password",
-    })
-    expect(sdk.store.customer.create).toHaveBeenCalledWith(
-      { email: "buyer@example.com", first_name: "Sari", last_name: "Dewi" },
-      {},
-      { authorization: "Bearer registration_token" }
-    )
-    expect(sdk.auth.login).toHaveBeenCalledTimes(1)
-    expect(customer.value).toEqual(buyer)
-  })
-
-  it("creates no customer when the registration fails", async () => {
-    sdk.auth.register.mockRejectedValue(httpError(401))
-
-    await expect(
-      useCustomer().register({
-        email: "buyer@example.com",
-        password: "secret-password",
-        first_name: "Sari",
-        last_name: "Dewi",
-      })
-    ).rejects.toThrow("HTTP 401")
-    expect(sdk.store.customer.create).not.toHaveBeenCalled()
+describe("useCustomer: no password sign-in", () => {
+  it("has no password functions", () => {
+    const api = useCustomer() as Record<string, unknown>
+    for (const name of ["login", "register", "requestPasswordReset", "resetPassword"]) {
+      expect(api[name]).toBeUndefined()
+    }
   })
 })
 
-describe("useCustomer: logout, profile, and password", () => {
+describe("useCustomer: logout and profile", () => {
   it("logs out and clears the customer, the cart, the wishlist, and the addresses", async () => {
     sdk.auth.logout.mockResolvedValue(undefined)
     const wishlist = useState<unknown>("wishlist", () => ({ id: "wl_1", items: [] }))
@@ -164,37 +106,61 @@ describe("useCustomer: logout, profile, and password", () => {
     })
     expect(customer.value?.phone).toBe("081234567890")
   })
+})
 
-  it("requests a password reset for the email address", async () => {
-    sdk.auth.resetPassword.mockResolvedValue(undefined)
-
-    await useCustomer().requestPasswordReset("buyer@example.com")
-
-    expect(sdk.auth.resetPassword).toHaveBeenCalledWith("customer", "emailpass", {
-      identifier: "buyer@example.com",
+describe("useCustomer: magic link", () => {
+  it("turns the token into a session, then loads the customer and moves the cart", async () => {
+    const order: string[] = []
+    sdk.client.fetch.mockImplementation(async () => {
+      order.push("session")
     })
+    sdk.store.customer.retrieve.mockImplementation(async () => {
+      order.push("retrieve")
+      return { customer: buyer }
+    })
+    cart.transferToCustomer.mockImplementation(async () => {
+      order.push("transfer")
+    })
+    const { signInWithToken, customer } = useCustomer()
+
+    await signInWithToken("jwt_1")
+
+    expect(sdk.client.fetch).toHaveBeenCalledWith("/auth/session", {
+      method: "POST",
+      headers: { authorization: "Bearer jwt_1" },
+    })
+    expect(order).toEqual(["session", "retrieve", "transfer"])
+    expect(customer.value).toEqual(buyer)
   })
 
-  it("does not show whether the reset request failed", async () => {
-    sdk.auth.resetPassword.mockRejectedValue(httpError(404))
-
-    await expect(useCustomer().requestPasswordReset("nobody@example.com")).resolves.toBeUndefined()
+  it("throws and stays signed out when the session call fails", async () => {
+    sdk.client.fetch.mockRejectedValue(httpError(401))
+    const { signInWithToken, customer } = useCustomer()
+    await expect(signInWithToken("bad")).rejects.toThrow("HTTP 401")
+    expect(customer.value).toBeNull()
+    expect(cart.transferToCustomer).not.toHaveBeenCalled()
   })
 
-  it("sets the new password with the token of the email", async () => {
-    sdk.auth.updateProvider.mockResolvedValue(undefined)
+  it("needs the welcome step only without welcome_sent_at", async () => {
+    const { needsWelcome, customer } = useCustomer()
+    expect(needsWelcome.value).toBe(false)
+    customer.value = { ...buyer, metadata: null } as any
+    expect(needsWelcome.value).toBe(true)
+    customer.value = { ...buyer, metadata: { welcome_sent_at: "2026-10-18T07:40:00.000Z" } } as any
+    expect(needsWelcome.value).toBe(false)
+  })
 
-    await useCustomer().resetPassword({
-      email: "buyer@example.com",
-      password: "new-password",
-      token: "reset_token",
+  it.each([
+    ["Muhammad Rizky Pratama", { first_name: "Muhammad Rizky", last_name: "Pratama" }],
+    ["  Sari ", { first_name: "Sari", last_name: "" }],
+    [null, {}],
+    ["   ", {}],
+  ])("sends the welcome call for %j", async (name, body) => {
+    await useCustomer().completeWelcome(name)
+    expect(sdk.client.fetch).toHaveBeenCalledWith("/store/customers/me/welcome", {
+      method: "POST",
+      body,
     })
-
-    expect(sdk.auth.updateProvider).toHaveBeenCalledWith(
-      "customer",
-      "emailpass",
-      { email: "buyer@example.com", password: "new-password" },
-      "reset_token"
-    )
+    expect(sdk.store.customer.retrieve).toHaveBeenCalled()
   })
 })

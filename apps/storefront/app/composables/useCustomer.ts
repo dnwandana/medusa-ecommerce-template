@@ -1,5 +1,6 @@
 import type { HttpTypes } from "@medusajs/types"
-import type { Ref } from "vue"
+import type { ComputedRef, Ref } from "vue"
+import { splitFullName } from "~/utils/addressForm"
 import { errorStatus } from "~/utils/errorStatus"
 
 // Returns the logged-in customer and the functions for the account.
@@ -9,17 +10,11 @@ export function useCustomer(): {
   loaded: Ref<boolean>
   refresh(): Promise<void>
   ensureLoaded(): Promise<void>
-  register(input: {
-    email: string
-    password: string
-    first_name: string
-    last_name: string
-  }): Promise<void>
-  login(email: string, password: string): Promise<void>
+  signInWithToken(token: string): Promise<void>
+  needsWelcome: ComputedRef<boolean>
+  completeWelcome(fullName: string | null): Promise<void>
   logout(): Promise<void>
   updateProfile(input: { first_name: string; last_name: string; phone: string }): Promise<void>
-  requestPasswordReset(email: string): Promise<void>
-  resetPassword(input: { email: string; password: string; token: string }): Promise<void>
 } {
   // The Nuxt context is not available after an await. Get all composables and states here.
   const sdk = useMedusa()
@@ -51,33 +46,30 @@ export function useCustomer(): {
     }
   }
 
-  async function login(email: string, password: string): Promise<void> {
-    const result = await sdk.auth.login("customer", "emailpass", { email, password })
-    // A result that is not a token is a redirect to a third-party provider.
-    if (typeof result !== "string") {
-      throw new Error("This login method is not supported.")
-    }
+  // The token of the magic link session goes to the backend one time. The backend answers with
+  // the httpOnly session cookie, which replaces the token. The storefront does not keep the token.
+  async function signInWithToken(token: string): Promise<void> {
+    await sdk.client.fetch("/auth/session", {
+      method: "POST",
+      headers: { authorization: `Bearer ${token}` },
+    })
     await refresh()
     await cart.transferToCustomer()
   }
 
-  async function register(input: {
-    email: string
-    password: string
-    first_name: string
-    last_name: string
-  }): Promise<void> {
-    const token = await sdk.auth.register("customer", "emailpass", {
-      email: input.email,
-      password: input.password,
+  // The backend writes welcome_sent_at when it sends the welcome email, after the first sign-in.
+  const needsWelcome = computed(
+    () => customer.value !== null && !customer.value.metadata?.welcome_sent_at
+  )
+
+  // A null or an empty name means that the customer skipped the name step.
+  async function completeWelcome(fullName: string | null): Promise<void> {
+    const name = fullName?.trim() ?? ""
+    await sdk.client.fetch("/store/customers/me/welcome", {
+      method: "POST",
+      body: name ? splitFullName(name) : {},
     })
-    // In session mode, the SDK does not send the registration token. Send it for this request only.
-    await sdk.store.customer.create(
-      { email: input.email, first_name: input.first_name, last_name: input.last_name },
-      {},
-      { authorization: `Bearer ${token}` }
-    )
-    await login(input.email, input.password)
+    await refresh()
   }
 
   async function logout(): Promise<void> {
@@ -98,37 +90,15 @@ export function useCustomer(): {
     customer.value = updated
   }
 
-  async function requestPasswordReset(email: string): Promise<void> {
-    try {
-      await sdk.auth.resetPassword("customer", "emailpass", { identifier: email })
-    } catch {
-      // The page shows the same message for a known and an unknown address.
-    }
-  }
-
-  async function resetPassword(input: {
-    email: string
-    password: string
-    token: string
-  }): Promise<void> {
-    await sdk.auth.updateProvider(
-      "customer",
-      "emailpass",
-      { email: input.email, password: input.password },
-      input.token
-    )
-  }
-
   return {
     customer,
     loaded,
     refresh,
     ensureLoaded,
-    register,
-    login,
+    signInWithToken,
+    needsWelcome,
+    completeWelcome,
     logout,
     updateProfile,
-    requestPasswordReset,
-    resetPassword,
   }
 }
