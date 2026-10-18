@@ -3,10 +3,12 @@ import { flushPromises } from "@vue/test-utils"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { AccountNav, HairlineAccordion, ReviewForm, Skeleton } from "#components"
 import OrdersPage from "~/pages/account/orders.vue"
+import enSource from "~~/i18n/locales/en.json?raw"
 
-const { orders, reviews } = vi.hoisted(() => ({
+const { orders, reviews, customerStatus } = vi.hoisted(() => ({
   orders: { listOrders: vi.fn(), getOrder: vi.fn() },
   reviews: { listReviewableItems: vi.fn(), submit: vi.fn(), listForProduct: vi.fn() },
+  customerStatus: vi.fn(),
 }))
 
 // The auth middleware of /account/orders reads customer and ensureLoaded.
@@ -24,6 +26,15 @@ const { customerState } = await vi.hoisted(async () => {
 mockNuxtImport("useOrders", () => () => orders)
 mockNuxtImport("useReviews", () => () => reviews)
 mockNuxtImport("useCustomer", () => () => customerState)
+mockNuxtImport("customerStatus", () => customerStatus)
+
+// The i18n plugin compiles a plain JSON import into message functions. The raw text keeps the
+// strings. Payment base part 2 owns the text of `order.status.*`.
+const english = JSON.parse(enSource) as Record<string, unknown>
+const i18nText = (key: string): string =>
+  key
+    .split(".")
+    .reduce<unknown>((node, part) => (node as Record<string, unknown>)[part], english) as string
 
 const order = (id: string, displayId: number, total: number) => ({
   id,
@@ -77,6 +88,7 @@ beforeEach(() => {
   orders.listOrders.mockReset().mockResolvedValue({ orders: [], count: 0 })
   reviews.listReviewableItems.mockReset().mockResolvedValue([])
   reviews.submit.mockReset().mockResolvedValue(undefined)
+  customerStatus.mockReset().mockReturnValue("processing")
 })
 
 describe("order history page", () => {
@@ -196,5 +208,38 @@ describe("order history page", () => {
 
     expect(orders.listOrders).toHaveBeenCalledTimes(2)
     expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+  })
+
+  it("shows the customer status of each order as an outline badge", async () => {
+    orders.listOrders.mockResolvedValue({
+      orders: [order1042, order("order_2", 13, 318000)],
+      count: 2,
+    })
+    customerStatus.mockImplementation((value: { id: string }) =>
+      value.id === "order_1" ? "shipped" : "waiting_for_payment"
+    )
+    const wrapper = await mountPage()
+    const badge = wrapper.get('[data-testid="order-order_1"] [data-testid="order-status"]')
+    expect(badge.attributes("data-variant")).toBe("outline")
+    expect(badge.text()).toBe(i18nText("order.status.shipped"))
+    expect(wrapper.get('[data-testid="order-order_2"] [data-testid="order-status"]').text()).toBe(
+      i18nText("order.status.waiting_for_payment")
+    )
+  })
+
+  it("puts the badge in the head row next to the order number", async () => {
+    orders.listOrders.mockResolvedValue({ orders: [order1042], count: 1 })
+    customerStatus.mockReturnValue("processing")
+    const wrapper = await mountPage()
+    const heading = wrapper.get('[data-testid="order-order_1"] h3')
+    expect(
+      heading.element.parentElement!.querySelector('[data-testid="order-status"]')
+    ).not.toBeNull()
+  })
+
+  it("computes the status once for each order", async () => {
+    orders.listOrders.mockResolvedValue({ orders: [order1042], count: 1 })
+    await mountPage()
+    expect(customerStatus).toHaveBeenCalledTimes(1)
   })
 })

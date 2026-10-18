@@ -8,15 +8,14 @@ export function cancelNoticeKey(
   return cancelReason === PAYMENT_TIMEOUT ? "order.cancelledTimeout" : "order.cancelledByStore"
 }
 
-// Returns the sum of the refunds of all payment collections, in whole rupiah. The Store API can
-// send an amount as a string, and a value that is not a number counts as 0.
+// Returns the total of the refunds of the order, in whole rupiah. The Store order route does not
+// return the refunds of a payment collection, so the value comes from the order summary. The Store
+// API can send an amount as a string, and a value that is not a number counts as 0.
 export function refundedAmount(order: {
-  payment_collections?: { refunded_amount?: number | string | null }[] | null
+  summary?: { refunded_total?: number | string | null } | null
 }): number {
-  return (order.payment_collections ?? []).reduce((sum, collection) => {
-    const amount = Number(collection.refunded_amount ?? 0)
-    return Number.isFinite(amount) ? sum + amount : sum
-  }, 0)
+  const amount = Number(order.summary?.refunded_total ?? 0)
+  return Number.isFinite(amount) ? amount : 0
 }
 
 // Returns the wa.me link of a WhatsApp number. wa.me takes the number as digits only, with the

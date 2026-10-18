@@ -15,26 +15,25 @@ describe("cancelNoticeKey", () => {
 })
 
 describe("refundedAmount", () => {
-  it("adds the refunds of all payment collections", () => {
-    expect(
-      refundedAmount({
-        payment_collections: [{ refunded_amount: 50000 }, { refunded_amount: "25000" }],
-      })
-    ).toBe(75000)
+  // The Store order route does not return the refunds of a payment collection. The order summary
+  // has the total of the refunds.
+  it("reads the refunded total of the order summary", () => {
+    expect(refundedAmount({ summary: { refunded_total: 75000 } })).toBe(75000)
+  })
+
+  it("reads an amount that the Store API sends as a string", () => {
+    expect(refundedAmount({ summary: { refunded_total: "25000" } })).toBe(25000)
   })
 
   it("counts a missing value as zero", () => {
-    expect(refundedAmount({ payment_collections: [{ refunded_amount: null }, {}] })).toBe(0)
-    expect(refundedAmount({ payment_collections: null })).toBe(0)
+    expect(refundedAmount({ summary: { refunded_total: null } })).toBe(0)
+    expect(refundedAmount({ summary: {} })).toBe(0)
+    expect(refundedAmount({ summary: null })).toBe(0)
     expect(refundedAmount({})).toBe(0)
   })
 
   it("counts a value that is not a number as zero", () => {
-    expect(
-      refundedAmount({
-        payment_collections: [{ refunded_amount: "abc" }, { refunded_amount: 1000 }],
-      })
-    ).toBe(1000)
+    expect(refundedAmount({ summary: { refunded_total: "abc" } })).toBe(0)
   })
 })
 

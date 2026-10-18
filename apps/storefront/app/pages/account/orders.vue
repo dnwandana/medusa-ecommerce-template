@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import type { HttpTypes } from "@medusajs/types"
 import { CircleAlert, Package } from "@lucide/vue"
+import type { PaymentOrder } from "~/composables/useOrders"
 import type { ReviewableItem } from "~/composables/useReviews"
+import type { CustomerStatus } from "~/utils/orderStatus"
 
 definePageMeta({ middleware: "auth" })
 
@@ -9,7 +11,7 @@ const { t, locale } = useI18n()
 const { listOrders } = useOrders()
 const { listReviewableItems } = useReviews()
 
-const orders = ref<HttpTypes.StoreOrder[]>([])
+const orders = ref<PaymentOrder[]>([])
 const reviewable = ref<ReviewableItem[]>([])
 const ready = ref(false)
 const failed = ref(false)
@@ -24,6 +26,12 @@ const dateFormat = computed(
       year: "numeric",
       timeZone: "Asia/Jakarta",
     })
+)
+
+// The status of each order, by order id. The computed value keeps the statuses between renders.
+const statuses = computed(
+  () =>
+    new Map<string, CustomerStatus>(orders.value.map((order) => [order.id, customerStatus(order)]))
 )
 
 // Returns the reviewable items of one order.
@@ -137,10 +145,14 @@ useHead({ title: () => t("account.orders") })
           >
             <div class="flex flex-wrap items-start justify-between gap-x-8 gap-y-4">
               <div>
-                <!-- Task 163 puts the status badge next to the number. -->
-                <h3 :id="`order-title-${order.id}`" class="text-h4">
-                  {{ $t("order.number", { id: order.display_id }) }}
-                </h3>
+                <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
+                  <h3 :id="`order-title-${order.id}`" class="text-h4">
+                    {{ $t("order.number", { id: order.display_id }) }}
+                  </h3>
+                  <Badge variant="outline" data-testid="order-status">
+                    {{ $t(`order.status.${statuses.get(order.id)}`) }}
+                  </Badge>
+                </div>
                 <dl class="mt-2 flex flex-wrap gap-x-6 gap-y-2 md:gap-x-10">
                   <div class="flex flex-col gap-1">
                     <dt class="text-field-label text-foreground">{{ $t("account.orderDate") }}</dt>
