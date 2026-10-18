@@ -13,11 +13,11 @@ mockNuxtImport("useAddresses", () => () => addresses)
 type Dialog = Awaited<ReturnType<typeof mountSuspended<typeof AddressDialog>>>
 
 const valid = {
-  first_name: "Sari",
-  last_name: "Dewi",
+  full_name: "Sari Dewi",
   phone: "081234567890",
   address_1: "Jl. Melati No. 12",
   city: "Jakarta Pusat",
+  province: "DKI Jakarta",
   postal_code: "10310",
 }
 const home = {
@@ -52,10 +52,10 @@ async function mountDialog(props: {
 }
 
 // The Contact card at checkout also has name="phone", so the query starts at the address fields.
-function field(name: string): HTMLInputElement | HTMLTextAreaElement {
-  const control = document.body.querySelector<HTMLInputElement | HTMLTextAreaElement>(
-    `[data-testid="address-fields"] [name="${name}"]`
-  )
+function field(name: string): HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement {
+  const control = document.body.querySelector<
+    HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+  >(`[data-testid="address-fields"] [name="${name}"]`)
   if (!control) {
     throw new Error(`The address field "${name}" is not in the dialog.`)
   }
@@ -66,7 +66,8 @@ async function fill(values: Record<string, string>): Promise<void> {
   for (const [name, value] of Object.entries(values)) {
     const control = field(name)
     control.value = value
-    control.dispatchEvent(new Event("input"))
+    // A select updates its model on "change". The other controls update on "input".
+    control.dispatchEvent(new Event(control instanceof HTMLSelectElement ? "change" : "input"))
   }
   await flushPromises()
 }
@@ -101,8 +102,19 @@ describe("AddressDialog", () => {
     await mountDialog({ address: null, first: false })
     await submit()
     expect(document.body.textContent).toContain("Fill in this field.")
+    expect(document.body.textContent).toContain("Select a province.")
+    expect(document.querySelector("#address-dialog-full_name")!.getAttribute("aria-invalid")).toBe(
+      "true"
+    )
     expect(addresses.create).not.toHaveBeenCalled()
     expect(document.body.querySelector('[role="dialog"]')).not.toBeNull()
+  })
+
+  it("uses the dialog style of the store and no own size classes", async () => {
+    await mountDialog({ address: null, first: false })
+    const content = document.querySelector("[data-slot='dialog-content']")!
+    expect(content.className).not.toContain("md:max-w-[520px]")
+    expect(content.className).not.toContain("rounded-xl")
   })
 
   it("locks the default checkbox for the first address and saves it as the default", async () => {
@@ -115,7 +127,7 @@ describe("AddressDialog", () => {
     await fill(valid)
     await submit()
     expect(addresses.create).toHaveBeenCalledWith(
-      expect.objectContaining({ first_name: "Sari" }),
+      expect.objectContaining({ full_name: "Sari Dewi" }),
       true
     )
   })
@@ -131,7 +143,7 @@ describe("AddressDialog", () => {
     await fill(valid)
     await submit()
     expect(addresses.create).toHaveBeenCalledWith(
-      expect.objectContaining({ address_name: "Kantor", first_name: "Sari" }),
+      expect.objectContaining({ address_name: "Kantor", full_name: "Sari Dewi" }),
       false
     )
   })
@@ -176,7 +188,7 @@ describe("AddressDialog", () => {
     expect(document.body.querySelector('[role="alert"]')?.textContent).toContain(
       "The address was not saved. Check your connection, then try again."
     )
-    expect(field("first_name").value).toBe("Sari")
+    expect(field("full_name").value).toBe("Sari Dewi")
   })
 
   it("edits the address with its values, the subtitle, and a locked default checkbox", async () => {

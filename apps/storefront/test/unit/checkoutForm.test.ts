@@ -22,7 +22,7 @@ describe("toE164", () => {
 })
 
 describe("toPaymentCustomer", () => {
-  const recipient = { first_name: " Sari ", last_name: "Dewi" }
+  const recipient = { first_name: " Sari ", last_name: "Dewi", phone: "0812-3456-7890" }
 
   it("uses the recipient name, the clean email, and the E.164 phone for a guest", () => {
     expect(
@@ -30,7 +30,6 @@ describe("toPaymentCustomer", () => {
         payer: null,
         recipient,
         email: " buyer@example.com ",
-        phone: "0812-3456-7890",
       })
     ).toEqual({
       first_name: "Sari",
@@ -46,7 +45,6 @@ describe("toPaymentCustomer", () => {
         payer: { first_name: "Budi", last_name: "Santoso" },
         recipient,
         email: "member@example.com",
-        phone: "081298765432",
       })
     ).toMatchObject({ first_name: "Budi", last_name: "Santoso" })
   })
@@ -58,7 +56,6 @@ describe("toPaymentCustomer", () => {
         payer: { first_name: " ", last_name: "X" },
         recipient,
         email: "a@b.co",
-        phone: "081298765432",
       }).first_name
     ).toBe("Sari")
   })
@@ -69,28 +66,43 @@ describe("toPaymentCustomer", () => {
         payer: { first_name: "Budi", last_name: null },
         recipient,
         email: "a@b.co",
-        phone: "081298765432",
       }).last_name
     ).toBe("")
+  })
+
+  it("uses the profile phone of a signed-in customer", () => {
+    expect(
+      toPaymentCustomer({
+        payer: { first_name: "Sari", last_name: "Wulandari", phone: "0812-3456-7890" },
+        recipient: { first_name: "Budi", last_name: "Santoso", phone: "081398765432" },
+        email: "sari@example.com",
+      }).phone
+    ).toBe("+6281234567890")
+  })
+
+  it("uses the address phone when the profile has no mobile number", () => {
+    const recipient = { first_name: "Budi", last_name: "Santoso", phone: "081398765432" }
+    expect(
+      toPaymentCustomer({ payer: { first_name: "Sari", phone: null }, recipient, email: "a@b.co" })
+        .phone
+    ).toBe("+6281398765432")
+    expect(
+      toPaymentCustomer({
+        payer: { first_name: "Sari", phone: "0215551234" },
+        recipient,
+        email: "a@b.co",
+      }).phone
+    ).toBe("+6281398765432")
+    expect(toPaymentCustomer({ payer: null, recipient, email: "a@b.co" }).phone).toBe(
+      "+6281398765432"
+    )
   })
 })
 
 describe("validateContact", () => {
-  it("requires the email and the phone", () => {
-    expect(validateContact({ email: "", phone: "" })).toEqual({
-      email: "checkout.errors.required",
-      phone: "checkout.errors.required",
-    })
-  })
-
-  it("rejects an email with no domain and a phone that is not a mobile number", () => {
-    expect(validateContact({ email: "buyer@", phone: "0212345678" })).toEqual({
-      email: "checkout.errors.email",
-      phone: "checkout.errors.phone",
-    })
-  })
-
-  it("accepts a valid email and a mobile number with spaces and hyphens", () => {
-    expect(validateContact({ email: "buyer@example.com", phone: "+62 812-3456-7890" })).toEqual({})
+  it("checks only the email of the contact", () => {
+    expect(validateContact({ email: "" })).toEqual({ email: "checkout.errors.required" })
+    expect(validateContact({ email: "sari@" })).toEqual({ email: "checkout.errors.email" })
+    expect(validateContact({ email: " sari@example.com " })).toEqual({})
   })
 })

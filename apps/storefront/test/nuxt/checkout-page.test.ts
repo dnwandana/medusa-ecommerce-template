@@ -2,7 +2,7 @@ import { mockNuxtImport, mountSuspended } from "@nuxt/test-utils/runtime"
 import { flushPromises } from "@vue/test-utils"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import CheckoutPage from "~/pages/checkout/index.vue"
-import { CheckoutStepper, CheckoutSummary } from "#components"
+import { CheckoutSummary } from "#components"
 
 const { cart, customerState, checkout, navigateToMock, addressesMock } = await vi.hoisted(
   async () => {
@@ -30,10 +30,9 @@ mockNuxtImport("navigateTo", () => navigateToMock)
 mockNuxtImport("useAddresses", () => () => addressesMock)
 
 const valid = {
-  email: "buyer@example.com",
+  email: "sari@example.com",
+  full_name: "Sari Dewi",
   phone: "+62 812-3456-7890",
-  first_name: "Sari",
-  last_name: "Dewi",
   address_1: "Jl. Merdeka No. 1",
   city: "Bandung",
   province: "Jawa Barat",
@@ -98,17 +97,18 @@ afterEach(() => {
   wrappers.splice(0).forEach((wrapper) => wrapper.unmount())
 })
 
-const CONTACT_FIELDS = ["email", "phone"]
-
-// Fills the form and submits the first part. The Contact card and the address fields can have a
-// control with the same name, so the address values go into the address fields only.
-const submitAddress = async (wrapper: Page, overrides: Partial<typeof valid> = {}) => {
-  for (const [name, value] of Object.entries({ ...valid, ...overrides })) {
-    const selector = CONTACT_FIELDS.includes(name)
-      ? `input[name="${name}"]`
-      : `[data-testid="address-fields"] [name="${name}"]`
-    await wrapper.find(selector).setValue(value)
+// Fills the email and the guest address fields with a valid address and the given values.
+const fillGuest = async (wrapper: Page, overrides: Partial<typeof valid> = {}) => {
+  const { email, ...address } = { ...valid, ...overrides }
+  await wrapper.find("#checkout-email").setValue(email)
+  for (const [name, value] of Object.entries(address)) {
+    await wrapper.find(`#checkout-address-${name}`).setValue(value)
   }
+}
+
+// Fills the guest form and submits the first part.
+const submitAddress = async (wrapper: Page, overrides: Partial<typeof valid> = {}) => {
+  await fillGuest(wrapper, overrides)
   await wrapper.find("form").trigger("submit")
   await flushPromises()
 }
@@ -130,7 +130,12 @@ const selectNewAddress = async (wrapper: Page) => {
 // Types a valid address. The name and the phone come from the profile. The Label field shows only
 // when "Save this address" shows and is on.
 const fillAddress = async (wrapper: Page) => {
-  const values = { address_1: "Jl. Mawar 7", city: "Bandung", postal_code: "40111" }
+  const values = {
+    address_1: "Jl. Mawar 7",
+    city: "Bandung",
+    province: "Jawa Barat",
+    postal_code: "40111",
+  }
   for (const [name, value] of Object.entries(values)) {
     await wrapper.find(`[data-testid="address-fields"] [name="${name}"]`).setValue(value)
   }
@@ -148,6 +153,16 @@ const payRadio = (wrapper: Page, providerId: string) =>
 const pay = async (wrapper: Page) => {
   await wrapper.find('[data-testid="pay"]').trigger("click")
   await flushPromises()
+}
+
+// Mounts the page as a customer with one saved address and one shipping option, and submits it.
+const mountPageWithOption = async () => {
+  customerState.customer.value = member
+  list = [home]
+  cart.cart.value = { ...(cart.cart.value as object), shipping_total: 18000, total: 318000 }
+  const wrapper = await mountPage()
+  await continueCheckout(wrapper)
+  return wrapper
 }
 
 beforeEach(() => {
@@ -185,7 +200,7 @@ describe("checkout page", () => {
     cart.cart.value = null
     const wrapper = await mountPage()
 
-    expect(wrapper.text()).toContain("Your cart is empty.")
+    expect(wrapper.text()).toContain("Your cart is empty")
     expect(wrapper.find("form").exists()).toBe(false)
   })
 
@@ -195,31 +210,86 @@ describe("checkout page", () => {
     expect(wrapper.text()).not.toContain("Country")
   })
 
-  it("fills the contact fields from the logged-in customer", async () => {
-    customerState.customer.value = {
-      email: "member@example.com",
-      first_name: "Budi",
-      last_name: "Santoso",
-      phone: "081298765432",
-    }
+  it("fills the email from the logged-in customer", async () => {
+    customerState.customer.value = member
     const wrapper = await mountPage()
 
-    expect((wrapper.find('input[name="email"]').element as HTMLInputElement).value).toBe(
+    expect((wrapper.find("#checkout-email").element as HTMLInputElement).value).toBe(
       "member@example.com"
-    )
-    expect((wrapper.find('input[name="phone"]').element as HTMLInputElement).value).toBe(
-      "081298765432"
     )
   })
 
-  it("shows the field error and saves nothing for a wrong phone number", async () => {
+  it("shows the eyebrow and the heading of the checkout", async () => {
     const wrapper = await mountPage()
+    expect(wrapper.get("h1").text()).toContain("Delivery and payment")
+    expect(wrapper.findAll("section h2").map((h) => h.text())).toEqual([
+      "01Contact",
+      "02Delivery address",
+      "03Delivery method",
+      "04Payment",
+    ])
+  })
 
-    await submitAddress(wrapper, { phone: "08abc" })
+  it("shows the email field only, with its hint", async () => {
+    const wrapper = await mountPage()
+    const contact = wrapper.get("[data-testid='checkout-section-1']")
+    expect(contact.findAll("input")).toHaveLength(1)
+    expect(contact.text()).toContain(
+      "We send the order confirmation and the order status to this address."
+    )
+  })
 
-    expect(wrapper.text()).toContain("Enter a valid Indonesian mobile number")
-    expect(checkout.saveContact).not.toHaveBeenCalled()
-    expect(wrapper.find('[data-testid="pay"]').attributes("disabled")).toBeDefined()
+  it("links a guest to the sign-in page with the checkout as the redirect", async () => {
+    const wrapper = await mountPage()
+    const link = wrapper.get("[data-testid='checkout-section-1'] a")
+    expect(link.text()).toBe("Sign in")
+    expect(link.attributes("href")).toContain("redirect=/checkout")
+  })
+
+  it("shows the waiting text in Delivery method and Payment before the address is saved", async () => {
+    const wrapper = await mountPage()
+    expect(wrapper.get("[data-testid='checkout-section-3']").text()).toContain(
+      "Save the address to see the delivery methods."
+    )
+    expect(wrapper.find("[data-testid='checkout-section-4'] [role='radiogroup']").exists()).toBe(
+      false
+    )
+    expect(wrapper.findComponent(CheckoutSummary).props("showShipping")).toBe(false)
+  })
+
+  it("saves the guest address with its own phone and pays with it", async () => {
+    const wrapper = await mountPage()
+    await fillGuest(wrapper, { phone: "081398765432" })
+    await wrapper.get("form").trigger("submit")
+    await flushPromises()
+    // The cart address keeps the typed number. The payment gets the E.164 format.
+    expect(checkout.saveContact).toHaveBeenCalledWith(
+      "sari@example.com",
+      expect.objectContaining({ phone: "081398765432", country_code: "id" })
+    )
+    await wrapper.get("[data-testid='pay']").trigger("click")
+    await flushPromises()
+    expect(checkout.startPayment.mock.calls[0]![1].phone).toBe("+6281398765432")
+  })
+
+  it("shows the total on Place order and Placing the order… while it runs", async () => {
+    const wrapper = await mountPageWithOption()
+    const pay = wrapper.get("[data-testid='pay']")
+    expect(pay.text()).toBe("Place order · Rp 318.000")
+    checkout.startPayment.mockReturnValue(new Promise(() => {}))
+    await pay.trigger("click")
+    expect(pay.text()).toContain("Placing the order…")
+    expect(wrapper.text()).toContain(
+      "By placing your order you agree to our terms of sale and privacy policy."
+    )
+  })
+
+  it("shows the totals above Place order below 1024 px", async () => {
+    const wrapper = await mountPageWithOption()
+    const totals = wrapper.get("[data-testid='mobile-totals']")
+    expect(totals.classes()).toContain("lg:hidden")
+    expect(totals.text()).toContain("Rp 18.000")
+    expect(totals.text()).toContain("Rp 318.000")
   })
 
   it("saves the address, shows the shipping amount, and selects the only option", async () => {
@@ -234,10 +304,10 @@ describe("checkout page", () => {
     expect(wrapper.find('[data-testid="pay"]').attributes("disabled")).toBeUndefined()
   })
 
-  it("saves the guest address with the contact phone", async () => {
+  it("splits the full name of the guest address", async () => {
     const wrapper = await mountPage()
     await submitAddress(wrapper)
-    expect(checkout.saveContact).toHaveBeenCalledWith("buyer@example.com", {
+    expect(checkout.saveContact).toHaveBeenCalledWith("sari@example.com", {
       first_name: "Sari",
       last_name: "Dewi",
       address_1: "Jl. Merdeka No. 1",
@@ -249,20 +319,12 @@ describe("checkout page", () => {
     })
   })
 
-  it("shows the address as a textarea and no phone field in the address fields of a guest", async () => {
-    const wrapper = await mountPage()
-    expect(wrapper.find('[data-testid="address-fields"] textarea[name="address_1"]').exists()).toBe(
-      true
-    )
-    expect(wrapper.find('[data-testid="address-fields"] [name="phone"]').exists()).toBe(false)
-  })
-
-  it("shows the login link to a guest", async () => {
+  it("shows the sign-in prompt to a guest only", async () => {
     const wrapper = await mountPage()
     expect(wrapper.text()).toContain("Have an account?")
-    expect(wrapper.find('a[href="/account/login?redirect=/checkout"]').text()).toBe(
-      "Log in to use your saved addresses."
-    )
+    customerState.customer.value = member
+    const signedIn = await mountPage()
+    expect(signedIn.text()).not.toContain("Have an account?")
   })
 
   it("shows Loading shipping options… while the options load", async () => {
@@ -281,7 +343,7 @@ describe("checkout page", () => {
     expect(checkout.startPayment).toHaveBeenCalledWith(BANK_TRANSFER, {
       first_name: "Sari",
       last_name: "Dewi",
-      email: "buyer@example.com",
+      email: "sari@example.com",
       phone: "+6281234567890",
     })
     expect(navigateToMock).toHaveBeenCalledWith("https://pay.example.com/1", {
@@ -301,7 +363,7 @@ describe("checkout page", () => {
     expect(wrapper.find(`[data-testid="payment-provider-${BANK_TRANSFER}"]`).text()).toContain(
       "Bank transfer"
     )
-    expect(wrapper.find('[data-testid="payment-provider-pp_unknown_unknown"]').text()).toBe(
+    expect(wrapper.find('[data-testid="payment-provider-pp_unknown_unknown"]').text()).toContain(
       "Online payment"
     )
   })
@@ -318,14 +380,25 @@ describe("checkout page", () => {
     expect(wrapper.text()).toContain(
       "You get the bank details after you place the order. Upload the receipt within 24 hours."
     )
-    expect(wrapper.find('[data-testid="pay"]').text()).toBe("Place order")
+    expect(wrapper.find('[data-testid="pay"]').text()).toBe("Place order · Rp 150.000")
   })
 
   it("selects the first provider", async () => {
+    checkout.listPaymentProviders.mockResolvedValue([{ id: BANK_TRANSFER }, { id: "pp_test_test" }])
     const wrapper = await mountPage()
     await submitAddress(wrapper)
 
     expect(payRadio(wrapper, BANK_TRANSFER).attributes("data-state")).toBe("checked")
+  })
+
+  it("shows the only provider as a selected row with no radio", async () => {
+    const wrapper = await mountPage()
+    await submitAddress(wrapper)
+
+    const row = wrapper.get(`[data-testid="payment-provider-${BANK_TRANSFER}"]`)
+    expect(row.attributes("data-state")).toBe("checked")
+    expect(row.find('button[role="radio"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="pay"]').attributes("disabled")).toBeUndefined()
   })
 
   it("pays with the provider that the customer selects", async () => {
@@ -440,21 +513,16 @@ describe("checkout page", () => {
     expect(wrapper.text()).toContain("The address was not saved. Try again.")
     expect(checkout.loadShippingOptions).not.toHaveBeenCalled()
   })
-  it("shows step 1 and the shipping hint before the address is saved", async () => {
-    const wrapper = await mountPage()
-
-    expect(wrapper.findComponent(CheckoutStepper).props("current")).toBe(1)
-    expect(wrapper.text()).toContain("Save the address to see the shipping options.")
-    expect(wrapper.findComponent(CheckoutSummary).props("showShipping")).toBe(false)
-  })
-
-  it("shows step 3, the selected radio, and the shipping in the summary after the only option", async () => {
+  it("shows the only option as selected and the shipping in the summary", async () => {
     const wrapper = await mountPage()
     await submitAddress(wrapper)
 
-    expect(wrapper.findComponent(CheckoutStepper).props("current")).toBe(3)
-    expect(wrapper.text()).not.toContain("Save the address to see the shipping options.")
-    expect(wrapper.find('[role="radio"][aria-checked="true"]').exists()).toBe(true)
+    expect(wrapper.text()).not.toContain("Save the address to see the delivery methods.")
+    expect(
+      wrapper
+        .get("[data-testid='checkout-section-3'] [data-slot='radio-row']")
+        .attributes("data-state")
+    ).toBe("checked")
     expect(wrapper.findComponent(CheckoutSummary).props("showShipping")).toBe(true)
   })
 
@@ -466,8 +534,8 @@ describe("checkout page", () => {
     const wrapper = await mountPage()
     await submitAddress(wrapper)
 
-    expect(wrapper.findComponent(CheckoutStepper).props("current")).toBe(2)
-    await wrapper.findAll('[role="radio"]')[1]!.trigger("click")
+    expect(wrapper.find('[data-testid="pay"]').attributes("disabled")).toBeDefined()
+    await wrapper.findAll('[data-testid="checkout-section-3"] [role="radio"]')[1]!.trigger("click")
     await flushPromises()
 
     expect(checkout.selectShippingOption).toHaveBeenCalledWith("so_2")
@@ -486,13 +554,21 @@ describe("checkout page", () => {
     )
   })
 
-  it("puts the summary above the form below md and in a column of 400px from md", async () => {
+  it("shows the summary bar below 1024 px and the summary column of 400 px from 1024 px", async () => {
     const wrapper = await mountPage()
 
-    expect(wrapper.find(".grid").classes()).toContain("md:grid-cols-[minmax(0,1fr)_400px]")
+    expect(wrapper.find(".grid").classes()).toContain("lg:grid-cols-[minmax(0,1fr)_400px]")
     expect(wrapper.find("aside").classes()).toEqual(
-      expect.arrayContaining(["order-first", "md:order-none", "md:sticky"])
+      expect.arrayContaining(["hidden", "lg:block", "lg:sticky"])
     )
+    expect(wrapper.find("button[aria-controls='checkout-mobile-summary']").exists()).toBe(true)
+  })
+
+  it("shows the skeleton until the cart loads", async () => {
+    cart.load.mockReturnValue(new Promise(() => {}))
+    const wrapper = await mountPage()
+    expect(wrapper.find("[data-testid='checkout-skeleton']").attributes("role")).toBe("status")
+    expect(wrapper.find("form").exists()).toBe(false)
   })
 
   it("does not load the saved addresses for a guest", async () => {
@@ -569,7 +645,7 @@ describe("checkout page", () => {
     expect(wrapper.find('[data-testid="pay"]').attributes("disabled")).toBeDefined()
   })
 
-  it("pays with the profile name and the contact phone", async () => {
+  it("pays with the profile name and the profile phone", async () => {
     customerState.customer.value = member
     const wrapper = await mountPage()
     await continueCheckout(wrapper)
@@ -587,7 +663,7 @@ describe("checkout page", () => {
     list = []
     const wrapper = await mountPage()
     expect(wrapper.text()).toContain("You have no saved addresses yet.")
-    expect(addressField(wrapper, "first_name").value).toBe("Budi")
+    expect(addressField(wrapper, "full_name").value).toBe("Budi Santoso")
     expect(addressField(wrapper, "phone").value).toBe("081298765432")
     expect(addressField(wrapper, "address_1").value).toBe("")
   })
@@ -602,7 +678,7 @@ describe("checkout page", () => {
     }
     list = []
     const wrapper = await mountPage()
-    expect(addressField(wrapper, "first_name").value).toBe("")
+    expect(addressField(wrapper, "full_name").value).toBe("")
     expect(addressField(wrapper, "phone").value).toBe("")
   })
 
@@ -634,7 +710,7 @@ describe("checkout page", () => {
     await fillAddress(wrapper)
     await continueCheckout(wrapper)
     expect(addressesMock.create).toHaveBeenCalledWith(
-      expect.objectContaining({ address_name: "Kos", first_name: "Budi" }),
+      expect.objectContaining({ address_name: "Kos", full_name: "Budi Santoso" }),
       false
     )
     expect(
@@ -662,7 +738,7 @@ describe("checkout page", () => {
     expect(wrapper.find('[data-testid="address-fields"]').exists()).toBe(false)
 
     await selectNewAddress(wrapper)
-    expect(addressField(wrapper, "first_name").value).toBe("Budi")
+    expect(addressField(wrapper, "full_name").value).toBe("Budi Santoso")
     expect(addressField(wrapper, "address_1").value).toBe("")
     expect(wrapper.find('[data-testid="save-address"]').attributes("data-state")).toBe("checked")
     expect(wrapper.find('[data-testid="make-default"]').attributes("data-state")).toBe("unchecked")

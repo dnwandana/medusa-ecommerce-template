@@ -1,13 +1,13 @@
 import type { HttpTypes } from "@medusajs/types"
 import { isMobilePhone, isPostalCode, normalizePhone } from "./checkoutForm"
+import { isProvince, toProvince } from "./provinces"
 
 // The radio value of "Use a new address" at checkout. A Medusa address id never has this value.
 export const NEW_ADDRESS = "new"
 
 export type AddressFormValues = {
   address_name: string
-  first_name: string
-  last_name: string
+  full_name: string
   phone: string
   address_1: string
   city: string
@@ -28,21 +28,41 @@ export type CartAddress = {
   phone: string
 }
 
+export type AddressProfile = {
+  first_name?: string | null
+  last_name?: string | null
+  phone?: string | null
+}
+
 const REQUIRED_FIELDS: (keyof AddressFormValues)[] = [
-  "first_name",
-  "last_name",
+  "full_name",
   "phone",
   "address_1",
   "city",
   "postal_code",
 ]
 
-export function emptyAddressForm(): AddressFormValues {
+// Medusa keeps a first name and a last name. The form has one full name field.
+// The words before the last space go into first_name. One word goes into first_name only.
+export function splitFullName(name: string): { first_name: string; last_name: string } {
+  const words = name.trim().split(/\s+/)
+  if (words.length < 2) {
+    return { first_name: words[0] ?? "", last_name: "" }
+  }
+  return { first_name: words.slice(0, -1).join(" "), last_name: words[words.length - 1]! }
+}
+
+// Returns the full name of the two Medusa parts, with no empty part.
+export function joinFullName(first_name?: string | null, last_name?: string | null): string {
+  return [first_name?.trim(), last_name?.trim()].filter(Boolean).join(" ")
+}
+
+// A new form starts with the name and the phone of the customer profile.
+export function emptyAddressForm(profile?: AddressProfile | null): AddressFormValues {
   return {
     address_name: "",
-    first_name: "",
-    last_name: "",
-    phone: "",
+    full_name: joinFullName(profile?.first_name, profile?.last_name),
+    phone: profile?.phone ?? "",
     address_1: "",
     city: "",
     province: "",
@@ -54,35 +74,33 @@ export function emptyAddressForm(): AddressFormValues {
 export function fromCustomerAddress(address: HttpTypes.StoreCustomerAddress): AddressFormValues {
   return {
     address_name: address.address_name ?? "",
-    first_name: address.first_name ?? "",
-    last_name: address.last_name ?? "",
+    full_name: joinFullName(address.first_name, address.last_name),
     phone: address.phone ?? "",
     address_1: address.address_1 ?? "",
     city: address.city ?? "",
-    province: address.province ?? "",
+    // A province that is not in the list gives "", so the form asks for a province.
+    province: toProvince(address.province),
     postal_code: address.postal_code ?? "",
   }
 }
 
 // Returns a message key for each field that is not valid. An empty object means no error.
-// The guest form has no phone field, because the Contact card has the phone.
-export function validateAddressForm(
-  values: AddressFormValues,
-  options: { phone: boolean }
-): AddressErrors {
+// A guest and a customer both fill the phone of the address.
+export function validateAddressForm(values: AddressFormValues): AddressErrors {
   const errors: AddressErrors = {}
 
   for (const field of REQUIRED_FIELDS) {
-    if (field === "phone" && !options.phone) {
-      continue
-    }
     if (!values[field].trim()) {
       errors[field] = "checkout.errors.required"
     }
   }
 
+  // The province is a select, so an empty value gets the same error as a bad value.
+  if (!isProvince(values.province)) {
+    errors.province = "checkout.errors.province"
+  }
   // An empty field has only the "required" error.
-  if (options.phone && !errors.phone && !isMobilePhone(values.phone)) {
+  if (!errors.phone && !isMobilePhone(values.phone)) {
     errors.phone = "checkout.errors.phone"
   }
   if (!errors.postal_code && !isPostalCode(values.postal_code)) {
@@ -117,8 +135,7 @@ export function addressLine(
 
 export function toCartAddress(values: AddressFormValues): CartAddress {
   return {
-    first_name: values.first_name.trim(),
-    last_name: values.last_name.trim(),
+    ...splitFullName(values.full_name),
     address_1: oneLine(values.address_1),
     city: values.city.trim(),
     province: values.province.trim(),
@@ -135,8 +152,7 @@ export function toCustomerAddressBody(
 ): HttpTypes.StoreCreateCustomerAddress {
   return {
     address_name: values.address_name.trim() || null,
-    first_name: values.first_name.trim(),
-    last_name: values.last_name.trim(),
+    ...splitFullName(values.full_name),
     phone: normalizePhone(values.phone),
     address_1: lines(values.address_1).join("\n"),
     city: values.city.trim(),

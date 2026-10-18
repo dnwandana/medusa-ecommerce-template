@@ -12,33 +12,35 @@ defineEmits<{ edit: []; setDefault: []; remove: [] }>()
 
 // The Medusa admin can save null values. A filter on the parts keeps the text "null" and empty
 // lines out of the card.
-const fullName = computed(() =>
-  [props.address.first_name, props.address.last_name].filter(Boolean).join(" ")
-)
+const fullName = computed(() => joinFullName(props.address.first_name, props.address.last_name))
 const region = computed(() =>
   [props.address.province, props.address.postal_code].filter(Boolean).join(" ")
 )
+const titleId = computed(() => `address-card-${props.address.id}-title`)
+
+const actionClass =
+  "inline-flex min-h-11 items-center gap-2 text-field-label outline-none underline-offset-4 hover:underline focus-visible:shadow-[var(--focus-ring)] disabled:cursor-not-allowed disabled:text-disabled-foreground disabled:no-underline [&_svg]:size-4"
 </script>
 
 <template>
-  <Card
+  <article
     :data-testid="`address-card-${address.id}`"
-    :class="address.is_default_shipping ? 'border-primary' : undefined"
+    :aria-labelledby="titleId"
+    class="flex flex-col gap-4 pt-5"
+    :class="address.is_default_shipping ? 'border-t-2 border-foreground' : 'border-t border-border'"
   >
-    <CardHeader>
-      <CardTitle>
-        <h3>{{ address.address_name || $t("account.addresses.untitled") }}</h3>
-      </CardTitle>
-      <CardAction v-if="address.is_default_shipping">
-        <Badge>
-          <Check aria-hidden="true" class="size-3" />
-          {{ $t("account.addresses.default") }}
-        </Badge>
-      </CardAction>
-    </CardHeader>
+    <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+      <h3 :id="titleId" class="text-h4">
+        {{ address.address_name || $t("account.addresses.untitled") }}
+      </h3>
+      <Badge v-if="address.is_default_shipping" class="gap-1">
+        <Check aria-hidden="true" class="size-3" />
+        {{ $t("account.addresses.default") }}
+      </Badge>
+    </div>
 
-    <CardContent class="flex flex-1 flex-col gap-1 pt-2 md:pt-2">
-      <p v-if="fullName">{{ fullName }}</p>
+    <div class="flex flex-col gap-0.5">
+      <p v-if="fullName" class="text-body">{{ fullName }}</p>
       <!-- The saved address keeps the line breaks that the customer typed. -->
       <p v-if="address.address_1" class="whitespace-pre-line text-body-sm text-muted-foreground">
         {{ address.address_1 }}
@@ -46,25 +48,23 @@ const region = computed(() =>
       <p v-if="address.city" class="text-body-sm text-muted-foreground">{{ address.city }}</p>
       <p v-if="region" class="text-body-sm text-muted-foreground">{{ region }}</p>
       <p v-if="address.phone" class="text-body-sm text-muted-foreground">{{ address.phone }}</p>
-    </CardContent>
+    </div>
 
-    <CardFooter class="flex-wrap gap-1 pt-4">
-      <Button
+    <div class="mt-auto flex flex-wrap gap-x-6">
+      <button
         type="button"
-        variant="ghost"
-        size="sm"
+        :class="[actionClass, 'text-foreground']"
         :data-testid="`edit-${address.id}`"
         :disabled="disabled"
         @click="$emit('edit')"
       >
         <Pencil aria-hidden="true" />
         {{ $t("account.addresses.edit") }}
-      </Button>
-      <Button
+      </button>
+      <button
         v-if="!address.is_default_shipping"
         type="button"
-        variant="ghost"
-        size="sm"
+        :class="[actionClass, 'text-foreground']"
         :data-testid="`set-default-${address.id}`"
         :disabled="disabled"
         @click="$emit('setDefault')"
@@ -77,19 +77,17 @@ const region = computed(() =>
           <Star aria-hidden="true" />
           {{ $t("account.addresses.setDefault") }}
         </template>
-      </Button>
-      <Button
+      </button>
+      <button
         type="button"
-        variant="ghost"
-        size="sm"
-        class="text-destructive"
+        :class="[actionClass, 'text-destructive']"
         :data-testid="`delete-${address.id}`"
         :disabled="disabled"
         @click="$emit('remove')"
       >
         <Trash2 aria-hidden="true" />
         {{ $t("account.addresses.delete") }}
-      </Button>
-    </CardFooter>
-  </Card>
+      </button>
+    </div>
+  </article>
 </template>

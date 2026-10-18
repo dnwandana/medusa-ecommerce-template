@@ -28,6 +28,8 @@ const fromAdmin = {
   postal_code: null,
 }
 
+const office = { ...home, id: "a2", address_name: "Kantor" }
+
 const mountCard = (props: { address: object; disabled?: boolean; busy?: boolean }) =>
   mountSuspended(AddressCard, {
     props: { disabled: false, busy: false, ...props, address: props.address as never },
@@ -39,9 +41,20 @@ describe("AddressCard", () => {
 
     expect(wrapper.text()).toContain("Rumah")
     expect(wrapper.text()).toContain("Default")
-    expect(wrapper.find('[data-testid="address-card-a1"]').classes()).toContain("border-primary")
+    expect(wrapper.find('[data-testid="address-card-a1"]').classes()).toContain("border-foreground")
     expect(wrapper.text()).toContain("DKI Jakarta 10310")
     expect(wrapper.find('[data-testid="set-default-a1"]').exists()).toBe(false)
+  })
+
+  it("draws a hairline on top, and an ink line for the default address", async () => {
+    const plain = await mountCard({ address: { ...office, is_default_shipping: false } })
+    expect(plain.get("article").classes()).toContain("border-border")
+    const main = await mountCard({
+      address: { ...home, first_name: "Muhammad Rizky", last_name: "Pratama" },
+    })
+    expect(main.get("article").classes()).toContain("border-foreground")
+    expect(main.text()).toContain("Muhammad Rizky Pratama")
+    expect(main.text()).toContain("Default")
   })
 
   it("keeps the line breaks of address_1", async () => {
@@ -57,7 +70,7 @@ describe("AddressCard", () => {
     expect(wrapper.text()).toContain("Address")
     expect(wrapper.text()).not.toContain("null")
     expect(wrapper.find('[data-testid="address-card-a9"]').classes()).not.toContain(
-      "border-primary"
+      "border-foreground"
     )
     expect(wrapper.find('[data-testid="set-default-a9"]').exists()).toBe(true)
   })

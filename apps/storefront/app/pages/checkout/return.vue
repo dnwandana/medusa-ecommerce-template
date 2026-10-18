@@ -1,5 +1,11 @@
 <script setup lang="ts">
 import { CircleAlert, Clock, ShoppingBag } from "@lucide/vue"
+import type { Component } from "vue"
+import type { EmptyMediaVariants } from "~/components/ui/empty"
+
+type EmptyMediaTone = NonNullable<EmptyMediaVariants["tone"]>
+
+definePageMeta({ layout: "checkout" })
 
 type ReturnState = "confirming" | "noCart" | "pending" | "failed"
 
@@ -49,68 +55,68 @@ async function confirm(): Promise<void> {
 onMounted(confirm)
 
 useHead({ title: () => t(state.value === "pending" ? "return.pendingTitle" : "checkout.title") })
+
+const TITLES: Record<ReturnState, string> = {
+  confirming: "return.confirming",
+  noCart: "return.noCart",
+  pending: "return.pendingTitle",
+  failed: "return.failedTitle",
+}
+
+// The confirming state shows a Spinner, so it has no icon here.
+const MEDIA: Record<ReturnState, { icon: Component | null; tone: EmptyMediaTone }> = {
+  confirming: { icon: null, tone: "muted" },
+  noCart: { icon: ShoppingBag, tone: "muted" },
+  pending: { icon: Clock, tone: "warning" },
+  failed: { icon: CircleAlert, tone: "destructive" },
+}
+const media = computed(() => MEDIA[state.value])
 </script>
 
 <template>
-  <Empty class="mx-auto max-w-xl">
-    <EmptyHeader v-if="state === 'confirming'">
-      <EmptyMedia tone="muted">
-        <Spinner class="size-6" />
+  <div class="py-12 md:py-32">
+    <!-- One block for the four states. The eyebrow and the hairlines stay, the state changes. -->
+    <Empty
+      data-testid="return-block"
+      class="mx-auto max-w-xl gap-4 border-y border-border px-0 py-12 md:py-16"
+    >
+      <EmptyMedia :tone="media.tone">
+        <Spinner v-if="state === 'confirming'" class="size-6" />
+        <component :is="media.icon" v-else aria-hidden="true" class="size-6" />
       </EmptyMedia>
-      <EmptyTitle role="status"
-        ><h1>{{ $t("return.confirming") }}</h1></EmptyTitle
-      >
-    </EmptyHeader>
 
-    <template v-else-if="state === 'noCart'">
-      <EmptyHeader>
-        <EmptyMedia tone="muted">
-          <ShoppingBag aria-hidden="true" class="size-6" />
-        </EmptyMedia>
+      <EmptyHeader class="gap-4">
+        <p class="text-eyebrow text-muted-foreground">{{ $t("checkout.title") }}</p>
         <EmptyTitle
-          ><h1>{{ $t("return.noCart") }}</h1></EmptyTitle
+          :role="state === 'confirming' ? 'status' : state === 'failed' ? 'alert' : undefined"
+          class="text-h1"
         >
+          <h1>{{ $t(TITLES[state]) }}</h1>
+        </EmptyTitle>
+        <EmptyDescription
+          v-if="state === 'pending' || state === 'failed'"
+          class="text-body text-muted-foreground md:text-body-lg"
+        >
+          {{ $t(state === "pending" ? "return.pendingBody" : "return.failedBody") }}
+        </EmptyDescription>
       </EmptyHeader>
-      <EmptyContent>
-        <Button variant="outline" as-child>
+
+      <EmptyContent v-if="state === 'noCart'" class="mt-4">
+        <Button variant="outline" class="w-full md:w-auto" as-child>
           <NuxtLinkLocale to="/">{{ $t("return.toHome") }}</NuxtLinkLocale>
         </Button>
       </EmptyContent>
-    </template>
-
-    <template v-else-if="state === 'pending'">
-      <EmptyHeader>
-        <EmptyMedia tone="warning">
-          <Clock aria-hidden="true" class="size-6" />
-        </EmptyMedia>
-        <EmptyTitle
-          ><h1>{{ $t("return.pendingTitle") }}</h1></EmptyTitle
-        >
-        <EmptyDescription>{{ $t("return.pendingBody") }}</EmptyDescription>
-      </EmptyHeader>
-      <EmptyContent>
-        <Button variant="outline" as-child>
+      <EmptyContent v-else-if="state === 'pending'" class="mt-4">
+        <Button variant="outline" class="w-full md:w-auto" as-child>
           <NuxtLinkLocale to="/cart">{{ $t("return.toCart") }}</NuxtLinkLocale>
         </Button>
       </EmptyContent>
-    </template>
-
-    <template v-else>
-      <EmptyHeader>
-        <EmptyMedia tone="destructive">
-          <CircleAlert aria-hidden="true" class="size-6" />
-        </EmptyMedia>
-        <EmptyTitle role="alert"
-          ><h1>{{ $t("return.failedTitle") }}</h1></EmptyTitle
-        >
-        <EmptyDescription>{{ $t("return.failedBody") }}</EmptyDescription>
-      </EmptyHeader>
-      <EmptyContent>
+      <EmptyContent v-else-if="state === 'failed'" class="mt-4">
         <!-- The page keeps the cart in this state, so the customer can try the payment again. -->
-        <Button as-child>
+        <Button class="w-full md:w-auto" as-child>
           <NuxtLinkLocale to="/cart">{{ $t("return.toCart") }}</NuxtLinkLocale>
         </Button>
       </EmptyContent>
-    </template>
-  </Empty>
+    </Empty>
+  </div>
 </template>

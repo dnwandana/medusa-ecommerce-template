@@ -40,8 +40,7 @@ const parents = {
 
 const values: AddressFormValues = {
   address_name: "Kantor",
-  first_name: "Sari",
-  last_name: "Dewi",
+  full_name: "Sari Dewi",
   phone: "0812 3456 7890",
   address_1: "Jl. Sudirman 1\nLantai 5",
   city: "Jakarta",

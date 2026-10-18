@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Check, CreditCard, ShoppingBag, TriangleAlert } from "@lucide/vue"
+import { Check, ShoppingBag, TriangleAlert } from "@lucide/vue"
 import type { HttpTypes } from "@medusajs/types"
 import type { AddressListState } from "~/components/CheckoutAddressPicker.vue"
 import type { ShippingChoice } from "~/composables/useCheckout"
@@ -7,14 +7,16 @@ import type { AddressErrors, AddressFormValues, CartAddress } from "~/utils/addr
 import { NEW_ADDRESS } from "~/utils/addressForm"
 import type { ContactValues } from "~/utils/checkoutForm"
 
-const { t, te } = useI18n()
+definePageMeta({ layout: "checkout" })
+
+const { t } = useI18n()
 const localePath = useLocalePath()
 const { cart, load } = useCart()
 const { customer } = useCustomer()
 const checkout = useCheckout()
 const { addresses, load: loadSavedAddresses, create: createAddress } = useAddresses()
 
-const contact = reactive<ContactValues>({ email: "", phone: "" })
+const contact = reactive<ContactValues>({ email: "" })
 const form = ref<AddressFormValues>(emptyAddressForm())
 const contactErrors = ref<Partial<Record<keyof ContactValues, string>>>({})
 const addressErrors = ref<AddressErrors>({})
@@ -26,6 +28,8 @@ const selectedOptionId = ref<string | null>(null)
 const message = ref<string | null>(null)
 const ready = ref(false)
 const busy = ref(false)
+// True while pay() runs. Place order shows its spinner text.
+const placing = ref(false)
 // The step of "Continue" that runs now. The button shows its text.
 const phase = ref<"saving" | "shipping" | null>(null)
 // An address id, or NEW_ADDRESS.
@@ -55,38 +59,16 @@ const formOpen = computed(() => {
 // The saved addresses are not known while they load. Continue must not use an old selection.
 const continueBlocked = computed(() => !!customer.value && addressState.value === "loading")
 
-type ContactField = {
-  name: keyof ContactValues
-  label: string
-  type: string
-  autocomplete: string
-}
-
-const contactFields: ContactField[] = [
-  { name: "email", label: "checkout.email", type: "email", autocomplete: "email" },
-  { name: "phone", label: "checkout.phone", type: "tel", autocomplete: "tel" },
-]
-
-// Copies the data of the logged-in customer into the contact fields that are empty.
+// Copies the email of the logged-in customer into the contact field when the field is empty.
 function fill(current: HttpTypes.StoreCustomer): void {
-  for (const name of ["email", "phone"] as const) {
-    const value = current[name]
-    if (!contact[name] && value) {
-      contact[name] = value
-    }
+  if (!contact.email && current.email) {
+    contact.email = current.email
   }
 }
 
-// Fills the form with the first name, the last name, and the phone of the profile. Other fields "".
-// The Medusa profile can have null values, and the inputs need a string.
+// Fills the form with the name and the phone of the profile. The other fields are empty.
 function resetForm(): void {
-  const current = customer.value
-  form.value = {
-    ...emptyAddressForm(),
-    first_name: current?.first_name ?? "",
-    last_name: current?.last_name ?? "",
-    phone: current?.phone ?? "",
-  }
+  form.value = emptyAddressForm(customer.value)
 }
 
 // Loads the saved addresses. The list is sorted, so the first address is the default address.
@@ -137,11 +119,6 @@ watch(selected, () => {
   addressNotSaved.value = false
 })
 
-// The stepper shows the progress only. The form state gives the step.
-const currentStep = computed<1 | 2 | 3>(() =>
-  selectedOptionId.value ? 3 : options.value.length ? 2 : 1
-)
-
 const PHASE_LABELS = {
   saving: "checkout.savingAddress",
   shipping: "checkout.loadingShipping",
@@ -156,17 +133,8 @@ function cartAddress(): CartAddress | null {
   contactErrors.value = validateContact(contact)
   addressErrors.value = {}
 
-  if (!customer.value) {
-    addressErrors.value = validateAddressForm(form.value, { phone: false })
-    if (Object.keys(contactErrors.value).length || Object.keys(addressErrors.value).length) {
-      return null
-    }
-    // The guest form has no phone field. The cart address gets the contact phone.
-    return toCartAddress({ ...form.value, phone: contact.phone })
-  }
-
   if (formOpen.value) {
-    addressErrors.value = validateAddressForm(form.value, { phone: true })
+    addressErrors.value = validateAddressForm(form.value)
     if (Object.keys(contactErrors.value).length || Object.keys(addressErrors.value).length) {
       return null
     }
@@ -179,7 +147,7 @@ function cartAddress(): CartAddress | null {
   const saved = addresses.value?.find((address) => address.id === selected.value)
   // The Medusa admin can save an address with no phone or no postal code. The courier needs them.
   const values = saved ? fromCustomerAddress(saved) : null
-  if (!values || Object.keys(validateAddressForm(values, { phone: true })).length) {
+  if (!values || Object.keys(validateAddressForm(values)).length) {
     invalidAddress.value = true
     return null
   }
@@ -304,17 +272,6 @@ watch(selectedOptionId, (optionId) => {
   }
 })
 
-// A provider with no label in the locale files gets the generic label.
-function providerLabel(providerId: string): string {
-  const key = `checkout.paymentProviders.${providerId}`
-  return te(key) ? t(key) : t("checkout.paymentProviders.default")
-}
-
-function providerHint(providerId: string): string | null {
-  const key = `checkout.paymentHints.${providerId}`
-  return te(key) ? t(key) : null
-}
-
 // Starts the payment with the selected provider. A gateway sends the browser to its payment page.
 // A provider with no payment page gives the order at once.
 async function pay(): Promise<void> {
@@ -330,17 +287,13 @@ async function pay(): Promise<void> {
     return
   }
   busy.value = true
+  placing.value = true
   message.value = null
   try {
-    // The payment uses the contact phone, because each address can have its own phone.
+    // The profile phone wins. Else the payment uses the phone of the delivery address.
     const start = await checkout.startPayment(
       providerId,
-      toPaymentCustomer({
-        payer: customer.value,
-        recipient,
-        email: contact.email,
-        phone: contact.phone,
-      })
+      toPaymentCustomer({ payer: customer.value, recipient, email: contact.email })
     )
     if (start.type === "redirect") {
       await navigateTo(start.url, { external: true })
@@ -352,6 +305,7 @@ async function pay(): Promise<void> {
     message.value = "checkout.errors.payment"
   } finally {
     busy.value = false
+    placing.value = false
   }
 }
 
@@ -367,23 +321,52 @@ onMounted(async () => {
 
 useHead({ title: () => t("checkout.title") })
 
-// The Alert component has no warning variant. These classes give the warning colors of the spec.
-const WARNING_CLASS =
-  "border-[#efd7a8] bg-warning-soft text-warning *:data-[slot=alert-description]:text-warning"
+// showShipping is true only after the customer saves a shipping option. Before that, cart.total
+// has no delivery price. The totals above Place order use the same values as CheckoutSummary.
+const showShipping = computed(() => !!selectedOptionId.value)
+const savings = computed(() => cartSavings(cart.value?.items))
+
+// Each "Continue" removes the options, so the waiting text shows again until the new options load.
+const deliveryWaiting = computed(() =>
+  !options.value.length && phase.value !== "shipping" ? t("checkout.shippingHint") : null
+)
+const paymentWaiting = computed(() => (selectedOptionId.value ? null : t("checkout.paymentLocked")))
+const paymentState = computed(() =>
+  providerState.value === "idle" ? "loading" : providerState.value
+)
 </script>
-
 <template>
-  <div class="flex flex-col gap-6">
-    <h1 class="text-h1">{{ $t("checkout.title") }}</h1>
+  <div class="pb-16 lg:pb-32">
+    <div
+      v-if="!ready"
+      data-testid="checkout-skeleton"
+      role="status"
+      class="flex flex-col gap-12 pt-8 lg:max-w-[calc(100%-464px)] lg:pt-16"
+    >
+      <span class="sr-only">{{ $t("common.loading") }}</span>
+      <Skeleton class="h-12 w-3/5" />
+      <div v-for="section in 4" :key="section" class="flex flex-col">
+        <Skeleton class="mb-4 h-8 w-2/5" />
+        <div
+          v-for="row in 2"
+          :key="row"
+          class="flex h-16 items-center gap-4 border-b border-border"
+          aria-hidden="true"
+        >
+          <Skeleton class="size-[18px] shrink-0 rounded-full" />
+          <Skeleton class="h-4 flex-1" />
+        </div>
+      </div>
+    </div>
 
-    <p v-if="!ready" role="status">{{ $t("common.loading") }}</p>
-
-    <Empty v-else-if="!cart?.items?.length" variant="outline">
+    <Empty v-else-if="!cart?.items?.length" class="py-16 md:py-24">
       <EmptyHeader>
-        <EmptyMedia>
-          <ShoppingBag aria-hidden="true" />
+        <EmptyMedia shape="disc">
+          <ShoppingBag class="size-8" aria-hidden="true" />
         </EmptyMedia>
-        <EmptyTitle>{{ $t("cart.empty") }}</EmptyTitle>
+        <EmptyTitle>
+          <h1>{{ $t("cart.empty") }}</h1>
+        </EmptyTitle>
         <EmptyDescription>{{ $t("cart.emptyBody") }}</EmptyDescription>
       </EmptyHeader>
       <EmptyContent>
@@ -393,218 +376,202 @@ const WARNING_CLASS =
       </EmptyContent>
     </Empty>
 
-    <div v-else class="grid items-start gap-6 md:grid-cols-[minmax(0,1fr)_400px] md:gap-12">
-      <div class="flex min-w-0 flex-col gap-6">
-        <CheckoutStepper :current="currentStep" />
+    <template v-else>
+      <!-- Below 1024 px the summary is a bar at the full width of the screen, above the form. -->
+      <CheckoutMobileBar :cart="cart" :show-shipping="showShipping" class="-mx-4 md:-mx-12" />
 
-        <form novalidate class="flex flex-col gap-6" @submit.prevent="submitAddress">
-          <Card>
-            <CardHeader>
-              <CardTitle
-                ><h2>{{ $t("checkout.contact") }}</h2></CardTitle
-              >
-            </CardHeader>
-            <CardContent class="flex flex-col gap-4">
-              <p v-if="!customer" class="text-body-sm text-muted-foreground">
+      <div
+        class="grid items-start gap-12 pt-8 lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-16 lg:pt-16"
+      >
+        <form
+          novalidate
+          class="flex min-w-0 flex-col gap-12 md:gap-16"
+          @submit.prevent="submitAddress"
+        >
+          <h1 class="flex flex-col gap-3">
+            <span class="hidden text-eyebrow text-muted-foreground lg:inline">
+              {{ $t("checkout.title") }}
+            </span>
+            <span class="text-h1 lg:hidden">{{ $t("checkout.title") }}</span>
+            <span class="hidden text-h1 lg:inline">{{ $t("checkout.heading") }}</span>
+          </h1>
+
+          <CheckoutSection :number="1" :title="$t('checkout.contact')">
+            <template v-if="!customer" #aside>
+              <p class="text-body-sm text-muted-foreground">
                 {{ $t("checkout.guestPrompt") }}
                 <NuxtLinkLocale
-                  to="/account/login?redirect=/checkout"
-                  class="font-medium text-foreground underline underline-offset-4"
+                  :to="signInTarget('/checkout')"
+                  class="text-foreground underline decoration-1 underline-offset-4 hover:text-muted-foreground"
                   >{{ $t("checkout.guestLogin") }}</NuxtLinkLocale
                 >
               </p>
-              <FieldGroup class="two-col">
-                <Field v-for="field in contactFields" :key="field.name">
-                  <FieldLabel :for="`checkout-${field.name}`">{{ $t(field.label) }}</FieldLabel>
-                  <Input
-                    :id="`checkout-${field.name}`"
-                    v-model="contact[field.name]"
-                    :name="field.name"
-                    :type="field.type"
-                    :autocomplete="field.autocomplete"
-                    :disabled="busy"
-                    :aria-invalid="contactErrors[field.name] ? true : undefined"
-                  />
-                  <FieldError v-if="contactErrors[field.name]">{{
-                    $t(contactErrors[field.name]!)
-                  }}</FieldError>
-                </Field>
-              </FieldGroup>
-            </CardContent>
-
-            <CardHeader class="pt-0 md:pt-0">
-              <CardTitle
-                ><h2>{{ $t("checkout.address") }}</h2></CardTitle
-              >
-            </CardHeader>
-            <CardContent class="flex flex-col gap-4">
-              <CheckoutAddressPicker
-                v-if="customer"
-                v-model:selected="selected"
-                v-model:form="form"
-                v-model:save="save"
-                v-model:make-default="makeDefault"
-                :addresses="addresses ?? []"
-                :state="addressState"
-                :errors="addressErrors"
+            </template>
+            <Field>
+              <FieldLabel for="checkout-email">{{ $t("checkout.email") }}</FieldLabel>
+              <Input
+                id="checkout-email"
+                v-model="contact.email"
+                name="email"
+                type="email"
+                autocomplete="email"
                 :disabled="busy"
-                @retry="loadAddresses"
+                :aria-invalid="contactErrors.email ? true : undefined"
+                aria-describedby="checkout-email-hint"
               />
-              <AddressFields
-                v-else
-                v-model="form"
-                id-prefix="checkout-address"
-                :errors="addressErrors"
-                :phone="false"
-                :disabled="busy"
-              />
+              <FieldDescription id="checkout-email-hint">
+                {{ $t("checkout.emailHint") }}
+              </FieldDescription>
+              <FieldError v-if="contactErrors.email">{{ $t(contactErrors.email) }}</FieldError>
+            </Field>
+          </CheckoutSection>
 
-              <Alert v-if="invalidAddress" data-testid="invalid-address" :class="WARNING_CLASS">
-                <TriangleAlert aria-hidden="true" />
-                <AlertDescription>
-                  {{ $t("checkout.invalidAddress") }}
-                  <NuxtLinkLocale
-                    to="/account/addresses"
-                    class="font-medium text-foreground underline underline-offset-4"
-                    >{{ $t("checkout.manage") }}</NuxtLinkLocale
-                  >
-                </AlertDescription>
-              </Alert>
+          <CheckoutSection :number="2" :title="$t('checkout.address')">
+            <CheckoutAddressPicker
+              v-if="customer"
+              v-model:selected="selected"
+              v-model:form="form"
+              v-model:save="save"
+              v-model:make-default="makeDefault"
+              :addresses="addresses ?? []"
+              :state="addressState"
+              :errors="addressErrors"
+              :disabled="busy"
+              @retry="loadAddresses"
+            />
+            <AddressFields
+              v-else
+              v-model="form"
+              id-prefix="checkout-address"
+              :errors="addressErrors"
+              :disabled="busy"
+            />
 
-              <Alert v-if="addressNotSaved" data-testid="address-not-saved" :class="WARNING_CLASS">
-                <TriangleAlert aria-hidden="true" />
-                <AlertDescription>{{ $t("checkout.addressNotSaved") }}</AlertDescription>
-              </Alert>
+            <Alert v-if="invalidAddress" variant="warning" data-testid="invalid-address">
+              <TriangleAlert aria-hidden="true" />
+              <AlertDescription>
+                {{ $t("checkout.invalidAddress") }}
+                <NuxtLinkLocale
+                  to="/account/addresses"
+                  class="underline decoration-1 underline-offset-4"
+                  >{{ $t("checkout.manage") }}</NuxtLinkLocale
+                >
+              </AlertDescription>
+            </Alert>
 
-              <p
-                v-if="savedLabel"
-                data-testid="address-saved"
-                role="status"
-                class="flex items-center gap-1.5 text-body-sm font-medium text-success"
+            <Alert v-if="addressNotSaved" variant="warning" data-testid="address-not-saved">
+              <TriangleAlert aria-hidden="true" />
+              <AlertDescription>{{ $t("checkout.addressNotSaved") }}</AlertDescription>
+            </Alert>
+
+            <p
+              v-if="savedLabel"
+              data-testid="address-saved"
+              role="status"
+              class="flex items-center gap-2 text-body-sm text-success"
+            >
+              <Check aria-hidden="true" class="size-4" />
+              {{ $t("checkout.addressSaved", { label: savedLabel }) }}
+            </p>
+
+            <div>
+              <Button
+                type="submit"
+                variant="outline"
+                size="lg"
+                class="w-full md:w-auto"
+                :disabled="busy || continueBlocked"
+                :aria-busy="phase ? true : undefined"
               >
-                <Check aria-hidden="true" class="size-4" />
-                {{ $t("checkout.addressSaved", { label: savedLabel }) }}
-              </p>
-            </CardContent>
-
-            <CardFooter>
-              <Button type="submit" variant="outline" size="lg" :disabled="busy || continueBlocked">
-                <Spinner v-if="busy" />
+                <Spinner v-if="phase" />
                 {{ $t(continueLabel) }}
               </Button>
-            </CardFooter>
-          </Card>
+            </div>
+          </CheckoutSection>
 
-          <Card>
-            <CardHeader>
-              <CardTitle
-                ><h2>{{ $t("checkout.shippingOption") }}</h2></CardTitle
-              >
-            </CardHeader>
-            <CardContent>
-              <p v-if="!options.length" class="text-body-sm text-muted-foreground">
-                {{ $t("checkout.shippingHint") }}
-              </p>
-              <RadioGroup
-                v-else
-                name="shipping_option"
-                :model-value="selectedOptionId ?? undefined"
-                :disabled="busy"
-                @update:model-value="(value) => chooseOption(String(value))"
-              >
-                <label
-                  v-for="option in options"
-                  :key="option.id"
-                  class="flex cursor-pointer items-center gap-3 rounded-lg border border-border bg-card px-4 py-3.5 has-data-[state=checked]:border-primary has-data-[state=checked]:bg-primary-soft has-data-[state=checked]:shadow-[inset_0_0_0_1px_var(--color-primary)]"
-                >
-                  <RadioGroupItem :id="`shipping-${option.id}`" :value="option.id" />
-                  <span class="grow font-medium">{{ option.name }}</span>
-                  <span class="text-price">{{ formatPrice(option.amount) }}</span>
-                </label>
-              </RadioGroup>
-            </CardContent>
-          </Card>
+          <CheckoutSection
+            :number="3"
+            :title="$t('checkout.shippingOption')"
+            :waiting="deliveryWaiting"
+          >
+            <CheckoutDeliveryRows
+              :options="options"
+              :selected-id="selectedOptionId"
+              :loading="phase === 'shipping'"
+              :disabled="busy"
+              @select="chooseOption"
+            />
+          </CheckoutSection>
 
-          <Card>
-            <CardHeader>
-              <CardTitle
-                ><h2>{{ $t("checkout.payment") }}</h2></CardTitle
-              >
-            </CardHeader>
-            <CardContent class="flex flex-col gap-4">
-              <p v-if="providerState === 'loading'" role="status" class="text-body-sm">
-                {{ $t("common.loading") }}
-              </p>
-              <div
-                v-else-if="providerState === 'failed'"
-                data-testid="payment-providers-error"
-                role="alert"
-                class="flex flex-wrap items-center gap-3 text-body-sm text-destructive"
-              >
-                {{ $t("common.error") }}
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  data-testid="payment-providers-retry"
-                  @click="loadProviders"
-                >
-                  {{ $t("common.retry") }}
-                </Button>
-              </div>
-              <p
-                v-else-if="providerState === 'ready' && !providers.length"
-                role="status"
-                class="text-body-sm text-muted-foreground"
-              >
-                {{ $t("checkout.noPaymentProviders") }}
-              </p>
-              <RadioGroup
-                v-else-if="providerState === 'ready'"
-                v-model="selectedProviderId"
-                name="payment_provider"
-                :disabled="busy"
-              >
-                <label
-                  v-for="provider in providers"
-                  :key="provider.id"
-                  :data-testid="`payment-provider-${provider.id}`"
-                  class="flex cursor-pointer items-center gap-3 rounded-lg border border-border bg-card px-4 py-3.5 has-data-[state=checked]:border-primary has-data-[state=checked]:bg-primary-soft has-data-[state=checked]:shadow-[inset_0_0_0_1px_var(--color-primary)]"
-                >
-                  <RadioGroupItem :id="`payment-${provider.id}`" :value="provider.id" />
-                  <CreditCard aria-hidden="true" class="size-5 shrink-0 text-muted-foreground" />
-                  <span class="flex grow flex-col gap-0.5">
-                    <span class="font-medium">{{ providerLabel(provider.id) }}</span>
-                    <span
-                      v-if="providerHint(provider.id)"
-                      class="text-body-sm text-muted-foreground"
-                      >{{ providerHint(provider.id) }}</span
-                    >
-                  </span>
-                </label>
-              </RadioGroup>
-              <Button
-                type="button"
-                data-testid="pay"
-                size="lg"
-                class="w-full"
-                :disabled="busy || !selectedOptionId || !selectedProviderId"
-                @click="pay"
-              >
-                {{ $t("checkout.placeOrder") }}
-              </Button>
-            </CardContent>
-          </Card>
+          <CheckoutSection :number="4" :title="$t('checkout.payment')" :waiting="paymentWaiting">
+            <CheckoutPaymentRows
+              v-model="selectedProviderId"
+              :providers="providers"
+              :state="paymentState"
+              :disabled="busy"
+              @retry="loadProviders"
+            />
+          </CheckoutSection>
 
-          <Alert v-if="message" variant="destructive">
-            <AlertDescription>{{ $t(message) }}</AlertDescription>
-          </Alert>
+          <div class="flex flex-col gap-3 md:gap-4 md:border-t md:border-border md:pt-8">
+            <div data-testid="mobile-totals" class="bg-card p-5 lg:hidden">
+              <TotalsBlock
+                :subtotal="cart.item_subtotal ?? 0"
+                :savings="savings"
+                :delivery="showShipping ? cart.shipping_total : null"
+                :total="(showShipping ? cart.total : cart.item_total) ?? 0"
+              />
+            </div>
+
+            <Button
+              type="button"
+              data-testid="pay"
+              size="lg"
+              class="w-full"
+              :disabled="busy || !selectedOptionId || !selectedProviderId"
+              :aria-busy="placing ? true : undefined"
+              @click="pay"
+            >
+              <template v-if="placing">
+                <Spinner />
+                {{ $t("checkout.placing") }}
+              </template>
+              <template v-else>
+                {{ $t("checkout.placeOrderTotal", { total: formatPrice(cart.total) }) }}
+              </template>
+            </Button>
+
+            <i18n-t
+              keypath="checkout.agree"
+              tag="p"
+              scope="global"
+              class="text-center text-caption text-muted-foreground"
+            >
+              <template #terms>
+                <NuxtLinkLocale to="/terms" class="underline underline-offset-4">{{
+                  $t("checkout.termsLink")
+                }}</NuxtLinkLocale>
+              </template>
+              <template #privacy>
+                <NuxtLinkLocale to="/privacy" class="underline underline-offset-4">{{
+                  $t("checkout.privacyLink")
+                }}</NuxtLinkLocale>
+              </template>
+            </i18n-t>
+
+            <Alert v-if="message" variant="destructive">
+              <AlertDescription>{{ $t(message) }}</AlertDescription>
+            </Alert>
+          </div>
         </form>
-      </div>
 
-      <aside class="order-first md:order-none md:sticky md:top-6">
-        <CheckoutSummary :cart="cart" :show-shipping="!!selectedOptionId" />
-      </aside>
-    </div>
+        <aside
+          aria-labelledby="checkout-summary-title"
+          class="hidden bg-card p-8 lg:sticky lg:top-6 lg:block"
+        >
+          <CheckoutSummary :cart="cart" :show-shipping="showShipping" />
+        </aside>
+      </div>
+    </template>
   </div>
 </template>

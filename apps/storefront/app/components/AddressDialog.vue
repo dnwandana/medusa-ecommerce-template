@@ -79,7 +79,7 @@ async function submit(): Promise<void> {
   if (busy.value) {
     return
   }
-  errors.value = validateAddressForm(form.value, { phone: true })
+  errors.value = validateAddressForm(form.value)
   if (Object.keys(errors.value).length > 0) {
     return
   }
@@ -108,21 +108,21 @@ async function submit(): Promise<void> {
 
 <template>
   <Dialog :open="open" @update:open="onOpenChange">
-    <!-- Below md the dialog fills the screen and the footer stays at the bottom. -->
+    <!-- The dialog style sets the size. Only the body scrolls, so the footer stays at the bottom. -->
     <DialogContent
       :show-close-button="false"
       v-bind="describedBy"
-      class="top-0 left-0 flex h-dvh max-w-none translate-x-0 translate-y-0 flex-col gap-0 rounded-none p-0 sm:max-w-none md:top-1/2 md:left-1/2 md:h-auto md:max-h-[calc(100dvh-4rem)] md:max-w-[520px] md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-xl"
+      class="flex flex-col gap-0 overflow-hidden p-0 md:p-0"
       @escape-key-down="blockDuringSave"
       @interact-outside="blockDuringSave"
     >
       <form novalidate class="flex min-h-0 flex-1 flex-col" @submit.prevent="submit">
-        <DialogHeader class="flex-row items-start justify-between gap-3 px-4 pt-5 md:px-6">
-          <div class="flex flex-col gap-1">
-            <DialogTitle>
+        <DialogHeader class="flex-row items-start justify-between gap-4 px-4 pt-5 md:px-8 md:pt-8">
+          <div class="flex flex-col gap-2">
+            <DialogTitle class="text-h3 font-normal">
               {{ $t(isEdit ? "account.addresses.editTitle" : "account.addresses.addTitle") }}
             </DialogTitle>
-            <DialogDescription v-if="isEdit">
+            <DialogDescription v-if="isEdit" class="text-body-sm">
               {{ $t("account.addresses.editSubtitle") }}
             </DialogDescription>
           </div>
@@ -130,7 +130,8 @@ async function submit(): Promise<void> {
             <Button
               type="button"
               variant="ghost"
-              size="icon-sm"
+              size="icon"
+              class="-mt-2.5 -mr-2.5"
               :disabled="busy"
               :aria-label="$t('common.close')"
             >
@@ -139,7 +140,7 @@ async function submit(): Promise<void> {
           </DialogClose>
         </DialogHeader>
 
-        <div class="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-4 py-5 md:px-6">
+        <div class="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-4 py-6 md:px-8">
           <Field>
             <FieldLabel :for="`${ID_PREFIX}-address_name`">{{ $t("checkout.label") }}</FieldLabel>
             <Input
@@ -152,13 +153,7 @@ async function submit(): Promise<void> {
             />
           </Field>
 
-          <AddressFields
-            v-model="form"
-            :id-prefix="ID_PREFIX"
-            :errors="errors"
-            :phone="true"
-            :disabled="busy"
-          />
+          <AddressFields v-model="form" :id-prefix="ID_PREFIX" :errors="errors" :disabled="busy" />
 
           <Field orientation="horizontal" data-testid="address-default">
             <Checkbox
@@ -183,7 +178,9 @@ async function submit(): Promise<void> {
           </Alert>
         </div>
 
-        <DialogFooter class="mx-0 mb-0 flex-row rounded-none md:rounded-b-xl">
+        <DialogFooter
+          class="mx-0 mb-0 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] md:px-8 md:pb-8"
+        >
           <DialogClose as-child>
             <Button type="button" variant="outline" class="flex-1 md:flex-none" :disabled="busy">
               {{ $t("common.cancel") }}

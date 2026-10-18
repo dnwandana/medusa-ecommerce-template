@@ -1,20 +1,38 @@
 <script setup lang="ts">
 import type { HttpTypes } from "@medusajs/types"
 
-// showShipping is true only after the customer saves a shipping option.
-// Before that, cart.total has no shipping, so the summary hides the total.
-defineProps<{ cart: HttpTypes.StoreCart; showShipping: boolean }>()
+// showShipping is true only after the customer saves a shipping option. Before that, cart.total
+// has no delivery price, so the summary shows the item total and "Calculated at checkout".
+const props = withDefaults(
+  defineProps<{ cart: HttpTypes.StoreCart; showShipping: boolean; heading?: boolean }>(),
+  { heading: true }
+)
+
+const savings = computed(() => cartSavings(props.cart.items))
 </script>
 
 <template>
-  <Card class="rounded-xl">
-    <CardHeader>
-      <CardTitle>{{ $t("checkout.summary") }}</CardTitle>
-    </CardHeader>
-    <CardContent class="flex flex-col gap-4">
-      <ul class="flex flex-col gap-4">
-        <li v-for="item in cart.items ?? []" :key="item.id" class="flex items-start gap-3">
-          <div class="aspect-[3/4] w-14 shrink-0 overflow-hidden rounded-sm bg-backdrop-sand">
+  <!-- A div, not a section: the parent aside is the landmark and points to the h2. -->
+  <div class="flex flex-col gap-6">
+    <div v-if="props.heading" class="flex items-baseline justify-between gap-4">
+      <h2 id="checkout-summary-title" class="text-h3">{{ $t("checkout.summary") }}</h2>
+      <NuxtLinkLocale
+        to="/cart"
+        class="inline-flex min-h-11 items-center text-caption text-foreground underline decoration-1 underline-offset-4 outline-none hover:text-muted-foreground focus-visible:shadow-[var(--focus-ring)]"
+      >
+        {{ $t("checkout.editCart") }}
+      </NuxtLinkLocale>
+    </div>
+
+    <ul class="flex flex-col gap-5">
+      <li
+        v-for="item in props.cart.items ?? []"
+        :key="item.id"
+        data-testid="summary-line"
+        class="grid grid-cols-[64px_minmax(0,1fr)_auto] items-start gap-x-4"
+      >
+        <div class="relative">
+          <div class="aspect-[3/4] w-16 overflow-hidden bg-muted">
             <img
               v-if="item.thumbnail"
               :src="item.thumbnail"
@@ -22,31 +40,32 @@ defineProps<{ cart: HttpTypes.StoreCart; showShipping: boolean }>()
               class="size-full object-cover"
             />
           </div>
-          <div class="flex min-w-0 flex-col">
-            <p class="font-medium">{{ item.product_title }}</p>
-            <p v-if="item.variant_title" class="text-body-sm text-muted-foreground">
-              {{ item.variant_title }}
-            </p>
-            <p class="text-body-sm">{{ item.quantity }} × {{ formatPrice(item.unit_price) }}</p>
-          </div>
-        </li>
-      </ul>
+          <span
+            data-testid="quantity-bubble"
+            role="img"
+            :aria-label="$t('checkout.lineQuantity', { count: item.quantity })"
+            class="absolute -top-1.5 -right-1.5 h-5 min-w-5 rounded-full bg-primary px-1 text-center text-[11px] leading-5 font-semibold text-primary-foreground tabular-nums"
+          >
+            {{ item.quantity }}
+          </span>
+        </div>
+        <div class="flex min-w-0 flex-col gap-0.5">
+          <p class="text-body-sm text-foreground">{{ item.product_title }}</p>
+          <p v-if="item.variant_title" class="text-body-sm text-muted-foreground">
+            {{ item.variant_title }}
+          </p>
+        </div>
+        <p class="text-right text-price text-foreground">{{ formatPrice(item.subtotal) }}</p>
+      </li>
+    </ul>
 
-      <Separator />
+    <div class="border-t border-border" />
 
-      <dl class="grid grid-cols-2 gap-2">
-        <dt>{{ $t("cart.subtotal") }}</dt>
-        <dd class="text-right">{{ formatPrice(cart.item_subtotal) }}</dd>
-        <template v-if="showShipping">
-          <dt>{{ $t("cart.shipping") }}</dt>
-          <dd class="text-right">{{ formatPrice(cart.shipping_total) }}</dd>
-          <!-- A border and not a Separator, because a dl can hold only dt, dd, and div elements. -->
-          <dt class="border-t border-border pt-2 font-semibold">{{ $t("cart.total") }}</dt>
-          <dd class="border-t border-border pt-2 text-right text-price-lg">
-            {{ formatPrice(cart.total) }}
-          </dd>
-        </template>
-      </dl>
-    </CardContent>
-  </Card>
+    <TotalsBlock
+      :subtotal="props.cart.item_subtotal ?? 0"
+      :savings="savings"
+      :delivery="props.showShipping ? props.cart.shipping_total : null"
+      :total="(props.showShipping ? props.cart.total : props.cart.item_total) ?? 0"
+    />
+  </div>
 </template>

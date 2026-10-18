@@ -35,14 +35,14 @@ const fromAdmin = {
 
 // Mounts the picker as a parent with v-model does, so each update goes back into the prop.
 async function mountPicker(props: {
-  state: AddressListState
+  state?: AddressListState
   addresses: HttpTypes.StoreCustomerAddress[]
   selected?: string
 }): Promise<Picker> {
   const wrapper: Picker = await mountSuspended(CheckoutAddressPicker, {
     props: {
       addresses: props.addresses,
-      state: props.state,
+      state: props.state ?? "ready",
       selected: props.selected ?? "a1",
       form: emptyAddressForm(),
       save: true,
@@ -89,28 +89,42 @@ describe("CheckoutAddressPicker", () => {
     expect(wrapper.find('[data-testid="address-option-new"]').exists()).toBe(false)
   })
 
-  it("lists the saved addresses on one line each, then the new address item", async () => {
-    const wrapper = await mountPicker({ state: "ready", addresses: [home, fromAdmin] })
-    const ids = wrapper
-      .findAll('[data-testid^="address-option-"]')
-      .map((el) => el.attributes("data-testid"))
-    expect(ids).toEqual(["address-option-a1", "address-option-a9", "address-option-new"])
-    expect(wrapper.find('[data-testid="address-option-a1"]').text()).toContain(
-      "Jl. Melati No. 12, RT 03/RW 05, Jakarta Pusat, DKI Jakarta 10310"
-    )
-    expect(wrapper.find('[data-testid="address-option-a1"]').text()).toContain(
-      "Sari Dewi · 081234567890"
-    )
-    expect(wrapper.find('[data-testid="address-option-a1"]').text()).toContain("Default")
-    expect(wrapper.find('[data-testid="address-option-a9"]').text()).toContain("Address")
-    expect(wrapper.find('[data-testid="address-option-a9"]').text()).not.toContain("null")
-    expect(wrapper.find('[data-testid="address-option-a9"]').text()).not.toContain("·")
-    expect(wrapper.find('[data-testid="address-option-a9"]').text()).not.toContain("Default")
-    expect(wrapper.find('[data-testid="address-option-new"]').text()).toContain(
-      "Ship to an address that is not in your list."
-    )
-    expect(wrapper.find('[data-testid="address-fields"]').exists()).toBe(false)
-    expect(wrapper.find('a[href="/account/addresses"]').text()).toBe("Manage addresses")
+  it("lists the saved addresses as radio rows with the default badge", async () => {
+    const wrapper = await mountPicker({ addresses: [home, fromAdmin], selected: home.id })
+    const row = wrapper.get(`[data-testid='address-option-${home.id}']`)
+    expect(row.text()).toContain("Rumah")
+    expect(row.text()).toContain("Default")
+    expect(row.text()).toContain("Sari Dewi · 081234567890")
+    expect(row.text()).toContain("Jl. Melati No. 12, RT 03/RW 05, Jakarta Pusat, DKI Jakarta 10310")
+    expect(row.classes()).toContain("border-b")
+    expect(
+      wrapper.findAll("[data-testid^='address-option-']").at(-1)!.attributes("data-testid")
+    ).toBe("address-option-new")
+    expect(wrapper.html()).not.toContain("bg-primary-soft")
+    expect(wrapper.html()).not.toContain("rounded-lg")
+    expect(wrapper.get('a[href="/account/addresses"]').text()).toBe("Manage addresses")
+  })
+
+  it("shows no null and no lone separator for an address with empty fields", async () => {
+    const wrapper = await mountPicker({ addresses: [home, fromAdmin] })
+    const row = wrapper.get('[data-testid="address-option-a9"]')
+    expect(row.text()).toContain("Address")
+    expect(row.text()).toContain("Budi Santoso")
+    expect(row.text()).not.toContain("null")
+    expect(row.text()).not.toContain("·")
+    expect(row.text()).not.toContain("Default")
+  })
+
+  it("shows the fields under the list only for a new address", async () => {
+    const wrapper = await mountPicker({ addresses: [home], selected: home.id })
+    expect(wrapper.find("[data-testid='address-fields']").exists()).toBe(false)
+    expect(wrapper.text()).toContain("Ship to an address that is not in your list.")
+
+    await wrapper.setProps({ selected: NEW_ADDRESS })
+    expect(wrapper.find("[data-testid='address-fields']").exists()).toBe(true)
+    expect(wrapper.find("[role='radiogroup'] [data-testid='address-fields']").exists()).toBe(false)
+    expect(wrapper.text()).not.toContain("Ship to an address that is not in your list.")
+    expect(wrapper.find("#checkout-address-phone").exists()).toBe(true)
   })
 
   it("shows the fields, the label, and the default checkbox for a new address", async () => {

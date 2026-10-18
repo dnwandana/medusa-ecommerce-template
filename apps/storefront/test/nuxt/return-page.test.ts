@@ -45,6 +45,16 @@ afterEach(() => {
 })
 
 describe("payment return page", () => {
+  it("shows the state in a centred block between hairlines with the checkout eyebrow", async () => {
+    cartId.value = null
+    const wrapper = await mountPage()
+    const block = wrapper.get("[data-testid='return-block']")
+    expect(block.classes()).toEqual(expect.arrayContaining(["border-y", "text-center"]))
+    expect(block.text()).toContain("Checkout")
+    expect(block.get("h1").text()).toBe("There is no payment to confirm.")
+    expect(block.get("a").attributes("href")).toBe("/")
+  })
+
   it("shows a text and completes nothing when there is no cart", async () => {
     cartId.value = null
     const wrapper = await mountPage()
@@ -113,7 +123,7 @@ describe("payment return page", () => {
     completeMock.mockResolvedValue({ status: "pending" })
     const wrapper = await mountPage()
 
-    expect(media(wrapper).classes()).toContain("bg-warning-soft")
+    expect(media(wrapper).attributes("data-tone")).toBe("warning")
     expect(wrapper.find('[data-slot="empty-title"]').text()).toBe("Payment is being confirmed")
   })
 
@@ -121,7 +131,7 @@ describe("payment return page", () => {
     completeMock.mockResolvedValue({ status: "failed" })
     const wrapper = await mountPage()
 
-    expect(media(wrapper).classes()).toContain("bg-destructive-soft")
+    expect(media(wrapper).attributes("data-tone")).toBe("destructive")
     expect(wrapper.find('[role="alert"]').text()).toContain("We could not create your order")
     expect(wrapper.find('a[href="/cart"]').text()).toBe("Back to the cart")
   })
@@ -130,7 +140,7 @@ describe("payment return page", () => {
     cartId.value = null
     const wrapper = await mountPage()
 
-    expect(media(wrapper).classes()).toContain("bg-muted")
+    expect(media(wrapper).attributes("data-tone")).toBe("muted")
     expect(wrapper.find('a[href="/"]').text()).toBe("Back to the home page")
   })
 })

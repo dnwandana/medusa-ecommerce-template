@@ -17,13 +17,12 @@ export function isPostalCode(value: string): boolean {
   return POSTAL_CODE_PATTERN.test(value.trim())
 }
 
-export type ContactValues = { email: string; phone: string }
+// The delivery address has the phone, so the contact has only the email.
+export type ContactValues = { email: string }
 
 // Returns a message key for each contact field that is not valid. An empty object means no error.
-export function validateContact(
-  values: ContactValues
-): Partial<Record<keyof ContactValues, string>> {
-  const errors: Partial<Record<keyof ContactValues, string>> = {}
+export function validateContact(values: ContactValues): Partial<Record<"email", string>> {
+  const errors: Partial<Record<"email", string>> = {}
 
   // An empty field has only the "required" error.
   if (!values.email.trim()) {
@@ -31,16 +30,16 @@ export function validateContact(
   } else if (!EMAIL_PATTERN.test(values.email.trim())) {
     errors.email = "checkout.errors.email"
   }
-  if (!values.phone.trim()) {
-    errors.phone = "checkout.errors.required"
-  } else if (!isMobilePhone(values.phone)) {
-    errors.phone = "checkout.errors.phone"
-  }
 
   return errors
 }
 
-export type PaymentPayer = { first_name?: string | null; last_name?: string | null }
+// A StoreCustomer fits this type.
+export type PaymentPayer = {
+  first_name?: string | null
+  last_name?: string | null
+  phone?: string | null
+}
 
 export type PaymentCustomer = {
   first_name: string
@@ -57,21 +56,24 @@ export function toE164(phone: string): string {
 
 // Returns the customer object that the checkout sends to each payment provider. A provider names
 // the payer, not the recipient. A profile with no first name has no usable payer name, so the
-// object uses the name of the address.
+// object uses the name of the address. The profile phone belongs to the payer, so it wins. A
+// provider needs a mobile number, so a profile with no mobile number, or a guest, gives the phone
+// of the delivery address.
 export function toPaymentCustomer(input: {
   payer: PaymentPayer | null
-  recipient: { first_name: string; last_name: string }
+  recipient: { first_name: string; last_name: string; phone: string }
   email: string
-  phone: string
 }): PaymentCustomer {
   const source: PaymentPayer =
     input.payer && input.payer.first_name?.trim() ? input.payer : input.recipient
+  const payerPhone = input.payer?.phone ?? ""
+  const phone = isMobilePhone(payerPhone) ? payerPhone : input.recipient.phone
 
   return {
     first_name: (source.first_name ?? "").trim(),
     // A profile can have a null last name. The object always has a string.
     last_name: (source.last_name ?? "").trim(),
     email: input.email.trim(),
-    phone: toE164(input.phone),
+    phone: toE164(phone),
   }
 }
