@@ -54,7 +54,8 @@ function renderItem(item: OrderPlacedItem): string {
   return `<tr><td style="${cell}">${label}</td><td style="${cell}text-align:right;">${escapeHtml(lineTotal)}</td></tr>`
 }
 
-function renderAddress(address: OrderPlacedAddress): string {
+// Returns the "Ship to" part. The order-shipped email uses it too.
+export function renderAddress(address: OrderPlacedAddress): string {
   const name = [address.first_name, address.last_name].filter(Boolean).join(" ")
   const cityLine = [address.city, address.postal_code].filter(Boolean).join(" ")
   const lines = [name, address.address_1, cityLine, address.phone]

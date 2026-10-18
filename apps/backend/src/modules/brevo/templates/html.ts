@@ -59,3 +59,15 @@ ${bodyHtml}
 </body>
 </html>`
 }
+
+// Returns a dark link button in a paragraph. It escapes the link and the label.
+export function emailButton(href: string, label: string): string {
+  return `<p><a href="${escapeHtml(href)}" style="display:inline-block;padding:12px 24px;background:#1d1b18;color:#ffffff;text-decoration:none;font-weight:bold;">${escapeHtml(label)}</a></p>`
+}
+
+// Returns the escaped greeting line text. A first name that is empty after trim gives
+// "Hi there,".
+export function greeting(firstName: string | null | undefined): string {
+  const name = typeof firstName === "string" ? firstName.trim() : ""
+  return name ? `Hi ${escapeHtml(name)},` : "Hi there,"
+}

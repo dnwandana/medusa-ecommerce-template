@@ -31,20 +31,11 @@ describe("password-reset subscriber", () => {
     expect(config.event).toBe("auth.password_reset")
   })
 
-  it("sends a customer to the storefront reset page", async () => {
-    const { container, createNotifications } = makeContainer(admin)
-
+  it("sends nothing for a customer", async () => {
+    const { container, createNotifications, logger } = makeContainer(admin)
     await run(container, { entity_id: "buyer@example.com", actor_type: "customer", token: "tok_1" })
-
-    expect(createNotifications).toHaveBeenCalledWith({
-      to: "buyer@example.com",
-      channel: "email",
-      template: "password-reset",
-      data: {
-        reset_url:
-          "https://shop.example.com/account/reset-password?token=tok_1&email=buyer%40example.com",
-      },
-    })
+    expect(createNotifications).not.toHaveBeenCalled()
+    expect(logger.error).not.toHaveBeenCalled()
   })
 
   it("sends an admin user to the admin reset page", async () => {
@@ -61,33 +52,10 @@ describe("password-reset subscriber", () => {
   it("URL-encodes the email and the token", async () => {
     const { container, createNotifications } = makeContainer(admin)
 
-    await run(container, { entity_id: "a+b@example.com", actor_type: "customer", token: "t/k=1" })
+    await run(container, { entity_id: "a+b@example.com", actor_type: "user", token: "t/k=1" })
 
     expect(createNotifications.mock.calls[0][0].data.reset_url).toBe(
-      "https://shop.example.com/account/reset-password?token=t%2Fk%3D1&email=a%2Bb%40example.com"
-    )
-  })
-
-  it("removes a trailing slash from the storefront URL", async () => {
-    const { container, createNotifications } = makeContainer({
-      ...admin,
-      storefrontUrl: "https://shop.example.com/",
-    })
-    await run(container, { entity_id: "buyer@example.com", actor_type: "customer", token: "tok_1" })
-    expect(createNotifications.mock.calls[0][0].data.reset_url).toContain(
-      "https://shop.example.com/account/reset-password?"
-    )
-  })
-
-  it("logs an error and sends nothing when the storefront URL is absent", async () => {
-    const { container, createNotifications, logger } = makeContainer({
-      ...admin,
-      storefrontUrl: undefined,
-    })
-    await run(container, { entity_id: "buyer@example.com", actor_type: "customer", token: "tok_1" })
-    expect(createNotifications).not.toHaveBeenCalled()
-    expect(logger.error).toHaveBeenCalledWith(
-      "The password-reset email was not sent. STOREFRONT_URL has no value."
+      "https://api.shop.example.com/app/reset-password?token=t%2Fk%3D1&email=a%2Bb%40example.com"
     )
   })
 
@@ -96,7 +64,7 @@ describe("password-reset subscriber", () => {
     createNotifications.mockRejectedValue(new Error("Brevo is down"))
 
     await expect(
-      run(container, { entity_id: "buyer@example.com", actor_type: "customer", token: "tok_1" })
+      run(container, { entity_id: "owner@example.com", actor_type: "user", token: "tok_1" })
     ).resolves.toBeUndefined()
     expect(logger.error).toHaveBeenCalledWith(
       "The password-reset email failed. Cause: Brevo is down"

@@ -43,13 +43,16 @@ describe("layout", () => {
 })
 
 describe("renderPasswordReset", () => {
-  const url = "https://shop.example.com/account/reset-password?token=abc&email=a%40b.com"
+  const url = "https://api.shop.example.com/app/reset-password?token=abc&email=a%40b.com"
 
   it("returns the subject and a link to the reset URL", () => {
     const email = renderPasswordReset({ reset_url: url })
     expect(email.subject).toBe("Reset your password")
     expect(email.html).toContain(
-      'href="https://shop.example.com/account/reset-password?token=abc&amp;email=a%40b.com"'
+      'href="https://api.shop.example.com/app/reset-password?token=abc&amp;email=a%40b.com"'
+    )
+    expect(email.html).toContain(
+      "We received a request to reset the password of your admin account."
     )
     expect(email.html).toContain("This link expires in 15 minutes.")
   })

@@ -1,3 +1,4 @@
+import { Modules } from "@medusajs/framework/utils"
 import { medusaIntegrationTestRunner } from "@medusajs/test-utils"
 import { PRODUCT_REVIEW_MODULE } from "../../src/modules/product-review"
 import ProductReviewModuleService from "../../src/modules/product-review/service"
@@ -88,6 +89,11 @@ medusaIntegrationTestRunner({
         const customer = await buyer({ first_name: null, last_name: null })
         const { order, items } = await buy(customer, [["TOTE-DEFAULT", 1]])
         await shipOrderItems(getContainer(), order.id, [{ id: items[0].id, quantity: 1 }])
+        // The subscriber customer-name-from-order copies the delivery address name into a
+        // customer with no name. Remove the names again after the order.
+        await getContainer()
+          .resolve(Modules.CUSTOMER)
+          .updateCustomers(customer.id, { first_name: null, last_name: null })
 
         const { result, errors } = await run({
           customer_id: customer.id,
@@ -135,10 +141,10 @@ medusaIntegrationTestRunner({
       it("rejects an item that is not shipped with not_allowed", async () => {
         const customer = await buyer()
         const { order, items } = await buy(customer, [
-          ["TSHIRT-M", 3],
+          ["TSHIRT-M-BLACK", 3],
           ["TOTE-DEFAULT", 1],
         ])
-        const shirt = items.find((item) => item.sku === "TSHIRT-M")!
+        const shirt = items.find((item) => item.sku === "TSHIRT-M-BLACK")!
         const tote = items.find((item) => item.sku === "TOTE-DEFAULT")!
         await shipOrderItems(getContainer(), order.id, [{ id: shirt.id, quantity: 1 }])
 
@@ -156,7 +162,7 @@ medusaIntegrationTestRunner({
 
       it("accepts an item with 1 of 3 units shipped", async () => {
         const customer = await buyer()
-        const { order, items } = await buy(customer, [["TSHIRT-M", 3]])
+        const { order, items } = await buy(customer, [["TSHIRT-M-BLACK", 3]])
         await shipOrderItems(getContainer(), order.id, [{ id: items[0].id, quantity: 1 }])
 
         const { errors } = await run({
