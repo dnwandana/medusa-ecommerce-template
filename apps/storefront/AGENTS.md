@@ -95,6 +95,7 @@ The composables call the custom routes with `sdk.client.fetch`:
 | `/store/magic-link`, and `/status`, `/verify`, `/confirm`, `/session`     | `useMagicLink.ts`              |
 | `/auth/session`, `/store/customers/me/welcome`                            | `useCustomer.ts`               |
 | `/store/orders/:id/tracking`                                              | `useOrders.ts` (`getTracking`) |
+| `/store/orders/:id/receipts`, `/store/payment-states`                     | `useReceipts.ts`               |
 
 ### Catalog
 
@@ -176,11 +177,45 @@ The composables call the custom routes with `sdk.client.fetch`:
 - The checkout country is fixed to `id`. Prices are always IDR.
 - The storefront code has no payment provider id. Only `app/utils/bankTransfer.ts` and the locale
   files name `pp_bank-transfer_bank-transfer`.
-- The order tracker parts exist: `OrderTracker`, `OrderShipments`, `OrderStatusBlock`,
-  `app/utils/orderTracker.ts`, `trackingLink.ts`, and `orderNotices.ts`. `pages/orders/[id].vue`
-  does not use them yet. The wiring waits for part 2 of the payment base, which adds
-  `customerStatus` in `app/utils/orderStatus.ts`. Until then, `orderTracker.ts` has its own
-  `CustomerStatus` type.
+- `useOrders()` adds `order.payment_state` to each order (type `PaymentOrder`). The value is the
+  entry of `/store/payment-states` for the order, or `null`. `listOrders` makes one payment state
+  request for the page. `useReceipts().getPaymentStates` sends at most 50 order ids in one request.
+- `ORDER_FIELDS` has no payment sessions and no payments. The Store API gives the session data,
+  with the payment URL and the customer object of a gateway, to each person who knows the order
+  id. `payment_state` gives only the provider id, the capture time, the receipt names, and the
+  newest store note. It has no file key and no file URL.
+- `app/utils/orderStatus.ts`:
+  - `customerStatus(order)` returns the status that the customer sees: `waiting_for_payment`,
+    `payment_submitted`, `processing`, `shipped`, `delivered`, `cancelled`, or `refunded`. A
+    gateway order starts at `processing`. Each status has the locale key `order.status.<status>`.
+  - `receiptPhase(state)` returns `none` (no receipt), `submitted`, or `more` (the store note is
+    newer than the newest receipt).
+  - `orderTracker.ts` and the pages use the `CustomerStatus` type of this file.
+- `isAwaitingBankTransfer(order)` reads `order.payment_state`. It is true for a bank transfer order
+  that is not canceled and has no captured payment.
+- `pages/orders/[id].vue` shows these parts, in this order:
+  1. The eyebrow (order number and date), the `h1`, and the body text. The text comes from
+     `customerStatus(order)`.
+  2. For a bank transfer order that waits for the capture, `BankTransferInstructions` and
+     `ReceiptPanel`. The bank panel takes `receiptPhase` and the store note.
+  3. `OrderStatusBlock` for a cancelled or refunded order, else `OrderTracker`.
+  4. `OrderShipments`, from `/store/orders/:id/tracking`.
+  5. `OrderSummary`. The payment method comes from `payment_state.provider_id`.
+  6. An aside with "Continue shopping" and the contact link.
+  7. `RelatedProducts`, only for `processing`, `shipped`, and `delivered`.
+- `/account/orders` shows a status `Badge` for each order, from `customerStatus(order)`.
+- `refundedAmount(order)` (`app/utils/orderNotices.ts`) reads `order.summary.refunded_total`,
+  because the Store order route does not return the refunds of a payment collection.
+- Receipts:
+  - `ReceiptPanel` lists the uploaded receipts by name and time. The receipt files are private.
+    Below 3 receipts it shows `ReceiptUploadForm`. At 3 receipts it shows the store contact.
+  - `ReceiptUploadForm` has a drop zone and a file input. `checkReceiptFile`
+    (`app/utils/receiptFile.ts`) refuses a file that is not JPG, PNG, or WebP, or that is larger
+    than 5 MB. The backend checks the file bytes again.
+  - `useReceipts().uploadReceipt` sends JSON `{ file_name, content }` with the file as base64,
+    because the SDK sends JSON. After an upload, the order page loads the order again.
+  - `MAX_RECEIPTS` and `MAX_RECEIPT_BYTES` have the same values as the backend limits in
+    `apps/backend/src/modules/payment-receipt`. Change the two copies together.
 
 ### Pure functions
 
@@ -197,6 +232,9 @@ The composables call the custom routes with `sdk.client.fetch`:
 - The catalog URL query (`catalogQuery.ts`) and the price ranges (`priceRanges.ts`).
 - Bank transfer: `isAwaitingBankTransfer`, `bankTransferDeadline` (the order time plus 24 hours),
   and `formatDeadline` (WIB).
+- Order status: `customerStatus`, `receiptPhase`, `trackerSteps`, `cancelNoticeKey`, and
+  `refundedAmount`.
+- Receipt files: `checkReceiptFile` and `formatFileSize`.
 
 ## Code conventions
 

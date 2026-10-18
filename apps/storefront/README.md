@@ -46,12 +46,12 @@ Nuxt reads the keys when the server starts. A new value does not need a new buil
 | `/cart`                   | Cart lines, stock limits, move to the wishlist, the summary with "You save", and "You may also like"        |
 | `/checkout`               | Email, delivery address, delivery method, and payment on one page. Uses the checkout layout.                |
 | `/checkout/return`        | The return page after the payment on a gateway page. Uses the checkout layout.                              |
-| `/orders/:id`             | Order confirmation, the order summary, and the bank details for a bank transfer order that is not paid      |
+| `/orders/:id`             | The order status, tracker, shipments, and summary. A bank transfer order also shows the receipts.           |
 | `/account/sign-in`        | Sign-in form for the email. Then "Check your email", which waits for the link.                              |
 | `/account/sign-in/verify` | The page of the link in the email. It signs in this browser, or confirms the sign-in of another device.     |
 | `/account/welcome`        | The first sign-in only: an optional full name. Needs a sign-in.                                             |
 | `/account`                | Profile: full name and phone. Needs a sign-in.                                                              |
-| `/account/orders`         | Order history and the items that the customer can review. Needs a sign-in.                                  |
+| `/account/orders`         | Order history with the status of each order, and the items to review. Needs a sign-in.                      |
 | `/account/addresses`      | Saved addresses: add, edit, delete, and set the default. Needs a sign-in.                                   |
 | `/account/wishlist`       | Wishlist. Needs a sign-in.                                                                                  |
 | `/delivery`               | Delivery information                                                                                        |
@@ -78,8 +78,8 @@ a row of two text columns. With no live campaign, the hero shows the text of the
 | `app/app.config.ts`           | The store name                                                                                                                                    |
 | `app/components/`             | Store components                                                                                                                                  |
 | `app/components/ui/`          | shadcn-vue components                                                                                                                             |
-| `app/composables/`            | Medusa SDK client, cart, region, catalog, listing, search, storefront settings, checkout, customer, sign-in, addresses, orders, reviews, wishlist |
-| `app/utils/`                  | Pure functions: price format, address form, catalog query, price ranges, badges, sign-in storage, retry, redirect check, bank transfer            |
+| `app/composables/`            | Medusa SDK client, cart, region, catalog, listings, search, settings, checkout, customer, sign-in, addresses, orders, receipts, reviews, wishlist |
+| `app/utils/`                  | Pure functions: price format, address form, catalog query, price ranges, badges, sign-in, retry, redirects, bank transfer, order status, receipts |
 | `app/types/storefront.ts`     | The types of the storefront settings and the home campaign                                                                                        |
 | `app/middleware/auth.ts`      | Sends a guest to the sign-in page                                                                                                                 |
 | `app/assets/css/tailwind.css` | Tailwind, the design tokens, the type utilities, and the `@font-face` rules                                                                       |
@@ -148,7 +148,7 @@ Then the backend sends the welcome email.
 4. The customer selects a payment method. The storefront lists the payment providers of the region.
 5. **Place order** starts a payment session for that provider.
 6. Bank transfer: the storefront completes the cart at once. It then shows `/orders/:id` with the
-   bank accounts, the amount, and the deadline in WIB.
+   bank accounts, the amount, the deadline in WIB, and the receipt upload. See "Order page".
 7. Payment gateway: the storefront opens the gateway page. The gateway sends the customer back to
    `/checkout/return`.
    - The return page completes the cart. It tries five times, at intervals of 2 seconds, because
@@ -163,6 +163,41 @@ must have 5 digits.
 
 Checkout works with no payment key. The seed adds a sample bank account. A gateway webhook needs a
 public URL for the backend.
+
+## Order page
+
+`/orders/:id` needs no sign-in. The long random order ID is the key. The page shows the status of
+the order, from `customerStatus` in `app/utils/orderStatus.ts`:
+
+| Status                | Meaning                                                    |
+| --------------------- | ---------------------------------------------------------- |
+| `waiting_for_payment` | A bank transfer order with no receipt, or with a new note. |
+| `payment_submitted`   | A bank transfer order with a receipt. The store checks it. |
+| `processing`          | A paid order, or a gateway order.                          |
+| `shipped`             | A part or all of the order left the store.                 |
+| `delivered`           | The order arrived.                                         |
+| `cancelled`           | The store or the 24-hour rule cancelled the order.         |
+| `refunded`            | The store refunded the payment.                            |
+
+The account order list shows the same status as a badge.
+
+A bank transfer order that is not paid and not cancelled shows two panels:
+
+- The bank panel. It has three states:
+  - No receipt: the amount, the bank accounts, and the deadline in WIB. The order time plus 24
+    hours is the deadline. With no receipt by then, the store cancels the order.
+  - Receipt uploaded: "We are checking your payment" and the amount. The bank accounts and the
+    deadline do not show.
+  - "Ask for more": the owner wrote a note in the admin. The panel shows the note, the bank
+    accounts, and the text "Transfer the difference, then upload one more receipt." The note
+    shows until the customer uploads a newer receipt.
+- The receipt panel. It lists the uploaded receipts by name and time. The customer uploads 1 to 3
+  receipts, one at a time. A receipt is a JPG, PNG, or WebP file of at most 5 MB. The storefront
+  checks the type and the size before the upload, and the backend checks them again. At 3
+  receipts, the upload closes and the panel shows the email and the WhatsApp number of the store.
+
+The customer cannot delete a receipt. The receipt files are private. Only the owner sees them, in
+the order widget of the admin.
 
 ## Tests
 
