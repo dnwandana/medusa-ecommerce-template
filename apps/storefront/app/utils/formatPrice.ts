@@ -8,3 +8,8 @@ export function formatPrice(amount: number | null | undefined): string {
   }
   return `Rp ${rupiah.format(Math.round(amount))}`
 }
+
+// Formats a delivery price. A price of 0 shows the free label, not "Rp 0".
+export function formatDeliveryPrice(amount: number | null | undefined, freeLabel: string): string {
+  return amount === 0 ? freeLabel : formatPrice(amount)
+}

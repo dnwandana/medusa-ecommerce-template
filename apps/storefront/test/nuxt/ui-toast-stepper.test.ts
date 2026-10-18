@@ -1,11 +1,32 @@
 import { mountSuspended } from "@nuxt/test-utils/runtime"
 import { describe, expect, it } from "vitest"
 import { defineComponent, h } from "vue"
-import { Sonner, Stepper, StepperIndicator, StepperItem, StepperTitle } from "#components"
+import { Skeleton, Sonner, Stepper, StepperIndicator, StepperItem, StepperTitle } from "#components"
 
 describe("Sonner", () => {
   it("mounts the toaster", async () => {
     await expect(mountSuspended(Sonner, { attachTo: document.body })).resolves.toBeTruthy()
+  })
+
+  it("styles the toasts as cards with a hairline", async () => {
+    const wrapper = await mountSuspended(Sonner)
+    const options = wrapper.findComponent({ name: "Toaster" }).props("toastOptions")
+    expect(options.classes.toast).toEqual(
+      expect.stringContaining("bg-card border border-border shadow-lg rounded-none")
+    )
+  })
+})
+
+describe("Skeleton", () => {
+  it("draws the skeleton with the secondary fill and a slow pulse", async () => {
+    const wrapper = await mountSuspended(Skeleton)
+    expect(wrapper.classes()).toEqual(
+      expect.arrayContaining([
+        "bg-secondary",
+        "rounded-none",
+        "animate-[pulse_2s_ease-in-out_infinite]",
+      ])
+    )
   })
 })
 

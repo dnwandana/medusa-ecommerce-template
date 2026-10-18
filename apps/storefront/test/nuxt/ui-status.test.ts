@@ -7,7 +7,6 @@ describe("Alert", () => {
   it.each([
     ["destructive", "alert"],
     ["success", "status"],
-    ["info", "status"],
     ["default", "status"],
   ] as const)("gives the %s variant role=%s", async (variant, role) => {
     const wrapper = await mountSuspended(Alert, {
@@ -15,6 +14,19 @@ describe("Alert", () => {
       slots: { default: () => "Text" },
     })
 
+    expect(wrapper.attributes("role")).toBe(role)
+  })
+
+  it.each([
+    ["default", "bg-secondary", "status"],
+    ["destructive", "bg-destructive-soft", "alert"],
+    ["success", "bg-success-soft", "status"],
+    ["warning", "bg-warning-soft", "status"],
+  ] as const)("draws the %s alert as a soft tint", async (variant, fill, role) => {
+    const wrapper = await mountSuspended(Alert, { props: { variant } })
+    expect(wrapper.classes()).toContain(fill)
+    expect(wrapper.classes()).toContain("border-0")
+    expect(wrapper.classes()).toContain("rounded-none")
     expect(wrapper.attributes("role")).toBe(role)
   })
 
@@ -41,7 +53,7 @@ describe("Skeleton", () => {
   it("stops the animation for reduced motion", async () => {
     const wrapper = await mountSuspended(Skeleton)
 
-    expect(wrapper.classes()).toContain("animate-pulse")
+    expect(wrapper.classes()).toContain("animate-[pulse_2s_ease-in-out_infinite]")
     expect(wrapper.classes()).toContain("motion-reduce:animate-none")
   })
 })

@@ -30,6 +30,27 @@ describe("navigation components", () => {
     expect(wrapper.find('[aria-current="page"]').text()).toBe("Shirts")
   })
 
+  it("sets the breadcrumbs in caps with a slash separator", async () => {
+    const wrapper = await mountSuspended(
+      defineComponent(
+        () => () =>
+          h(Breadcrumb, () =>
+            h(BreadcrumbList, () => [
+              h(BreadcrumbItem, () => "Home"),
+              h(BreadcrumbSeparator),
+              h(BreadcrumbItem, () => h(BreadcrumbPage, () => "Apparel")),
+            ])
+          )
+      )
+    )
+    const list = wrapper.get("[data-slot='breadcrumb-list']")
+    expect(list.classes()).toEqual(
+      expect.arrayContaining(["caps", "text-[11px]", "text-muted-foreground"])
+    )
+    expect(wrapper.get("[data-slot='breadcrumb-separator']").text()).toBe("/")
+    expect(wrapper.get("[data-slot='breadcrumb-separator']").attributes("aria-hidden")).toBe("true")
+  })
+
   it("marks the active pagination item with the outline style", async () => {
     const Pages = defineComponent(
       () => () =>
@@ -47,7 +68,7 @@ describe("navigation components", () => {
     const wrapper = await mountSuspended(Pages)
     const active = wrapper.findAll("button").find((button) => button.text() === "2")!
 
-    expect(active.classes()).toContain("border-input")
+    expect(active.classes()).toContain("border-foreground")
     expect(active.classes()).toContain("size-11")
   })
 })

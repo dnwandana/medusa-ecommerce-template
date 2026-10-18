@@ -11,12 +11,22 @@ import {
 } from '@lucide/vue'
 import { reactiveOmit } from '@vueuse/core'
 import { Toaster as Sonner } from 'vue-sonner'
+import { buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 // vue-sonner 2 does not inject its styles. Without them, the toasts have no position or layout.
 import 'vue-sonner/style.css'
 
 const props = defineProps<ToasterProps>()
 const delegatedProps = reactiveOmit(props, 'class', 'toastOptions')
+
+// A toast is a card with a hairline. Its action is the small outline button.
+const defaultToastOptions: ToasterProps['toastOptions'] = {
+  classes: {
+    toast: 'bg-card border border-border shadow-lg rounded-none text-foreground text-body-sm',
+    title: 'text-body font-medium',
+    actionButton: buttonVariants({ variant: 'outline', size: 'sm' }),
+  },
+}
 </script>
 
 <template>
@@ -33,9 +43,7 @@ const delegatedProps = reactiveOmit(props, 'class', 'toastOptions')
       '--gray5': 'var(--border)',
       '--gray12': 'var(--popover-foreground)',
     }"
-    :toast-options="props.toastOptions ?? {
-      class: 'rounded-lg border border-border bg-card text-foreground shadow-md',
-    }"
+    :toast-options="props.toastOptions ?? defaultToastOptions"
     v-bind="delegatedProps"
   >
     <template #success-icon>
@@ -60,3 +68,33 @@ const delegatedProps = reactiveOmit(props, 'class', 'toastOptions')
     </template>
   </Sonner>
 </template>
+
+<style>
+/* The vue-sonner styles are not in a cascade layer, so they win over the Tailwind classes of
+   toastOptions. revert-layer gives these properties back to the classes. */
+[data-sonner-toaster] [data-sonner-toast][data-styled='true'] {
+  background: revert-layer;
+  border: revert-layer;
+  border-radius: revert-layer;
+  box-shadow: revert-layer;
+  color: revert-layer;
+  font-size: revert-layer;
+}
+
+[data-sonner-toaster] [data-sonner-toast][data-styled='true'] [data-title] {
+  line-height: revert-layer;
+}
+
+[data-sonner-toaster] [data-sonner-toast][data-styled='true'] [data-button] {
+  height: revert-layer;
+  padding-left: revert-layer;
+  padding-right: revert-layer;
+  border: revert-layer;
+  border-radius: revert-layer;
+  background: revert-layer;
+  color: revert-layer;
+  font-size: revert-layer;
+  font-weight: revert-layer;
+  box-shadow: revert-layer;
+}
+</style>

@@ -9,29 +9,86 @@
     "securePayment": "Pembayaran aman.",
     "shipsIndonesia": "Kami mengirim ke seluruh Indonesia.",
     "close": "Tutup",
-    "morePages": "Halaman lain",
-    "retry": "Coba lagi"
+    "retry": "Coba lagi",
+    "free": "Gratis",
+    "delivery": "Pengiriman",
+    "subtotal": "Subtotal",
+    "total": "Total",
+    "discount": "Diskon",
+    "youSave": "Anda hemat",
+    "deliveryAtCheckout": "Dihitung saat checkout",
+    "quantity": "Jumlah",
+    "decrease": "Kurangi jumlah",
+    "increase": "Tambah jumlah",
+    "rating": "{rating} dari 5 bintang",
+    "ratingCount": "{count} ulasan | {count} ulasan",
+    "ratingInput": "Penilaian",
+    "ratingStar": "{rating} dari 5 bintang",
+    "dismiss": "Tutup",
+    "loadingMore": "Memuat lainnya"
   },
   "nav": {
     "home": "Beranda",
     "products": "Produk",
-    "cart": "Keranjang",
     "account": "Akun",
-    "login": "Masuk",
     "language": "Bahasa",
     "menu": "Menu",
     "breadcrumb": "Jejak navigasi",
-    "pagination": "Halaman"
+    "search": "Cari",
+    "signIn": "Masuk",
+    "signOut": "Keluar",
+    "profile": "Profil",
+    "orders": "Pesanan",
+    "addresses": "Alamat",
+    "wishlist": "Wishlist",
+    "allProducts": "Semua produk",
+    "cartLabel": "Keranjang | Keranjang, {count} barang | Keranjang, {count} barang",
+    "wishlistLabel": "Wishlist | Wishlist, {count} barang | Wishlist, {count} barang",
+    "accountFor": "Akun {name}",
+    "languageNames": {
+      "en": "English",
+      "id": "Bahasa Indonesia"
+    },
+    "categories": "Kategori"
   },
   "footer": {
     "about": "Everyday adalah label pakaian untuk hari-hari biasa: potongan nyaman, warna tenang, harga wajar.",
-    "shop": "Belanja"
+    "shop": "Belanja",
+    "help": "Bantuan",
+    "aboutTitle": "Tentang",
+    "delivery": "Pengiriman",
+    "returns": "Pengembalian dan penukaran",
+    "contact": "Hubungi kami",
+    "track": "Lacak pesanan",
+    "story": "Kisah kami",
+    "privacy": "Privasi",
+    "terms": "Ketentuan",
+    "payment": "Kami menerima transfer bank",
+    "copyright": "© {year} {brand}"
   },
   "home": {
     "title": "Pakaian untuk hari-hari Anda yang sebenarnya.",
     "subtitle": "Dibuat untuk hampir setiap hari. Kemeja santai, chino lebar, dan pakaian yang selalu Anda pilih.",
-    "newProducts": "Produk baru",
-    "viewAll": "Lihat semua produk"
+    "newProducts": "Baru tiba",
+    "viewAll": "Lihat semua produk",
+    "newInEyebrow": "Produk terbaru",
+    "newInViewAll": "Lihat semua",
+    "categoriesTitle": "Belanja per kategori",
+    "serviceLabel": "Layanan kami",
+    "service": [
+      {
+        "title": "Dikirim sampai ke pintu Anda",
+        "body": "Dikirim oleh kurir tepercaya ke alamat mana pun di Indonesia."
+      },
+      {
+        "title": "Pengembalian gratis",
+        "body": "Dalam 30 hari, dijemput dari pintu Anda."
+      },
+      {
+        "title": "Saran ukuran",
+        "body": "Stylist kami membalas dalam satu hari, dalam bahasa Inggris atau Bahasa Indonesia."
+      }
+    ]
   },
   "products": {
     "title": "Semua produk",
@@ -43,15 +100,25 @@
     "outOfStock": "Stok habis",
     "selectVariant": "Pilih opsi produk dahulu.",
     "addFailed": "Produk tidak dapat ditambahkan. Coba lagi.",
-    "viewCart": "Lihat keranjang"
+    "viewCart": "Lihat keranjang",
+    "badges": {
+      "soldOut": "Habis",
+      "limited": "Stok terbatas",
+      "sale": "Diskon",
+      "new": "Baru"
+    },
+    "discount": "−{percent}%",
+    "originalPrice": "Harga asli",
+    "colours": "Warna: {names}",
+    "onlyLeft": "Tinggal {count} lagi."
   },
   "categories": {
     "notFound": "Kategori tidak ditemukan.",
     "empty": "Kategori ini belum memiliki produk."
   },
   "cart": {
-    "title": "Keranjang",
-    "empty": "Keranjang Anda kosong.",
+    "title": "Keranjang Anda",
+    "empty": "Keranjang Anda kosong",
     "continue": "Lanjut belanja",
     "quantity": "Jumlah",
     "decrease": "Kurangi jumlah",
@@ -61,9 +128,24 @@
     "shipping": "Ongkos kirim",
     "shippingAtCheckout": "Dihitung saat checkout",
     "total": "Total",
-    "checkout": "Lanjut ke checkout",
-    "summary": "Ringkasan",
-    "emptyBody": "Temukan pakaian untuk keseharian Anda."
+    "checkout": "Checkout",
+    "summary": "Ringkasan pesanan",
+    "emptyBody": "Pakaian yang Anda tambahkan menunggu di sini.",
+    "pieces": "{count} pakaian | {count} pakaian | {count} pakaian",
+    "items": "Barang di keranjang Anda",
+    "emptyBodyWishlist": "Pakaian yang Anda tambahkan menunggu di sini. Wishlist Anda menyimpan semua yang sudah Anda simpan.",
+    "discover": "Temukan koleksi",
+    "quantityOf": "Jumlah {product}",
+    "updating": "Memperbarui jumlah",
+    "removeItem": "Hapus {product}",
+    "removing": "Menghapus…",
+    "removingItem": "Menghapus {product}",
+    "moveToWishlist": "Pindahkan ke wishlist",
+    "moveItem": "Pindahkan {product} ke wishlist",
+    "movedToWishlist": "Produk ada di wishlist Anda.",
+    "viewWishlist": "Lihat wishlist",
+    "paymentNote": "Pilih metode pembayaran saat checkout.",
+    "checkoutTotal": "Checkout · {total}"
   },
   "checkout": {
     "title": "Checkout",
@@ -71,8 +153,6 @@
     "email": "Alamat email",
     "phone": "Nomor ponsel",
     "address": "Alamat pengiriman",
-    "firstName": "Nama depan",
-    "lastName": "Nama belakang",
     "address1": "Alamat",
     "addressPlaceholder": "Nama jalan dan nomor\nRT/RW, kelurahan, kecamatan",
     "addressHint": "Tambahkan detail yang membantu kurir, misalnya patokan.",
@@ -86,18 +166,18 @@
     "firstAddressHint": "Alamat ini menjadi alamat utama Anda, karena ini alamat pertama Anda.",
     "noAddresses": "Anda belum memiliki alamat tersimpan.",
     "guestPrompt": "Sudah punya akun?",
-    "guestLogin": "Masuk untuk menggunakan alamat tersimpan Anda.",
+    "guestLogin": "Masuk",
     "savingAddress": "Menyimpan alamat…",
     "loadingShipping": "Memuat opsi pengiriman…",
     "addressSaved": "Alamat tersimpan di akun Anda sebagai \"{label}\".",
     "addressNotSaved": "Alamat tidak tersimpan di akun Anda. Pesanan Anda tetap dikirim ke alamat ini.",
     "addressesLoadError": "Alamat tersimpan Anda tidak dapat dimuat.",
     "invalidAddress": "Alamat tersimpan ini belum lengkap. Perbarui di halaman Alamat.",
-    "city": "Kota",
+    "city": "Kota/Kabupaten",
     "province": "Provinsi",
     "postalCode": "Kode pos",
     "continue": "Lanjut ke pengiriman",
-    "shippingOption": "Opsi pengiriman",
+    "shippingOption": "Metode pengiriman",
     "payment": "Pembayaran",
     "paymentProviders": {
       "pp_bank-transfer_bank-transfer": "Transfer bank",
@@ -108,13 +188,8 @@
     },
     "placeOrder": "Buat pesanan",
     "noPaymentProviders": "Toko ini belum punya metode pembayaran. Hubungi toko.",
-    "steps": {
-      "address": "Alamat",
-      "shipping": "Pengiriman",
-      "payment": "Pembayaran"
-    },
     "summary": "Ringkasan pesanan",
-    "shippingHint": "Simpan alamat untuk melihat opsi pengiriman.",
+    "shippingHint": "Simpan alamat untuk melihat metode pengiriman.",
     "errors": {
       "required": "Isi kolom ini.",
       "email": "Masukkan alamat email yang benar.",
@@ -122,8 +197,28 @@
       "postalCode": "Masukkan kode pos 5 angka.",
       "save": "Alamat tidak tersimpan. Coba lagi.",
       "shipping": "Opsi pengiriman tidak tersimpan. Coba lagi.",
-      "payment": "Pesanan tidak dibuat. Keranjang Anda tidak berubah. Coba lagi."
-    }
+      "payment": "Pesanan tidak dibuat. Keranjang Anda tidak berubah. Coba lagi.",
+      "province": "Pilih provinsi."
+    },
+    "heading": "Pengiriman dan pembayaran",
+    "emailHint": "Kami mengirim konfirmasi pesanan dan status pesanan ke alamat ini.",
+    "fullName": "Nama lengkap",
+    "provincePlaceholder": "Pilih provinsi",
+    "paymentLocked": "Pilih metode pengiriman untuk melihat metode pembayaran.",
+    "paymentCaptions": {
+      "manual": "Transfer manual, dikonfirmasi oleh toko",
+      "gateway": "Kartu, QRIS, virtual account, atau e-wallet"
+    },
+    "gatewayHint": "Anda membayar di halaman aman partner pembayaran kami. Di sana Anda dapat memilih kartu, QRIS, virtual account, atau e-wallet.",
+    "placeOrderTotal": "Buat pesanan · {total}",
+    "placing": "Membuat pesanan…",
+    "agree": "Dengan membuat pesanan, Anda menyetujui {terms} dan {privacy} kami.",
+    "termsLink": "ketentuan penjualan",
+    "privacyLink": "kebijakan privasi",
+    "showSummary": "Tampilkan ringkasan pesanan",
+    "hideSummary": "Sembunyikan ringkasan pesanan",
+    "editCart": "Ubah keranjang",
+    "lineQuantity": "Jumlah: {count}"
   },
   "return": {
     "confirming": "Kami sedang mengonfirmasi pembayaran Anda…",
@@ -141,7 +236,69 @@
     "confirmationSent": "Kami mengirim konfirmasi ke {email}.",
     "items": "Barang",
     "shippingAddress": "Alamat pengiriman",
-    "notFound": "Pesanan tidak ditemukan."
+    "notFound": "Pesanan tidak ditemukan.",
+    "eyebrow": "Pesanan #{id} · {date}",
+    "heading": {
+      "placed": "Terima kasih, {name}. Pesanan Anda sudah dibuat.",
+      "placedNoName": "Terima kasih. Pesanan Anda sudah dibuat.",
+      "confirmed": "Terima kasih, {name}. Pesanan Anda sudah dikonfirmasi.",
+      "confirmedNoName": "Terima kasih. Pesanan Anda sudah dikonfirmasi.",
+      "shipped": "Pesanan Anda sedang dikirim.",
+      "delivered": "Pesanan Anda sudah diterima.",
+      "cancelled": "Pesanan Anda dibatalkan.",
+      "refunded": "Dana pesanan Anda sudah dikembalikan."
+    },
+    "body": {
+      "waiting": "Kami mengirim konfirmasi ke {email}. Kami menyiapkan paket Anda setelah kami mengonfirmasi pembayaran Anda.",
+      "checking": "Kami sudah menerima bukti transfer Anda. Kami memeriksanya, lalu kami mengonfirmasi pesanan Anda.",
+      "processing": "Kami mengirim konfirmasi ke {email}. Kami akan mengabari Anda lagi saat paket Anda dikirim.",
+      "shipped": "Kami mengirim nomor resi ke {email}.",
+      "delivered": "Terima kasih sudah berbelanja di toko kami."
+    },
+    "tracker": {
+      "label": "Status pesanan",
+      "confirmed": "Dikonfirmasi",
+      "onItsWay": "Dalam pengiriman",
+      "delivered": "Diterima",
+      "done": "Selesai",
+      "current": "Langkah saat ini",
+      "upcoming": "Berikutnya",
+      "waitingForPayment": "Menunggu pembayaran",
+      "checkingReceipt": "Memeriksa bukti transfer Anda",
+      "partlyShipped": "Sebagian pesanan Anda sudah dikirim."
+    },
+    "cancelledTimeout": "Kami membatalkan pesanan ini karena kami tidak menerima pembayaran Anda dalam 24 jam.",
+    "cancelledByStore": "Toko membatalkan pesanan ini. Hubungi kami jika Anda punya pertanyaan.",
+    "refundedAmount": "Kami mengembalikan {amount} kepada Anda.",
+    "contactUs": "Hubungi kami:",
+    "or": "atau",
+    "shipment": {
+      "title": "Pengiriman",
+      "shippedOn": "Dikirim pada {date} dengan {option}.",
+      "shippedOnNoOption": "Dikirim pada {date}.",
+      "trackingNumber": "Nomor resi",
+      "track": "Lacak paket Anda",
+      "newTab": "(terbuka di tab baru)"
+    },
+    "details": {
+      "deliveringTo": "Dikirim ke",
+      "delivery": "Pengiriman",
+      "payment": "Pembayaran"
+    },
+    "paymentState": {
+      "awaiting": "Menunggu transfer Anda",
+      "received": "Diterima",
+      "notReceived": "Tidak diterima",
+      "cancelled": "Dibatalkan"
+    },
+    "refunded": "Dana dikembalikan",
+    "itemsTitle": "Barang pesanan #{id}",
+    "quantity": "Jml {quantity}",
+    "free": "Gratis",
+    "totalPaid": "Total dibayar",
+    "questions": "Ada pertanyaan tentang pesanan Anda?",
+    "contactLine": "{link}, dalam Bahasa Inggris atau Bahasa Indonesia.",
+    "contactLink": "Hubungi kami"
   },
   "bankTransfer": {
     "title": "Bayar dengan transfer bank",
@@ -155,34 +312,58 @@
     "noAccounts": "Detail rekening bank tidak tersedia. Hubungi toko."
   },
   "auth": {
-    "loginTitle": "Masuk",
-    "registerTitle": "Buat akun",
     "email": "Alamat email",
-    "password": "Kata sandi",
-    "passwordHint": "Gunakan 8 karakter atau lebih.",
-    "firstName": "Nama depan",
-    "lastName": "Nama belakang",
-    "loginAction": "Masuk",
-    "registerAction": "Buat akun",
-    "noAccount": "Buat akun",
-    "haveAccount": "Masuk dengan akun yang sudah ada",
-    "forgotLink": "Lupa kata sandi?",
-    "loginFailed": "Alamat email atau kata sandi salah.",
-    "registerFailed": "Akun tidak dapat dibuat. Akun dengan alamat email ini mungkin sudah ada.",
-    "forgotTitle": "Atur ulang kata sandi",
-    "forgotIntro": "Masukkan alamat email Anda. Kami mengirim tautan untuk membuat kata sandi baru.",
-    "forgotAction": "Kirim tautan",
-    "forgotSent": "Jika ada akun dengan alamat email ini, kami sudah mengirim tautan atur ulang.",
-    "resetTitle": "Buat kata sandi baru",
-    "newPassword": "Kata sandi baru",
-    "resetAction": "Simpan kata sandi",
-    "resetDone": "Kata sandi Anda sudah diubah. Masuk dengan kata sandi baru.",
-    "resetFailed": "Tautan atur ulang tidak berlaku atau sudah kedaluwarsa. Minta tautan baru.",
-    "resetIncomplete": "Tautan atur ulang tidak lengkap. Minta tautan baru.",
-    "newHere": "Baru di sini?",
-    "haveAccountShort": "Sudah punya akun?",
-    "showPassword": "Tampilkan kata sandi",
-    "hidePassword": "Sembunyikan kata sandi"
+    "signIn": {
+      "title": "Masuk",
+      "intro": "Ketik alamat email Anda. Kami mengirim tautan untuk masuk. Anda tidak perlu kata sandi.",
+      "newAccount": "Belum punya akun? Tautan yang sama membuat akun Anda.",
+      "send": "Kirim tautan",
+      "sending": "Mengirim tautan…",
+      "invalidEmail": "Ketik alamat email yang valid.",
+      "failed": "Kami tidak dapat mengirim tautan. Coba lagi.",
+      "rateLimited": "Tunggu 60 detik sebelum Anda meminta tautan baru."
+    },
+    "check": {
+      "title": "Periksa email Anda",
+      "sentTo": "Kami mengirim tautan ke {email}. Buka tautan itu untuk masuk. Tautan berlaku 15 menit.",
+      "waiting": "Tab ini masuk saat Anda membuka tautan.",
+      "resendIn": "Kirim ulang tautan dalam {time}",
+      "resend": "Kirim ulang tautan",
+      "sentAgain": "Kami mengirim tautan baru. Tautan lama tidak berlaku lagi.",
+      "differentEmail": "Gunakan email lain",
+      "spam": "Tidak ada email? Periksa folder spam.",
+      "expiredTitle": "Tautan sudah kedaluwarsa.",
+      "expiredBody": "Tautan berlaku 15 menit. Kirim tautan baru untuk masuk.",
+      "sendNew": "Kirim tautan baru"
+    },
+    "verify": {
+      "checkingTitle": "Sebentar",
+      "checkingBody": "Kami memeriksa tautan Anda.",
+      "signedInTitle": "Anda sudah masuk",
+      "closesSoon": "Tab ini tertutup dalam 5 detik.",
+      "closeTab": "Kembali ke tab Anda yang lain. Anda dapat menutup tab ini.",
+      "continue": "Lanjutkan",
+      "confirmTitle": "Masuk di perangkat Anda yang lain?",
+      "confirmIntro": "Seseorang meminta tautan masuk.",
+      "browser": "Peramban",
+      "time": "Waktu",
+      "confirm": "Ya, masukkan saya",
+      "confirming": "Sedang memproses…",
+      "confirmNote": "Jika Anda tidak meminta tautan ini, tutup tab ini. Tidak ada yang masuk tanpa tombol ini.",
+      "doneTitle": "Selesai",
+      "doneBody": "Kembali ke tab Anda yang lain. Tab itu sudah masuk. Tab ini tertutup dalam 5 detik.",
+      "invalidTitle": "Tautan tidak berlaku",
+      "invalidBody": "Tautan sudah kedaluwarsa atau sudah dipakai. Setiap tautan berlaku satu kali, selama 15 menit.",
+      "signInAgain": "Masuk lagi"
+    },
+    "welcome": {
+      "title": "Selamat datang di {store}",
+      "intro": "Akun Anda sudah siap. Siapa nama Anda?",
+      "fullName": "Nama lengkap",
+      "continue": "Lanjutkan",
+      "skip": "Lewati",
+      "nameRequired": "Ketik nama lengkap Anda, atau klik Lewati."
+    }
   },
   "account": {
     "title": "Akun Anda",
@@ -191,7 +372,6 @@
     "saved": "Profil Anda tersimpan.",
     "orders": "Pesanan",
     "wishlist": "Wishlist",
-    "logout": "Keluar",
     "noOrders": "Anda belum memiliki pesanan.",
     "viewOrder": "Lihat pesanan",
     "addresses": {
@@ -228,7 +408,18 @@
       "deleting": "Menghapus…",
       "deleteError": "Alamat tidak terhapus. Coba lagi.",
       "deleted": "Alamat dihapus."
-    }
+    },
+    "greeting": "Selamat datang, {name}.",
+    "greetingNoName": "Selamat datang.",
+    "fullName": "Nama lengkap",
+    "email": "Alamat email",
+    "saving": "Menyimpan…",
+    "saveError": "Profil Anda tidak tersimpan. Coba lagi.",
+    "orderDate": "Tanggal",
+    "orderItems": "Barang",
+    "orderTotal": "Total",
+    "reviewItems": "Ulas barang",
+    "ordersError": "Pesanan Anda tidak termuat."
   },
   "reviews": {
     "title": "Ulasan",
@@ -249,7 +440,10 @@
       "notFound": "Barang ini tidak ada di pesanan Anda.",
       "generic": "Ulasan tidak terkirim. Coba lagi."
     },
-    "writeFor": "Tulis ulasan: {product}"
+    "writeFor": "Tulis ulasan: {product}",
+    "basedOn": "Berdasarkan 0 ulasan | Berdasarkan {count} ulasan | Berdasarkan {count} ulasan",
+    "byline": "{name} · Ukuran {size}",
+    "showMore": "Tampilkan ulasan lain"
   },
   "wishlist": {
     "title": "Wishlist",
@@ -257,6 +451,201 @@
     "remove": "Hapus dari wishlist",
     "empty": "Wishlist Anda kosong.",
     "viewProduct": "Lihat produk",
-    "error": "Wishlist tidak berubah. Coba lagi."
+    "error": "Wishlist tidak berubah. Coba lagi.",
+    "save": "Simpan ke wishlist",
+    "signInToSave": "Masuk untuk menyimpan ke wishlist Anda"
+  },
+  "error": {
+    "notFound": {
+      "title": "Halaman ini tidak ada",
+      "body": "Kami tidak dapat menemukan halaman ini. Tautannya mungkin sudah lama, atau kami memindahkan halaman ini."
+    },
+    "server": {
+      "title": "Terjadi kesalahan",
+      "body": "Terjadi kesalahan di sisi kami. Coba lagi dalam beberapa menit."
+    },
+    "home": "Kembali ke beranda",
+    "browse": "Lihat semua produk",
+    "categories": "Atau mulai dari kategori"
+  },
+  "shell": {
+    "announcement": "Dikirim sampai ke pintu Anda, ke seluruh Indonesia"
+  },
+  "pages": {
+    "delivery": {
+      "title": "Pengiriman",
+      "intro": "Kami mengirim pesanan ke seluruh Indonesia. Halaman ini menjelaskan cara pengiriman.",
+      "sections": [
+        {
+          "heading": "Wilayah pengiriman",
+          "body": "Kami mengirim ke alamat di seluruh Indonesia. Ketik alamat lengkap Anda saat checkout, agar kurir dapat menemukan Anda."
+        },
+        {
+          "heading": "Ongkos kirim",
+          "body": "Ongkos kirim bergantung pada alamat Anda dan berat pesanan Anda. Checkout menampilkan ongkos kirim sebelum Anda membayar."
+        },
+        {
+          "heading": "Pelacakan",
+          "body": "Setelah kami mengirim paket, halaman pesanan menampilkan tautan pelacakan."
+        }
+      ]
+    },
+    "returns": {
+      "title": "Pengembalian dan penukaran",
+      "intro": "Jika pakaian tidak pas atau tidak cocok, Anda dapat mengembalikan atau menukarnya.",
+      "sections": [
+        {
+          "heading": "Cara mengembalikan",
+          "body": "Hubungi kami dengan nomor pesanan dan barang yang ingin Anda kembalikan. Kami memberi tahu cara mengirim barang kembali."
+        },
+        {
+          "heading": "Penukaran",
+          "body": "Untuk mendapat ukuran atau warna lain, hubungi kami. Kami mengirim pakaian baru saat stoknya tersedia."
+        },
+        {
+          "heading": "Pengembalian dana",
+          "body": "Kami memeriksa barang setelah kami menerimanya. Lalu kami mengirim pengembalian dana dan memberi tahu Anda lewat email."
+        }
+      ]
+    },
+    "about": {
+      "title": "Kisah kami",
+      "intro": "Kami membuat pakaian untuk hari-hari biasa: potongan nyaman, warna tenang, harga wajar.",
+      "sections": [
+        {
+          "heading": "Siapa kami",
+          "body": "Kami label pakaian kecil di Indonesia. Kami merancang pakaian yang dapat Anda pakai hampir setiap hari, untuk waktu yang lama."
+        },
+        {
+          "heading": "Cara kami membuat pakaian",
+          "body": "Kami memilih bahan yang nyaman dan potongan yang sederhana. Kami membuat dalam jumlah kecil, agar tidak membuat lebih dari yang dibutuhkan."
+        }
+      ]
+    },
+    "privacy": {
+      "title": "Privasi",
+      "intro": "Halaman ini menjelaskan data Anda yang kami simpan dan alasannya.",
+      "sections": [
+        {
+          "heading": "Data yang kami simpan",
+          "body": "Kami menyimpan nama, alamat email, nomor ponsel, alamat, dan pesanan Anda."
+        },
+        {
+          "heading": "Alasan kami menyimpannya",
+          "body": "Kami memakai data ini untuk mengirim pesanan, mengirim email pesanan, dan menjawab pertanyaan Anda. Kami tidak menjual data Anda."
+        },
+        {
+          "heading": "Pilihan Anda",
+          "body": "Anda dapat mengubah profil dan alamat Anda di akun Anda. Untuk menghapus akun, hubungi kami."
+        }
+      ]
+    },
+    "terms": {
+      "title": "Ketentuan",
+      "intro": "Ketentuan ini berlaku saat Anda berbelanja di toko ini.",
+      "sections": [
+        {
+          "heading": "Pesanan",
+          "body": "Saat Anda membuat pesanan, kami mengirim konfirmasi lewat email. Kami menyiapkan pesanan setelah kami menerima pembayaran."
+        },
+        {
+          "heading": "Harga dan pembayaran",
+          "body": "Semua harga dalam rupiah. Checkout menampilkan harga lengkap, termasuk ongkos kirim, sebelum Anda membayar."
+        },
+        {
+          "heading": "Pengiriman",
+          "body": "Kami mengirim ke alamat di Indonesia. Halaman pengiriman memberi informasi lebih lanjut."
+        },
+        {
+          "heading": "Pengembalian",
+          "body": "Anda dapat mengembalikan atau menukar pakaian. Halaman pengembalian menjelaskan caranya."
+        }
+      ]
+    },
+    "contact": {
+      "title": "Hubungi kami",
+      "intro": "Kirim pesan kepada kami. Kami membalas dalam satu hari kerja.",
+      "whatsapp": "WhatsApp",
+      "email": "Email",
+      "unavailable": "Detail kontak tidak dapat dimuat. Coba lagi nanti."
+    }
+  },
+  "checkoutLayout": {
+    "back": "Kembali ke keranjang",
+    "secure": "Checkout aman",
+    "help": "Bantuan"
+  },
+  "listing": {
+    "count": "0 pakaian | {count} pakaian | {count} pakaian",
+    "all": "Semua",
+    "allFilters": "Semua filter",
+    "filters": {
+      "size": "Ukuran",
+      "colour": "Warna",
+      "fabric": "Bahan",
+      "price": "Harga",
+      "category": "Kategori"
+    },
+    "anyPrice": "Semua harga",
+    "priceUnder": "Di bawah {price}",
+    "priceBetween": "{from} sampai {to}",
+    "priceOver": "Di atas {price}",
+    "sort": {
+      "label": "Urutkan",
+      "newest": "Terbaru",
+      "priceAsc": "Harga, rendah ke tinggi",
+      "priceDesc": "Harga, tinggi ke rendah"
+    },
+    "filterButton": "Filter | Filter ({count}) | Filter ({count})",
+    "showing": "Menampilkan",
+    "removeFilter": "Hapus filter: {name}",
+    "clearAll": "Hapus semua",
+    "noMatchTitle": "Tidak ada pakaian yang cocok dengan filter ini",
+    "noMatchBody": "Hapus satu filter, atau hapus semua filter untuk melihat semua pakaian.",
+    "clearAllFilters": "Hapus semua filter",
+    "categoryEmptyBody": "Pakaian baru datang setiap musim. Sementara itu, lihat seluruh koleksi.",
+    "productsEmptyBody": "Pakaian baru datang setiap musim. Kembali lagi nanti.",
+    "backHome": "Kembali ke beranda",
+    "nextPage": "Halaman berikutnya",
+    "loadingMore": "Memuat pakaian lainnya",
+    "loadFailed": "Pakaian berikutnya tidak dapat dimuat.",
+    "end": "Anda sudah melihat semua {count} pakaian",
+    "loaded": "0 produk lagi dimuat | {count} produk lagi dimuat | {count} produk lagi dimuat",
+    "sheetTitle": "Filter",
+    "closeFilters": "Tutup filter",
+    "showCount": "Tampilkan 0 pakaian | Tampilkan {count} pakaian | Tampilkan {count} pakaian"
+  },
+  "search": {
+    "title": "Cari",
+    "label": "Cari produk",
+    "placeholder": "Cari",
+    "close": "Tutup pencarian",
+    "seeAll": "Lihat semua hasil",
+    "resultsFor": "Hasil untuk \"{query}\"",
+    "noResultsFor": "Tidak ada hasil untuk \"{query}\"",
+    "count": "0 produk | {count} produk | {count} produk",
+    "noMatch": "Tidak ada produk yang cocok dengan \"{query}\". Periksa ejaannya, atau coba kata yang lebih pendek.",
+    "newIn": "Baru tiba"
+  },
+  "product": {
+    "photos": "Foto produk",
+    "openPhoto": "Buka foto {index} dari {total}",
+    "colour": "Warna",
+    "size": "Ukuran",
+    "soldOutValue": "{value}, habis",
+    "details": "Detail dan ukuran",
+    "care": "Bahan dan perawatan",
+    "related": "Anda mungkin juga suka",
+    "viewAllIn": "Lihat semua {category}"
+  },
+  "viewer": {
+    "label": "Foto {title}",
+    "counter": "{index} / {total}",
+    "zoomIn": "Perbesar",
+    "zoomOut": "Perkecil",
+    "previous": "Foto sebelumnya",
+    "next": "Foto berikutnya",
+    "hintPointer": "Klik foto untuk memperbesar. Gunakan tombol panah untuk mengganti foto. Esc menutup penampil.",
+    "hintTouch": "Ketuk untuk memperbesar. Cubit untuk memperbesar lagi. Geser untuk mengganti foto."
   }
 }

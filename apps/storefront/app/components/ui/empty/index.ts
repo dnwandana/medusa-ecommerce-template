@@ -14,7 +14,6 @@ export const emptyVariants = cva(
     variants: {
       variant: {
         default: '',
-        outline: 'border border-dashed border-[#d6cec2] rounded-xl bg-card',
       },
     },
     defaultVariants: {
@@ -25,19 +24,32 @@ export const emptyVariants = cva(
 
 export type EmptyVariants = VariantProps<typeof emptyVariants>
 
-// The tone gives the state of the page: neutral, success, warning, or error.
+// The shape "circle" is a hairline on the page colour, and its tone sets only the icon colour.
+// The shape "disc" is filled with the soft colour of its tone. The tone gives the state of the
+// page: neutral, success, warning, or error.
 export const emptyMediaVariants = cva(
-  'flex size-14 shrink-0 items-center justify-center rounded-full [&_svg]:pointer-events-none [&_svg]:shrink-0',
+  'flex size-16 shrink-0 items-center justify-center rounded-full [&_svg]:pointer-events-none [&_svg]:shrink-0',
   {
     variants: {
+      shape: {
+        circle: 'border border-border bg-transparent',
+        disc: '',
+      },
       tone: {
-        muted: 'bg-muted text-foreground',
-        success: 'bg-success-soft text-success',
-        warning: 'bg-warning-soft text-warning',
-        destructive: 'bg-destructive-soft text-destructive',
+        muted: 'text-foreground',
+        success: 'text-success',
+        warning: 'text-warning',
+        destructive: 'text-destructive',
       },
     },
+    compoundVariants: [
+      { shape: 'disc', tone: 'muted', class: 'bg-muted' },
+      { shape: 'disc', tone: 'success', class: 'bg-success-soft' },
+      { shape: 'disc', tone: 'warning', class: 'bg-warning-soft' },
+      { shape: 'disc', tone: 'destructive', class: 'bg-destructive-soft' },
+    ],
     defaultVariants: {
+      shape: 'circle',
       tone: 'muted',
     },
   },

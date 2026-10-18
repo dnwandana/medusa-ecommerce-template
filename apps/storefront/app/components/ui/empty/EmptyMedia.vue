@@ -6,8 +6,10 @@ import { emptyMediaVariants } from '.'
 
 const props = withDefaults(defineProps<{
   class?: HTMLAttributes['class']
+  shape?: EmptyMediaVariants['shape']
   tone?: EmptyMediaVariants['tone']
 }>(), {
+  shape: 'circle',
   tone: 'muted',
 })
 </script>
@@ -15,8 +17,9 @@ const props = withDefaults(defineProps<{
 <template>
   <div
     data-slot="empty-media"
+    :data-shape="shape"
     :data-tone="tone"
-    :class="cn(emptyMediaVariants({ tone }), props.class)"
+    :class="cn(emptyMediaVariants({ shape, tone }), props.class)"
   >
     <slot />
   </div>

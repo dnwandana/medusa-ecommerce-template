@@ -33,6 +33,52 @@ const open = async (wrapper: Awaited<ReturnType<typeof mountSuspended>>) => {
   await trigger.trigger("click")
 }
 
+const openDialog = async () => {
+  const Box = defineComponent(
+    () => () =>
+      h(Dialog, { open: true }, () =>
+        h(DialogContent, () => [
+          h(DialogTitle, () => "Add address"),
+          h(DialogDescription, () => ""),
+        ])
+      )
+  )
+  await mountSuspended(Box, { attachTo: document.body })
+}
+
+const openAlertDialog = async () => {
+  const Box = defineComponent(
+    () => () =>
+      h(AlertDialog, { open: true }, () =>
+        h(AlertDialogContent, () => [
+          h(AlertDialogTitle, () => "Delete this address?"),
+          h(AlertDialogDescription, () => ""),
+        ])
+      )
+  )
+  await mountSuspended(Box, { attachTo: document.body })
+}
+
+const openSheet = async (side: "top" | "right" | "bottom" | "left") => {
+  const Box = defineComponent(
+    () => () =>
+      h(Sheet, { open: true }, () => h(SheetContent, { side }, () => h(SheetTitle, () => "Menu")))
+  )
+  await mountSuspended(Box, { attachTo: document.body })
+}
+
+const openDropdown = async () => {
+  const Menu = defineComponent(
+    () => () =>
+      h(DropdownMenu, () => [
+        h(DropdownMenuTrigger, () => "Account"),
+        h(DropdownMenuContent, () => h(DropdownMenuItem, () => "Orders")),
+      ])
+  )
+  const wrapper = await mountSuspended(Menu, { attachTo: document.body })
+  await open(wrapper)
+}
+
 describe("overlay components", () => {
   it("opens the dropdown menu content in a portal", async () => {
     const Menu = defineComponent(
@@ -46,7 +92,7 @@ describe("overlay components", () => {
     await open(wrapper)
 
     expect(document.body.querySelector('[role="menu"]')?.textContent).toContain("Orders")
-    expect(document.body.querySelector('[role="menu"]')?.className).toContain("shadow-md")
+    expect(document.body.querySelector('[role="menu"]')?.className).toContain("shadow-lg")
   })
 
   it("opens the sheet from the right with the scrim overlay", async () => {
@@ -110,6 +156,57 @@ describe("overlay components", () => {
     )
     expect(document.body.querySelector('[data-slot="alert-dialog-overlay"]')?.className).toContain(
       "bg-scrim"
+    )
+  })
+
+  it("draws the dialog square on the warm scrim and full screen on phones", async () => {
+    await openDialog()
+    const content = document.querySelector("[data-slot='dialog-content']")!
+    const overlay = document.querySelector("[data-slot='dialog-overlay']")!
+    expect(content.className).toContain("rounded-none")
+    expect(content.className).toContain("shadow-lg")
+    expect(content.className).toContain("h-dvh")
+    expect(content.className).toContain("md:max-w-[560px]")
+    expect(overlay.className).toContain("bg-scrim")
+  })
+
+  it("keeps the alert dialog centred on phones", async () => {
+    await openAlertDialog()
+    const content = document.querySelector("[data-slot='alert-dialog-content']")!
+    expect(content.className).toContain("rounded-none")
+    expect(content.className).toContain("max-w-[calc(100%-32px)]")
+    expect(content.className).not.toContain("h-dvh")
+  })
+
+  it.each(["left", "bottom"] as const)(
+    "draws the %s sheet square with a large shadow",
+    async (side) => {
+      await openSheet(side)
+      const content = document.querySelector("[data-slot='sheet-content']")!
+      expect(content.className).toContain("rounded-none")
+      expect(content.className).toContain("shadow-lg")
+      expect(document.querySelector("[data-slot='sheet-overlay']")!.className).toContain("bg-scrim")
+      expect(
+        document.querySelector("[data-slot='sheet-close'] button, [data-slot='sheet-close']")!
+          .className
+      ).toContain("size-11")
+    }
+  )
+
+  it("limits the bottom sheet to 85 percent of the screen", async () => {
+    await openSheet("bottom")
+    expect(document.querySelector("[data-slot='sheet-content']")!.className).toContain(
+      "max-h-[85dvh]"
+    )
+  })
+
+  it("draws the dropdown square with 44 px items", async () => {
+    await openDropdown()
+    const content = document.querySelector("[data-slot='dropdown-menu-content']")!
+    expect(content.className).toEqual(expect.stringContaining("rounded-none"))
+    expect(content.className).toContain("min-w-[220px]")
+    expect(document.querySelector("[data-slot='dropdown-menu-item']")!.className).toContain(
+      "min-h-11"
     )
   })
 })

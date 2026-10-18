@@ -2,13 +2,13 @@ import { mountSuspended } from "@nuxt/test-utils/runtime"
 import { describe, expect, it } from "vitest"
 import { StarRating } from "#components"
 
-describe("StarRating display mode", () => {
+describe("StarRating", () => {
   it("rounds to the nearest half and shows a half star", async () => {
     const wrapper = await mountSuspended(StarRating, { props: { rating: 3.6 } })
 
     expect(wrapper.findAll('[data-filled="true"]')).toHaveLength(4)
     expect(wrapper.findAll('[data-half="true"]')).toHaveLength(1)
-    expect(wrapper.attributes("role")).toBe("img")
+    expect(wrapper.find('[role="img"]').exists()).toBe(true)
   })
 
   it("clamps a rating above 5", async () => {
@@ -16,30 +16,31 @@ describe("StarRating display mode", () => {
 
     expect(wrapper.findAll('[data-filled="true"]')).toHaveLength(5)
   })
-})
 
-describe("StarRating input mode", () => {
-  it("renders five native radios with the name rating and the values 1 to 5", async () => {
-    const wrapper = await mountSuspended(StarRating, { props: { mode: "input", modelValue: null } })
-    const radios = wrapper.findAll('input[type="radio"]')
-
-    expect(radios).toHaveLength(5)
-    expect(radios.map((radio) => radio.attributes("name"))).toEqual(Array(5).fill("rating"))
-    expect(radios.map((radio) => radio.attributes("value"))).toEqual(["1", "2", "3", "4", "5"])
-    expect(wrapper.findAll("label")).toHaveLength(5)
+  it("shows the value and the count next to the stars", async () => {
+    const wrapper = await mountSuspended(StarRating, {
+      props: { rating: 4.46, count: 12, showValue: true },
+    })
+    expect(wrapper.get("[role='img']").attributes("aria-label")).toBe("4.5 out of 5 stars")
+    expect(wrapper.get("[data-slot='rating-value']").text()).toBe("4.5")
+    expect(wrapper.get("[data-slot='rating-value']").attributes("aria-hidden")).toBe("true")
+    expect(wrapper.get("[data-slot='rating-count']").text()).toBe("(12 reviews)")
+    expect(wrapper.get("[data-slot='rating-count']").attributes("aria-hidden")).toBe("true")
+    expect(wrapper.findAll("[data-half='true']")).toHaveLength(1)
   })
 
-  it("emits the value of the selected radio", async () => {
-    const wrapper = await mountSuspended(StarRating, { props: { mode: "input", modelValue: null } })
-
-    await wrapper.find('input[value="4"]').setValue(true)
-
-    expect(wrapper.emitted("update:modelValue")?.at(-1)).toEqual([4])
+  it("shows only the stars by default", async () => {
+    const wrapper = await mountSuspended(StarRating, { props: { rating: 3 } })
+    expect(wrapper.find("[data-slot='rating-value']").exists()).toBe(false)
+    expect(wrapper.find("[data-slot='rating-count']").exists()).toBe(false)
+    expect(wrapper.findAll("[data-filled='true']")).toHaveLength(3)
   })
 
-  it("checks the radio of the model value", async () => {
-    const wrapper = await mountSuspended(StarRating, { props: { mode: "input", modelValue: 3 } })
-
-    expect((wrapper.find('input[value="3"]').element as HTMLInputElement).checked).toBe(true)
+  it.each([
+    ["sm", "size-3.5"],
+    ["md", "size-4"],
+  ] as const)("draws the %s stars with the class %s", async (size, cls) => {
+    const wrapper = await mountSuspended(StarRating, { props: { rating: 5, size } })
+    expect(wrapper.find("[data-filled='true'] svg").classes()).toContain(cls)
   })
 })

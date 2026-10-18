@@ -3,23 +3,35 @@ import { describe, expect, it } from "vitest"
 import { Checkbox, Input, Label, Textarea } from "#components"
 
 describe("form controls", () => {
-  it("gives the input a height of 44px, the input border, and 16px text", async () => {
-    const wrapper = await mountSuspended(Input, { props: { modelValue: "" } })
-    const classes = wrapper.classes()
-
-    expect(classes).toContain("h-11")
-    expect(classes).toContain("border-input")
-    expect(classes).toContain("rounded-md")
-    expect(classes).toContain("text-base")
-    expect(classes).not.toContain("md:text-sm")
-    expect(classes).toContain("aria-invalid:border-destructive")
+  it("draws the input as an underline on the page colour", async () => {
+    const wrapper = await mountSuspended(Input)
+    const input = wrapper.get("input")
+    expect(input.classes()).toEqual(
+      expect.arrayContaining([
+        "h-12",
+        "border-0",
+        "border-b",
+        "border-input",
+        "bg-transparent",
+        "rounded-none",
+        "px-0",
+      ])
+    )
+    expect(input.classes()).toContain("aria-invalid:border-destructive")
+    expect(input.classes()).toContain("disabled:border-dashed")
   })
 
-  it("gives the textarea a minimum height of 112px", async () => {
-    const wrapper = await mountSuspended(Textarea, { props: { modelValue: "" } })
-
-    expect(wrapper.classes()).toContain("min-h-28")
-    expect(wrapper.classes()).toContain("border-input")
+  it("draws the textarea in the same style", async () => {
+    const wrapper = await mountSuspended(Textarea)
+    expect(wrapper.get("textarea").classes()).toEqual(
+      expect.arrayContaining([
+        "border-0",
+        "border-b",
+        "border-input",
+        "bg-transparent",
+        "rounded-none",
+      ])
+    )
   })
 
   it("gives the label 14/20 text with weight 600", async () => {

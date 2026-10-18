@@ -34,7 +34,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
     <DialogContent
       data-slot="dialog-content"
       v-bind="{ ...$attrs, ...forwarded }"
-      :class="cn('bg-popover text-popover-foreground data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0 data-closed:zoom-out-95 data-open:zoom-in-95 ring-foreground/10 grid max-w-[calc(100%-2rem)] gap-4 rounded-xl p-4 text-sm ring-1 duration-100 sm:max-w-sm fixed top-1/2 left-1/2 z-50 w-full -translate-x-1/2 -translate-y-1/2 outline-none', props.class)"
+      :class="cn('fixed inset-0 z-50 flex h-dvh w-full flex-col gap-6 overflow-y-auto rounded-none bg-background p-6 text-body-sm text-foreground shadow-lg outline-none duration-100 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0 md:inset-auto md:top-1/2 md:left-1/2 md:h-auto md:max-h-[calc(100dvh-64px)] md:max-w-[560px] md:-translate-x-1/2 md:-translate-y-1/2 md:p-8 md:data-open:zoom-in-95 md:data-closed:zoom-out-95', props.class)"
     >
       <slot />
 
@@ -43,7 +43,8 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
         data-slot="dialog-close"
         as-child
       >
-        <Button variant="ghost" class="absolute top-2 right-2" size="icon-sm">
+        <!-- Below md the dialog fills the screen and scrolls, so the button is fixed to stay visible. -->
+        <Button variant="ghost" class="fixed top-2 right-2 md:absolute" size="icon">
           <XIcon />
           <span class="sr-only">Close</span>
         </Button>

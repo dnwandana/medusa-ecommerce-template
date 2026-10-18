@@ -18,25 +18,58 @@ describe("media components", () => {
   })
 
   it.each([
-    ["muted", "bg-muted"],
-    ["success", "bg-success-soft"],
-    ["warning", "bg-warning-soft"],
-    ["destructive", "bg-destructive-soft"],
-  ] as const)("gives the %s media circle the class %s", async (tone, background) => {
-    const wrapper = await mountSuspended(EmptyMedia, { props: { tone } })
+    ["muted", "bg-muted", "text-foreground"],
+    ["success", "bg-success-soft", "text-success"],
+    ["warning", "bg-warning-soft", "text-warning"],
+    ["destructive", "bg-destructive-soft", "text-destructive"],
+  ] as const)("gives the %s disc the class %s", async (tone, background, text) => {
+    const wrapper = await mountSuspended(EmptyMedia, { props: { tone, shape: "disc" } })
 
-    expect(wrapper.classes()).toContain(background)
-    expect(wrapper.classes()).toContain("size-14")
-    expect(wrapper.classes()).toContain("rounded-full")
+    expect(wrapper.classes()).toEqual(
+      expect.arrayContaining([background, text, "size-16", "rounded-full"])
+    )
   })
 
-  it("gives the outline Empty a dashed border", async () => {
-    const wrapper = await mountSuspended(Empty, { props: { variant: "outline" } })
-    const title = await mountSuspended(EmptyTitle, {
-      slots: { default: () => "Your cart is empty." },
-    })
+  it.each([
+    ["success", "text-success"],
+    ["destructive", "text-destructive"],
+  ] as const)("gives the %s circle only the icon colour", async (tone, text) => {
+    const wrapper = await mountSuspended(EmptyMedia, { props: { tone } })
 
-    expect(wrapper.classes()).toContain("border-dashed")
-    expect(title.classes()).toContain("text-h3")
+    expect(wrapper.classes()).toContain(text)
+    expect(wrapper.classes()).toContain("bg-transparent")
+  })
+
+  it("draws a hairline circle by default", async () => {
+    const wrapper = await mountSuspended(EmptyMedia)
+    expect(wrapper.attributes("data-shape")).toBe("circle")
+    expect(wrapper.classes()).toEqual(
+      expect.arrayContaining([
+        "size-16",
+        "rounded-full",
+        "border",
+        "border-border",
+        "bg-transparent",
+      ])
+    )
+  })
+
+  it("draws a filled disc in the tone colour", async () => {
+    const wrapper = await mountSuspended(EmptyMedia, { props: { shape: "disc", tone: "success" } })
+    expect(wrapper.classes()).toEqual(expect.arrayContaining(["bg-success-soft", "text-success"]))
+    expect(wrapper.classes()).not.toContain("border")
+  })
+
+  it("sets the empty title in the serif face", async () => {
+    const wrapper = await mountSuspended(EmptyTitle, {
+      slots: { default: () => "Your cart is empty" },
+    })
+    expect(wrapper.classes()).toEqual(expect.arrayContaining(["font-heading", "text-h3"]))
+  })
+
+  it("has no outline Empty", async () => {
+    const wrapper = await mountSuspended(Empty)
+
+    expect(wrapper.classes()).not.toContain("border-dashed")
   })
 })

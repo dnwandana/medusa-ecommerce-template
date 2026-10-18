@@ -23,7 +23,7 @@ const forwardedProps = useForwardProps(delegatedProps)
     v-bind="forwardedProps"
     :class="
       cn(
-        'group/radio-group-item peer relative flex size-5 shrink-0 aspect-square items-center justify-center rounded-full border border-input bg-card outline-none after:absolute after:-inset-x-3 after:-inset-y-2 focus-visible:shadow-focus data-[state=checked]:border-primary aria-invalid:border-destructive disabled:cursor-not-allowed disabled:bg-disabled disabled:border-border',
+        'group/radio-group-item peer relative flex size-[18px] shrink-0 aspect-square items-center justify-center rounded-full border border-foreground bg-transparent outline-none after:absolute after:-inset-x-3 after:-inset-y-2 focus-visible:shadow-[var(--focus-ring)] aria-invalid:border-destructive disabled:cursor-not-allowed disabled:border-disabled-foreground',
         props.class,
       )
     "
@@ -33,7 +33,7 @@ const forwardedProps = useForwardProps(delegatedProps)
       class="flex items-center justify-center"
     >
       <slot>
-        <span class="size-2.5 rounded-full bg-primary" />
+        <span class="size-2 rounded-full bg-primary" />
       </slot>
     </RadioGroupIndicator>
   </RadioGroupItem>

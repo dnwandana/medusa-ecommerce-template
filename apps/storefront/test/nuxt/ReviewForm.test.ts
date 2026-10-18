@@ -1,7 +1,7 @@
 import { mockNuxtImport, mountSuspended } from "@nuxt/test-utils/runtime"
 import { flushPromises } from "@vue/test-utils"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { ReviewForm, StarRating } from "#components"
+import { ReviewForm, StarInput } from "#components"
 
 const { reviews } = vi.hoisted(() => ({
   reviews: { submit: vi.fn(), listReviewableItems: vi.fn(), listForProduct: vi.fn() },
@@ -22,7 +22,7 @@ const item = {
 type Form = Awaited<ReturnType<typeof mountSuspended>>
 
 const fill = async (wrapper: Form) => {
-  await wrapper.find('input[name="rating"][value="4"]').setValue(true)
+  await wrapper.find("input[name='rating'][value='5']").setValue(true)
   await wrapper.find('input[name="title"]').setValue("Good")
   await wrapper.find('textarea[name="content"]').setValue("Fits well.")
 }
@@ -45,7 +45,7 @@ describe("ReviewForm", () => {
 
     expect(reviews.submit).toHaveBeenCalledWith({
       order_line_item_id: "ordli_1",
-      rating: 4,
+      rating: 5,
       title: "Good",
       content: "Fits well.",
     })
@@ -76,10 +76,10 @@ describe("ReviewForm", () => {
     expect(wrapper.emitted("submitted")).toBeUndefined()
   })
 
-  it("uses the star rating in input mode for the rating", async () => {
+  it("uses the star input for the rating", async () => {
     const wrapper = await mountSuspended(ReviewForm, { props: { item } })
 
-    expect(wrapper.findComponent(StarRating).props("mode")).toBe("input")
+    expect(wrapper.findComponent(StarInput).props("name")).toBe("rating")
     expect(wrapper.findAll('input[name="rating"]')).toHaveLength(5)
   })
 

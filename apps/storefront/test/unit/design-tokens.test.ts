@@ -8,60 +8,72 @@ const components = JSON.parse(
 
 describe("design tokens", () => {
   it.each([
-    ["--background", "#faf8f5"],
-    ["--foreground", "#1f1b17"],
-    ["--card", "#ffffff"],
-    ["--popover", "#ffffff"],
-    ["--primary", "#24466f"],
-    ["--primary-foreground", "#ffffff"],
-    ["--primary-hover", "#1a3555"],
-    ["--primary-soft", "#e7edf5"],
-    ["--secondary", "#f2eee8"],
-    ["--muted", "#f2eee8"],
-    ["--muted-foreground", "#5f574e"],
-    ["--accent", "#ece6dd"],
-    ["--destructive", "#b3261e"],
-    ["--destructive-foreground", "#ffffff"],
-    ["--destructive-soft", "#fbe8e6"],
-    ["--border", "#e6e0d7"],
-    ["--input", "#8a8177"],
-    ["--ring", "#24466f"],
-    ["--success", "#2d6a3e"],
-    ["--success-soft", "#e5f1e7"],
-    ["--warning", "#8a5300"],
-    ["--warning-soft", "#fbefd8"],
-    ["--sale", "#c0331f"],
-    ["--star", "#a86b0c"],
-    ["--disabled", "#ebe6df"],
-    ["--disabled-foreground", "#8f877d"],
-    ["--icon-subtle", "#9a9187"],
-    ["--scrim", "#1f1b1766"],
-    ["--link", "#24466f"],
-    ["--backdrop-sand", "#e9dfd0"],
-    ["--backdrop-stone", "#dedad3"],
-    ["--backdrop-sage", "#d7ddd0"],
-    ["--backdrop-clay", "#e7d4c7"],
-    ["--backdrop-sky", "#d8dee6"],
+    ["--background", "#f4f1eb"],
+    ["--foreground", "#1d1b18"],
+    ["--card", "#faf8f4"],
+    ["--popover", "#faf8f4"],
+    ["--primary", "#2b2825"],
+    ["--primary-foreground", "#f4f1eb"],
+    ["--primary-hover", "#4a453f"],
+    ["--primary-soft", "#e7e1d7"],
+    ["--secondary", "#ebe6dd"],
+    ["--muted", "#ebe6dd"],
+    ["--muted-foreground", "#665e55"],
+    ["--accent", "#e5dfd4"],
+    ["--destructive", "#9a2b20"],
+    ["--destructive-foreground", "#faf8f4"],
+    ["--destructive-soft", "#f1e1dc"],
+    ["--border", "#dcd5c9"],
+    ["--input", "#857d71"],
+    ["--ring", "#1d1b18"],
+    ["--success", "#3d5733"],
+    ["--success-soft", "#e4e7da"],
+    ["--warning", "#734d14"],
+    ["--warning-soft", "#efe4cf"],
+    ["--sale", "#8a2e22"],
+    ["--sale-soft", "#f1e2dd"],
+    ["--star", "#6f5528"],
+    ["--disabled", "#e6e1d8"],
+    ["--disabled-foreground", "#958c80"],
+    ["--icon-subtle", "#958c80"],
+    ["--scrim", "#1d1b1759"],
+    ["--link", "var\\(--foreground\\)"],
+    ["--backdrop-sand", "#e6dfd2"],
+    ["--backdrop-stone", "#dcd9d2"],
+    ["--backdrop-sage", "#d8dacf"],
+    ["--backdrop-clay", "#e2d6c9"],
+    ["--backdrop-sky", "#d8dbdd"],
   ])("sets %s to %s in :root", (name, value) => {
     expect(css).toMatch(new RegExp(`${name}:\\s*${value};`))
   })
 
   it("maps each new token to a Tailwind colour", () => {
-    for (const name of ["primary-hover", "success-soft", "star", "backdrop-sky", "scrim"]) {
+    for (const name of [
+      "sale-soft",
+      "primary-hover",
+      "success-soft",
+      "star",
+      "backdrop-sky",
+      "scrim",
+    ]) {
       expect(css).toContain(`--color-${name}: var(--${name});`)
     }
   })
 
-  it("sets the radii, the shadows, and the focus ring", () => {
-    expect(css).toMatch(/--radius:\s*10px;/)
-    expect(css).toMatch(/--radius-sm:\s*6px;/)
-    expect(css).toMatch(/--radius-md:\s*8px;/)
-    expect(css).toMatch(/--radius-lg:\s*10px;/)
-    expect(css).toMatch(/--radius-xl:\s*14px;/)
-    expect(css).toContain("--shadow-sm: 0 1px 2px #1f1b170f, 0 1px 3px #1f1b170d;")
-    expect(css).toContain("--shadow-md: 0 2px 4px #1f1b170d, 0 8px 20px #1f1b1717;")
-    expect(css).toContain("--shadow-lg: 0 4px 12px #1f1b1714, 0 24px 48px #1f1b1726;")
-    expect(css).toContain("--shadow-focus: 0 0 0 2px #faf8f5, 0 0 0 4px #24466f;")
+  it("makes all corners square except the full radius", () => {
+    for (const name of ["--radius", "--radius-sm", "--radius-md", "--radius-lg", "--radius-xl"]) {
+      expect(css).toMatch(new RegExp(`${name}:\\s*0px;`))
+    }
+    expect(css).toMatch(/--radius-full:\s*9999px;/)
+  })
+
+  it("sets the shadows, the focus ring and the layout sizes", () => {
+    expect(css).toMatch(/--shadow-sm:\s*none;/)
+    expect(css).toMatch(/--shadow-md:\s*0 12px 32px #1d1b1714;/)
+    expect(css).toMatch(/--shadow-lg:\s*0 24px 64px #1d1b171f;/)
+    expect(css).toMatch(/--focus-ring:\s*0 0 0 2px #f4f1eb, 0 0 0 4px #1d1b18;/)
+    expect(css).toMatch(/--content-max:\s*1440px;/)
+    expect(css).toMatch(/--text-max:\s*560px;/)
   })
 
   it("has no dark theme, no sidebar tokens, and no chart tokens", () => {

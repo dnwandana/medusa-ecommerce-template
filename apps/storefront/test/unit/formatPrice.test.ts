@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { formatPrice } from "../../app/utils/formatPrice"
+import { formatDeliveryPrice, formatPrice } from "../../app/utils/formatPrice"
 
 describe("formatPrice", () => {
   it("formats an amount as Rupiah with no decimals", () => {
@@ -25,5 +25,13 @@ describe("formatPrice", () => {
     expect(formatPrice(null)).toBe("-")
     expect(formatPrice(undefined)).toBe("-")
     expect(formatPrice(Number.NaN)).toBe("-")
+  })
+})
+
+describe("formatDeliveryPrice", () => {
+  it("shows the free label for a delivery price of 0", () => {
+    expect(formatDeliveryPrice(0, "Free")).toBe("Free")
+    expect(formatDeliveryPrice(18000, "Free")).toBe("Rp 18.000")
+    expect(formatDeliveryPrice(undefined, "Free")).toBe("-")
   })
 })

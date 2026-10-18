@@ -9,29 +9,86 @@
     "securePayment": "Secure payment.",
     "shipsIndonesia": "We ship to all of Indonesia.",
     "close": "Close",
-    "morePages": "More pages",
-    "retry": "Try again"
+    "retry": "Try again",
+    "free": "Free",
+    "delivery": "Delivery",
+    "subtotal": "Subtotal",
+    "total": "Total",
+    "discount": "Discount",
+    "youSave": "You save",
+    "deliveryAtCheckout": "Calculated at checkout",
+    "quantity": "Quantity",
+    "decrease": "Decrease the quantity",
+    "increase": "Increase the quantity",
+    "rating": "{rating} out of 5 stars",
+    "ratingCount": "{count} review | {count} reviews",
+    "ratingInput": "Rating",
+    "ratingStar": "{rating} of 5 stars",
+    "dismiss": "Dismiss",
+    "loadingMore": "Loading more"
   },
   "nav": {
     "home": "Home",
     "products": "Products",
-    "cart": "Cart",
     "account": "Account",
-    "login": "Log in",
     "language": "Language",
     "menu": "Menu",
     "breadcrumb": "Breadcrumb",
-    "pagination": "Pages"
+    "search": "Search",
+    "signIn": "Sign in",
+    "signOut": "Sign out",
+    "profile": "Profile",
+    "orders": "Orders",
+    "addresses": "Addresses",
+    "wishlist": "Wishlist",
+    "allProducts": "All products",
+    "cartLabel": "Cart | Cart, {count} item | Cart, {count} items",
+    "wishlistLabel": "Wishlist | Wishlist, {count} item | Wishlist, {count} items",
+    "accountFor": "Account of {name}",
+    "languageNames": {
+      "en": "English",
+      "id": "Bahasa Indonesia"
+    },
+    "categories": "Categories"
   },
   "footer": {
     "about": "Everyday is a clothing label for ordinary days: easy shapes, calm colours, fair prices.",
-    "shop": "Shop"
+    "shop": "Shop",
+    "help": "Help",
+    "aboutTitle": "About",
+    "delivery": "Delivery",
+    "returns": "Returns and exchanges",
+    "contact": "Contact us",
+    "track": "Track an order",
+    "story": "Our story",
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "payment": "We accept bank transfer",
+    "copyright": "© {year} {brand}"
   },
   "home": {
     "title": "Clothes for the days you actually have.",
     "subtitle": "Made for most days. Relaxed shirts, wide-leg chinos and the pieces you reach for without thinking.",
-    "newProducts": "New products",
-    "viewAll": "View all products"
+    "newProducts": "New in",
+    "viewAll": "View all products",
+    "newInEyebrow": "Just arrived",
+    "newInViewAll": "View all",
+    "categoriesTitle": "Shop by category",
+    "serviceLabel": "Our service",
+    "service": [
+      {
+        "title": "Delivered to your door",
+        "body": "Sent by trusted couriers to any address in Indonesia."
+      },
+      {
+        "title": "Complimentary returns",
+        "body": "Within 30 days, collected from your door."
+      },
+      {
+        "title": "Fit advice",
+        "body": "Our stylists reply within a day, in English or Bahasa Indonesia."
+      }
+    ]
   },
   "products": {
     "title": "All products",
@@ -43,15 +100,25 @@
     "outOfStock": "Out of stock",
     "selectVariant": "Select the options first.",
     "addFailed": "The product was not added. Try again.",
-    "viewCart": "View cart"
+    "viewCart": "View cart",
+    "badges": {
+      "soldOut": "Sold out",
+      "limited": "Limited stock",
+      "sale": "Sale",
+      "new": "New"
+    },
+    "discount": "−{percent}%",
+    "originalPrice": "Original price",
+    "colours": "Colours: {names}",
+    "onlyLeft": "Only {count} left."
   },
   "categories": {
     "notFound": "The category does not exist.",
     "empty": "This category has no products."
   },
   "cart": {
-    "title": "Cart",
-    "empty": "Your cart is empty.",
+    "title": "Your cart",
+    "empty": "Your cart is empty",
     "continue": "Continue shopping",
     "quantity": "Quantity",
     "decrease": "Decrease the quantity",
@@ -61,18 +128,31 @@
     "shipping": "Shipping",
     "shippingAtCheckout": "Calculated at checkout",
     "total": "Total",
-    "checkout": "Go to checkout",
-    "summary": "Summary",
-    "emptyBody": "Find a piece for your everyday."
+    "checkout": "Checkout",
+    "summary": "Order summary",
+    "emptyBody": "Pieces you add will wait here.",
+    "pieces": "{count} pieces | {count} piece | {count} pieces",
+    "items": "Items in your cart",
+    "emptyBodyWishlist": "Pieces you add will wait here. Your wishlist keeps anything you saved.",
+    "discover": "Discover the collection",
+    "quantityOf": "Quantity of {product}",
+    "updating": "Updating the quantity",
+    "removeItem": "Remove {product}",
+    "removing": "Removing…",
+    "removingItem": "Removing {product}",
+    "moveToWishlist": "Move to wishlist",
+    "moveItem": "Move {product} to the wishlist",
+    "movedToWishlist": "The product is in your wishlist.",
+    "viewWishlist": "View wishlist",
+    "paymentNote": "Choose your payment method at checkout.",
+    "checkoutTotal": "Checkout · {total}"
   },
   "checkout": {
     "title": "Checkout",
     "contact": "Contact",
     "email": "Email address",
     "phone": "Mobile number",
-    "address": "Shipping address",
-    "firstName": "First name",
-    "lastName": "Last name",
+    "address": "Delivery address",
     "address1": "Address",
     "addressPlaceholder": "Street and number\nRT/RW, village, district",
     "addressHint": "Add the details that help the courier, for example a landmark.",
@@ -86,18 +166,18 @@
     "firstAddressHint": "It becomes your default address, because it is your first address.",
     "noAddresses": "You have no saved addresses yet.",
     "guestPrompt": "Have an account?",
-    "guestLogin": "Log in to use your saved addresses.",
+    "guestLogin": "Sign in",
     "savingAddress": "Saving the address…",
     "loadingShipping": "Loading shipping options…",
     "addressSaved": "The address is saved to your account as \"{label}\".",
     "addressNotSaved": "The address was not saved to your account. Your order still ships to this address.",
     "addressesLoadError": "Your saved addresses did not load.",
     "invalidAddress": "This saved address is not complete. Update it on the Addresses page.",
-    "city": "City",
+    "city": "City or regency",
     "province": "Province",
     "postalCode": "Postal code",
     "continue": "Continue to shipping",
-    "shippingOption": "Shipping option",
+    "shippingOption": "Delivery method",
     "payment": "Payment",
     "paymentProviders": {
       "pp_bank-transfer_bank-transfer": "Bank transfer",
@@ -108,13 +188,8 @@
     },
     "placeOrder": "Place order",
     "noPaymentProviders": "This store has no payment method now. Contact the store.",
-    "steps": {
-      "address": "Address",
-      "shipping": "Shipping",
-      "payment": "Payment"
-    },
     "summary": "Order summary",
-    "shippingHint": "Save the address to see the shipping options.",
+    "shippingHint": "Save the address to see the delivery methods.",
     "errors": {
       "required": "Fill in this field.",
       "email": "Enter a valid email address.",
@@ -122,8 +197,28 @@
       "postalCode": "Enter a postal code of 5 digits.",
       "save": "The address was not saved. Try again.",
       "shipping": "The shipping option was not saved. Try again.",
-      "payment": "The order was not placed. Your cart did not change. Try again."
-    }
+      "payment": "The order was not placed. Your cart did not change. Try again.",
+      "province": "Select a province."
+    },
+    "heading": "Delivery and payment",
+    "emailHint": "We send the order confirmation and the order status to this address.",
+    "fullName": "Full name",
+    "provincePlaceholder": "Select a province",
+    "paymentLocked": "Select a delivery method to see the payment methods.",
+    "paymentCaptions": {
+      "manual": "Manual transfer, confirmed by the store",
+      "gateway": "Card, QRIS, virtual account or e-wallet"
+    },
+    "gatewayHint": "You pay on the secure page of our payment partner. You can choose a card, QRIS, a virtual account or an e-wallet there.",
+    "placeOrderTotal": "Place order · {total}",
+    "placing": "Placing the order…",
+    "agree": "By placing your order you agree to our {terms} and {privacy}.",
+    "termsLink": "terms of sale",
+    "privacyLink": "privacy policy",
+    "showSummary": "Show order summary",
+    "hideSummary": "Hide order summary",
+    "editCart": "Edit cart",
+    "lineQuantity": "Quantity: {count}"
   },
   "return": {
     "confirming": "We are confirming your payment…",
@@ -141,7 +236,69 @@
     "confirmationSent": "We sent a confirmation to {email}.",
     "items": "Items",
     "shippingAddress": "Shipping address",
-    "notFound": "The order does not exist."
+    "notFound": "The order does not exist.",
+    "eyebrow": "Order #{id} · {date}",
+    "heading": {
+      "placed": "Thank you, {name}. Your order is placed.",
+      "placedNoName": "Thank you. Your order is placed.",
+      "confirmed": "Thank you, {name}. Your order is confirmed.",
+      "confirmedNoName": "Thank you. Your order is confirmed.",
+      "shipped": "Your order is on its way.",
+      "delivered": "Your order is delivered.",
+      "cancelled": "Your order is cancelled.",
+      "refunded": "Your order is refunded."
+    },
+    "body": {
+      "waiting": "We sent a confirmation to {email}. We prepare your parcel when we confirm your payment.",
+      "checking": "We got your receipt. We check it, and then we confirm your order.",
+      "processing": "We sent a confirmation to {email}. We will write again when your parcel leaves the atelier.",
+      "shipped": "We sent the tracking number to {email}.",
+      "delivered": "Thank you for shopping with us."
+    },
+    "tracker": {
+      "label": "Order progress",
+      "confirmed": "Confirmed",
+      "onItsWay": "On its way",
+      "delivered": "Delivered",
+      "done": "Done",
+      "current": "Current step",
+      "upcoming": "Upcoming",
+      "waitingForPayment": "Waiting for payment",
+      "checkingReceipt": "Checking your receipt",
+      "partlyShipped": "Part of your order has shipped."
+    },
+    "cancelledTimeout": "We cancelled this order because we did not get your payment within 24 hours.",
+    "cancelledByStore": "The store cancelled this order. Contact us if you have questions.",
+    "refundedAmount": "We refunded {amount} to you.",
+    "contactUs": "Contact us:",
+    "or": "or",
+    "shipment": {
+      "title": "Shipment",
+      "shippedOn": "Shipped on {date} with {option}.",
+      "shippedOnNoOption": "Shipped on {date}.",
+      "trackingNumber": "Tracking number",
+      "track": "Track your parcel",
+      "newTab": "(opens in a new tab)"
+    },
+    "details": {
+      "deliveringTo": "Delivering to",
+      "delivery": "Delivery",
+      "payment": "Payment"
+    },
+    "paymentState": {
+      "awaiting": "Awaiting your transfer",
+      "received": "Received",
+      "notReceived": "Not received",
+      "cancelled": "Cancelled"
+    },
+    "refunded": "Refunded",
+    "itemsTitle": "Order #{id} items",
+    "quantity": "Qty {quantity}",
+    "free": "Free",
+    "totalPaid": "Total paid",
+    "questions": "Questions about your order?",
+    "contactLine": "{link}, in English or Bahasa Indonesia.",
+    "contactLink": "Contact us"
   },
   "bankTransfer": {
     "title": "Pay by bank transfer",
@@ -155,34 +312,58 @@
     "noAccounts": "The bank details are not available. Contact the store."
   },
   "auth": {
-    "loginTitle": "Log in",
-    "registerTitle": "Create an account",
     "email": "Email address",
-    "password": "Password",
-    "passwordHint": "Use 8 characters or more.",
-    "firstName": "First name",
-    "lastName": "Last name",
-    "loginAction": "Log in",
-    "registerAction": "Create account",
-    "noAccount": "Create an account",
-    "haveAccount": "Log in with an existing account",
-    "forgotLink": "Forgot your password?",
-    "loginFailed": "The email address or the password is not correct.",
-    "registerFailed": "The account was not created. An account with this email address can exist already.",
-    "forgotTitle": "Reset your password",
-    "forgotIntro": "Enter your email address. We send you a link to set a new password.",
-    "forgotAction": "Send the link",
-    "forgotSent": "If an account exists for this email address, we sent a reset link.",
-    "resetTitle": "Set a new password",
-    "newPassword": "New password",
-    "resetAction": "Save the password",
-    "resetDone": "Your password is changed. Log in with the new password.",
-    "resetFailed": "The reset link is not valid or it expired. Request a new link.",
-    "resetIncomplete": "The reset link is incomplete. Request a new link.",
-    "newHere": "New here?",
-    "haveAccountShort": "Have an account?",
-    "showPassword": "Show the password",
-    "hidePassword": "Hide the password"
+    "signIn": {
+      "title": "Sign in",
+      "intro": "Type your email address. We send you a link to sign in. You do not need a password.",
+      "newAccount": "No account yet? The same link creates your account.",
+      "send": "Send the link",
+      "sending": "Sending the link…",
+      "invalidEmail": "Type a valid email address.",
+      "failed": "We could not send the link. Try again.",
+      "rateLimited": "Wait 60 seconds before you ask for a new link."
+    },
+    "check": {
+      "title": "Check your email",
+      "sentTo": "We sent a link to {email}. Open the link to sign in. The link expires in 15 minutes.",
+      "waiting": "This tab signs in when you open the link.",
+      "resendIn": "Send the link again in {time}",
+      "resend": "Send the link again",
+      "sentAgain": "We sent a new link. The older link does not work now.",
+      "differentEmail": "Use a different email",
+      "spam": "No email? Look in your spam folder.",
+      "expiredTitle": "The link expired.",
+      "expiredBody": "The link works for 15 minutes. Send a new link to sign in.",
+      "sendNew": "Send a new link"
+    },
+    "verify": {
+      "checkingTitle": "One moment",
+      "checkingBody": "We check your link.",
+      "signedInTitle": "You are signed in",
+      "closesSoon": "This tab closes in 5 seconds.",
+      "closeTab": "Go back to your other tab. You can close this tab.",
+      "continue": "Continue",
+      "confirmTitle": "Sign in on your other device?",
+      "confirmIntro": "Someone asked for a sign-in link.",
+      "browser": "Browser",
+      "time": "Time",
+      "confirm": "Yes, sign me in",
+      "confirming": "Signing you in…",
+      "confirmNote": "If you did not ask for this link, close this tab. Nobody signs in without this button.",
+      "doneTitle": "Done",
+      "doneBody": "Go back to your other tab. It is signed in now. This tab closes in 5 seconds.",
+      "invalidTitle": "The link does not work",
+      "invalidBody": "The link expired, or someone used it already. Each link works one time, for 15 minutes.",
+      "signInAgain": "Sign in again"
+    },
+    "welcome": {
+      "title": "Welcome to {store}",
+      "intro": "Your account is ready. What should we call you?",
+      "fullName": "Full name",
+      "continue": "Continue",
+      "skip": "Skip",
+      "nameRequired": "Type your full name, or click Skip."
+    }
   },
   "account": {
     "title": "Your account",
@@ -191,7 +372,6 @@
     "saved": "Your profile is saved.",
     "orders": "Orders",
     "wishlist": "Wishlist",
-    "logout": "Log out",
     "noOrders": "You have no orders.",
     "viewOrder": "View the order",
     "addresses": {
@@ -228,7 +408,18 @@
       "deleting": "Deleting…",
       "deleteError": "The address was not deleted. Try again.",
       "deleted": "Address deleted."
-    }
+    },
+    "greeting": "Welcome, {name}.",
+    "greetingNoName": "Welcome.",
+    "fullName": "Full name",
+    "email": "Email address",
+    "saving": "Saving…",
+    "saveError": "Your profile was not saved. Try again.",
+    "orderDate": "Date",
+    "orderItems": "Items",
+    "orderTotal": "Total",
+    "reviewItems": "Review the items",
+    "ordersError": "Your orders did not load."
   },
   "reviews": {
     "title": "Reviews",
@@ -249,7 +440,10 @@
       "notFound": "This item is not in your orders.",
       "generic": "The review was not sent. Try again."
     },
-    "writeFor": "Write a review: {product}"
+    "writeFor": "Write a review: {product}",
+    "basedOn": "Based on 0 reviews | Based on {count} review | Based on {count} reviews",
+    "byline": "{name} · Size {size}",
+    "showMore": "Show more reviews"
   },
   "wishlist": {
     "title": "Wishlist",
@@ -257,6 +451,201 @@
     "remove": "Remove from wishlist",
     "empty": "Your wishlist is empty.",
     "viewProduct": "View the product",
-    "error": "The wishlist did not change. Try again."
+    "error": "The wishlist did not change. Try again.",
+    "save": "Save to wishlist",
+    "signInToSave": "Sign in to save to your wishlist"
+  },
+  "error": {
+    "notFound": {
+      "title": "This page is not here",
+      "body": "We cannot find this page. The link can be out of date, or we moved the page."
+    },
+    "server": {
+      "title": "Something went wrong",
+      "body": "An error occurred on our side. Try again in a few minutes."
+    },
+    "home": "Back to home",
+    "browse": "Browse all products",
+    "categories": "Or start with a category"
+  },
+  "shell": {
+    "announcement": "Delivered to your door, across Indonesia"
+  },
+  "pages": {
+    "delivery": {
+      "title": "Delivery",
+      "intro": "We deliver orders to all of Indonesia. This page tells you how the delivery works.",
+      "sections": [
+        {
+          "heading": "Where we deliver",
+          "body": "We deliver to addresses in all of Indonesia. Type your full address at checkout, so that the courier can find you."
+        },
+        {
+          "heading": "Delivery price",
+          "body": "The delivery price depends on your address and on the weight of your order. Checkout shows the price before you pay."
+        },
+        {
+          "heading": "Tracking",
+          "body": "After we send the parcel, the order page shows the tracking link."
+        }
+      ]
+    },
+    "returns": {
+      "title": "Returns and exchanges",
+      "intro": "If a piece does not fit or does not suit you, you can return it or exchange it.",
+      "sections": [
+        {
+          "heading": "How to return",
+          "body": "Contact us with your order number and the items that you want to return. We tell you how to send the items back."
+        },
+        {
+          "heading": "Exchanges",
+          "body": "To get a different size or colour, contact us. We send the new piece when it is in stock."
+        },
+        {
+          "heading": "Refunds",
+          "body": "We check the items when we receive them. Then we send the refund and tell you by email."
+        }
+      ]
+    },
+    "about": {
+      "title": "Our story",
+      "intro": "We make clothes for ordinary days: easy shapes, calm colours, fair prices.",
+      "sections": [
+        {
+          "heading": "Who we are",
+          "body": "We are a small clothing label in Indonesia. We design pieces that you can wear on most days, for a long time."
+        },
+        {
+          "heading": "How we make our clothes",
+          "body": "We choose comfortable fabrics and simple shapes. We make small quantities, so that we do not make more than people need."
+        }
+      ]
+    },
+    "privacy": {
+      "title": "Privacy",
+      "intro": "This page tells you which data we keep about you and why we keep it.",
+      "sections": [
+        {
+          "heading": "The data we keep",
+          "body": "We keep your name, your email address, your mobile number, your addresses and your orders."
+        },
+        {
+          "heading": "Why we keep it",
+          "body": "We use the data to deliver your orders, to send the order emails and to answer your questions. We do not sell your data."
+        },
+        {
+          "heading": "Your choices",
+          "body": "You can change your profile and your addresses in your account. To delete your account, contact us."
+        }
+      ]
+    },
+    "terms": {
+      "title": "Terms",
+      "intro": "These terms apply when you buy from this store.",
+      "sections": [
+        {
+          "heading": "Orders",
+          "body": "When you place an order, we send a confirmation by email. We prepare the order after we receive the payment."
+        },
+        {
+          "heading": "Prices and payment",
+          "body": "All prices are in rupiah. Checkout shows the full price, with the delivery price, before you pay."
+        },
+        {
+          "heading": "Delivery",
+          "body": "We deliver to addresses in Indonesia. The delivery page gives more information."
+        },
+        {
+          "heading": "Returns",
+          "body": "You can return or exchange a piece. The returns page tells you how."
+        }
+      ]
+    },
+    "contact": {
+      "title": "Contact us",
+      "intro": "Send us a message. We reply within one working day.",
+      "whatsapp": "WhatsApp",
+      "email": "Email",
+      "unavailable": "The contact details did not load. Try again later."
+    }
+  },
+  "checkoutLayout": {
+    "back": "Back to cart",
+    "secure": "Secure checkout",
+    "help": "Help"
+  },
+  "listing": {
+    "count": "0 pieces | {count} piece | {count} pieces",
+    "all": "All",
+    "allFilters": "All filters",
+    "filters": {
+      "size": "Size",
+      "colour": "Colour",
+      "fabric": "Fabric",
+      "price": "Price",
+      "category": "Category"
+    },
+    "anyPrice": "Any price",
+    "priceUnder": "Under {price}",
+    "priceBetween": "{from} to {to}",
+    "priceOver": "Over {price}",
+    "sort": {
+      "label": "Sort",
+      "newest": "Newest",
+      "priceAsc": "Price, low to high",
+      "priceDesc": "Price, high to low"
+    },
+    "filterButton": "Filter | Filter ({count}) | Filter ({count})",
+    "showing": "Showing",
+    "removeFilter": "Remove filter: {name}",
+    "clearAll": "Clear all",
+    "noMatchTitle": "No pieces match these filters",
+    "noMatchBody": "Remove a filter, or clear all filters to see all the pieces.",
+    "clearAllFilters": "Clear all filters",
+    "categoryEmptyBody": "New pieces arrive each season. Browse the full collection in the meantime.",
+    "productsEmptyBody": "New pieces arrive each season. Come back soon.",
+    "backHome": "Back to home",
+    "nextPage": "Next page",
+    "loadingMore": "Loading more pieces",
+    "loadFailed": "The next pieces did not load.",
+    "end": "You have seen all {count} pieces",
+    "loaded": "0 more products loaded | {count} more product loaded | {count} more products loaded",
+    "sheetTitle": "Filters",
+    "closeFilters": "Close filters",
+    "showCount": "Show 0 pieces | Show {count} piece | Show {count} pieces"
+  },
+  "search": {
+    "title": "Search",
+    "label": "Search products",
+    "placeholder": "Search",
+    "close": "Close search",
+    "seeAll": "See all results",
+    "resultsFor": "Results for \"{query}\"",
+    "noResultsFor": "No results for \"{query}\"",
+    "count": "0 products | {count} product | {count} products",
+    "noMatch": "No products match \"{query}\". Check the spelling, or try a shorter word.",
+    "newIn": "New in"
+  },
+  "product": {
+    "photos": "Product photos",
+    "openPhoto": "Open photo {index} of {total}",
+    "colour": "Colour",
+    "size": "Size",
+    "soldOutValue": "{value}, sold out",
+    "details": "Details and fit",
+    "care": "Fabric and care",
+    "related": "You may also like",
+    "viewAllIn": "View all {category}"
+  },
+  "viewer": {
+    "label": "Photos of {title}",
+    "counter": "{index} / {total}",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "previous": "Previous photo",
+    "next": "Next photo",
+    "hintPointer": "Click the photo to zoom. Use the arrow keys to change the photo. Esc closes.",
+    "hintTouch": "Tap to zoom. Pinch to zoom more. Swipe to change the photo."
   }
 }

@@ -59,7 +59,7 @@ async function submit(): Promise<void> {
   <form v-else novalidate class="flex flex-col gap-5" @submit.prevent="submit">
     <fieldset class="flex flex-col gap-1">
       <legend class="mb-1 text-body-sm font-semibold">{{ $t("reviews.rating") }}</legend>
-      <StarRating v-model="rating" mode="input" name="rating" />
+      <StarInput v-model="rating" name="rating" :invalid="Boolean(errors.rating)" />
       <FieldError v-if="errors.rating">{{ $t(errors.rating) }}</FieldError>
     </fieldset>
 

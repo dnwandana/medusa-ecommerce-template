@@ -12,11 +12,10 @@ describe("shadcn-vue Button", () => {
   })
 
   it.each([
-    ["sm", "h-9"],
-    ["default", "h-11"],
-    ["lg", "h-13"],
+    ["sm", "h-10"],
+    ["default", "h-12"],
+    ["lg", "h-14"],
     ["icon", "size-11"],
-    ["icon-sm", "size-9"],
   ] as const)("gives the %s size the class %s", (size, height) => {
     expect(buttonVariants({ size }).split(" ")).toContain(height)
   })
@@ -41,5 +40,66 @@ describe("shadcn-vue Button", () => {
   it("has no secondary variant", () => {
     // @ts-expect-error The design has no secondary button.
     expect(buttonVariants({ variant: "secondary" })).not.toContain("bg-secondary")
+  })
+
+  it("uses ink for the default variant and an ink rule for outline", async () => {
+    const solid = await mountSuspended(Button, { slots: { default: () => "Add to cart" } })
+    expect(solid.classes()).toEqual(
+      expect.arrayContaining(["bg-primary", "h-12", "text-button", "uppercase"])
+    )
+    const outline = await mountSuspended(Button, {
+      props: { variant: "outline" },
+      slots: { default: () => "Edit" },
+    })
+    expect(outline.classes()).toEqual(expect.arrayContaining(["border", "border-foreground"]))
+  })
+
+  it("has the light variant and the sizes 40, 48 and 56", async () => {
+    // The preview gives the light variant an ivory rule, filled with ivory on hover.
+    const light = await mountSuspended(Button, { props: { variant: "light" } })
+    expect(light.classes()).toEqual(
+      expect.arrayContaining(["border-background", "hover:bg-background"])
+    )
+    expect((await mountSuspended(Button, { props: { size: "sm" } })).classes()).toContain("h-10")
+    expect((await mountSuspended(Button, { props: { size: "lg" } })).classes()).toContain("h-14")
+    expect((await mountSuspended(Button, { props: { size: "icon" } })).classes()).toContain(
+      "size-11"
+    )
+  })
+
+  it("keeps the width and shows a spinner while it loads", async () => {
+    const wrapper = await mountSuspended(Button, {
+      props: { loading: true },
+      slots: { default: () => "Place order" },
+    })
+    expect(wrapper.attributes("aria-busy")).toBe("true")
+    expect(wrapper.attributes("disabled")).toBeDefined()
+    expect(wrapper.find("[data-slot='button-label']").classes()).toContain("invisible")
+    expect(wrapper.find("[data-slot='spinner']").exists()).toBe(true)
+  })
+
+  it("keeps the accessible name while it loads", async () => {
+    const wrapper = await mountSuspended(Button, {
+      props: { loading: true },
+      slots: { default: () => "Place order" },
+    })
+    const label = wrapper.get("[data-slot='button-label']")
+    expect(label.text()).toBe("Place order")
+    expect(wrapper.attributes("aria-labelledby")).toBe(label.attributes("id"))
+  })
+
+  it("keeps the name from aria-label while it loads", async () => {
+    const wrapper = await mountSuspended(Button, {
+      props: { loading: true },
+      attrs: { "aria-label": "Remove" },
+    })
+    expect(wrapper.attributes("aria-labelledby")).toBeUndefined()
+  })
+
+  it("has no busy state and no hidden label when it does not load", async () => {
+    const wrapper = await mountSuspended(Button, { slots: { default: () => "Add to cart" } })
+    expect(wrapper.attributes("aria-busy")).toBeUndefined()
+    expect(wrapper.attributes("disabled")).toBeUndefined()
+    expect(wrapper.find("[data-slot='button-label']").exists()).toBe(false)
   })
 })
