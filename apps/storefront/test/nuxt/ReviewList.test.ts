@@ -10,7 +10,18 @@ const { reviews, toast } = vi.hoisted(() => ({
 }))
 
 vi.mock("vue-sonner", () => ({ toast }))
-mockNuxtImport("useReviews", () => () => reviews)
+// The review composables call the SDK. The mock SDK gives each review request to
+// reviews.listForProduct, so the tests also see the requests of useFirstReviewPage.
+mockNuxtImport("useMedusa", () => () => ({
+  client: {
+    fetch: (path: string, init: { query: { limit: number; offset: number } }) => {
+      const [, store, products, productId, list] = path.split("/")
+      return store === "store" && products === "products" && list === "reviews"
+        ? reviews.listForProduct(productId, init.query)
+        : Promise.reject(new Error(`No mock for ${path}`))
+    },
+  },
+}))
 
 const review = (id: string, rating: number) => ({
   id,

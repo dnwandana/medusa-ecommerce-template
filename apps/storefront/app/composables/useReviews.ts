@@ -69,3 +69,23 @@ export function useReviews(): {
     },
   }
 }
+
+// Returns the first review page of a product. The product page waits for it, so the server HTML
+// and the JSON-LD have the rating. ReviewList calls it with `lazy`. The two callers share the key,
+// the handler, and the default options, so Nuxt sends one request and gives no warning.
+export function useFirstReviewPage(productId: string, options: { lazy?: boolean } = {}) {
+  const nuxtApp = useNuxtApp()
+  const reviews = useReviews()
+  const key = `reviews:${productId}`
+  // A second caller finds the result of the first caller in the payload and sends no request. This
+  // is also true after a failed request: the error stays in the key and ReviewList shows it. The
+  // payload has the result after hydration too. Nuxt removes the key when the last caller
+  // unmounts (`purgeCachedData`), so a new visit to the page sends a new request.
+  const loaded =
+    nuxtApp.payload.data[key] !== undefined || nuxtApp.payload._errors[key] !== undefined
+  return useAsyncData<ReviewPage>(
+    key,
+    () => reviews.listForProduct(productId, { limit: REVIEW_FIRST_COUNT, offset: 0 }),
+    { lazy: options.lazy ?? false, immediate: !loaded }
+  )
+}

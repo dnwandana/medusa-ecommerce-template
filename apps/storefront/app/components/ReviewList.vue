@@ -8,11 +8,9 @@ const props = defineProps<{ productId: string }>()
 const reviews = useReviews()
 const { t, locale } = useI18n()
 
-// The page does not wait for the reviews. The product page reads the same cache key for the
-// rating link, so the page sends one review request.
-const { data, error } = useLazyAsyncData(`reviews:${props.productId}`, () =>
-  reviews.listForProduct(props.productId, { limit: REVIEW_FIRST_COUNT, offset: 0 })
-)
+// The product page loads the first page before the render, so the list uses that result and
+// sends no request. With no page before it, the list loads the reviews after the render.
+const { data, error } = useFirstReviewPage(props.productId, { lazy: true })
 
 // The list starts from the first page. "Show more reviews" adds the next reviews to it.
 const list = ref<Review[]>([])
@@ -54,7 +52,13 @@ function byline(review: Review): string {
 </script>
 
 <template>
-  <section id="reviews" aria-labelledby="reviews-title" class="scroll-mt-24">
+  <!-- tabindex -1: the rating link of the product page moves the focus here with no outline. -->
+  <section
+    id="reviews"
+    aria-labelledby="reviews-title"
+    tabindex="-1"
+    class="scroll-mt-24 outline-none"
+  >
     <div
       v-if="error || data?.count === 0"
       class="flex flex-col gap-6 border-t border-border pt-8 md:pt-16"
