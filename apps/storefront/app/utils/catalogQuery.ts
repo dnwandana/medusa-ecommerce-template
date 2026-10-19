@@ -25,7 +25,7 @@ export const EMPTY_CATALOG_STATE: CatalogState = {
   page: 1,
 }
 
-const FILTER_NAMES: FilterName[] = ["size", "colour", "fabric"]
+export const FILTER_NAMES: FilterName[] = ["size", "colour", "fabric"]
 const SORTS: CatalogSort[] = ["newest", "price-asc", "price-desc"]
 // A range key is "<from>-<to>" in whole rupiah. The last range has no "to".
 const PRICE_KEY_PATTERN = /^\d+-\d*$/
