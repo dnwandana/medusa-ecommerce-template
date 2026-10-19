@@ -13,19 +13,24 @@ import {
 export const GET = async (req: MedusaRequest, res: MedusaResponse): Promise<void> => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
-  // An inactive or internal category never shows, even with show_on_home.
-  const { data: categories } = await query.graph({
-    entity: "product_category",
-    fields: ["id", "name", "handle", "rank", "metadata"],
-    filters: { is_active: true, is_internal: false },
-  })
+  // An inactive or internal category never shows, even with show_on_home. The locale gives the
+  // translated category name.
+  const { data: categories } = await query.graph(
+    {
+      entity: "product_category",
+      fields: ["id", "name", "handle", "rank", "metadata"],
+      filters: { is_active: true, is_internal: false },
+    },
+    { locale: req.locale }
+  )
   const homeCategories = (categories as TileCategory[]).filter(isHomeCategory)
   if (homeCategories.length === 0) {
     res.json({ categories: [] })
     return
   }
 
-  // The generated filter type of a product has no categories key, but Query accepts it.
+  // The generated filter type of a product has no categories key, but Query accepts it. The
+  // product fields are not translatable, so this call has no locale.
   const filters: Record<string, unknown> = {
     categories: { id: homeCategories.map(({ id }) => id) },
     status: "published",

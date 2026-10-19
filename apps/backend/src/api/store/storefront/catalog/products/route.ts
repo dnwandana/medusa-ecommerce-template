@@ -111,6 +111,8 @@ export const GET = async (req: MedusaStoreRequest, res: MedusaResponse): Promise
   if (params.q) {
     filters.title = { $ilike: containsPattern(params.q) }
   }
+  // This call has no locale. The filters compare ids, and the title search must match the
+  // original title.
   const { data: listed } = await query.graph({
     entity: "product",
     fields: LIST_FIELDS,
@@ -139,12 +141,16 @@ async function readCards(
   context: Record<string, unknown>
 ): Promise<CardProduct[]> {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
-  const { data } = await query.graph({
-    entity: "product",
-    fields: CARD_FIELDS,
-    filters: { id: ids },
-    context,
-  })
+  // The locale gives the translated texts of the cards, as in the Store product route.
+  const { data } = await query.graph(
+    {
+      entity: "product",
+      fields: CARD_FIELDS,
+      filters: { id: ids },
+      context,
+    },
+    { locale: req.locale }
+  )
   const byId = new Map((data as CardProduct[]).map((product) => [product.id, product]))
   const products = ids.flatMap((id) => byId.get(id) ?? [])
 

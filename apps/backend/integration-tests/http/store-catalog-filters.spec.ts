@@ -1,4 +1,4 @@
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { medusaIntegrationTestRunner } from "@medusajs/test-utils"
 import { runSeed } from "../../src/seed"
 
@@ -74,6 +74,68 @@ medusaIntegrationTestRunner({
           { headers }
         )
         expect(repeated.data).toEqual(commaList.data)
+      })
+
+      it("translates the labels and keeps the keys for the locale id-ID", async () => {
+        const seed = await runSeed(getContainer())
+        const query = getContainer().resolve(ContainerRegistrationKeys.QUERY)
+        const {
+          data: [shirt],
+        } = await query.graph({
+          entity: "product",
+          fields: ["options.id", "options.title", "options.values.id", "options.values.value"],
+          filters: { handle: "plain-t-shirt" },
+        })
+        const colour = shirt!.options!.find((option: any) => option.title === "Colour")!
+        const white = colour.values.find((value: any) => value.value === "White")!
+        const {
+          data: [cotton],
+        } = await query.graph({
+          entity: "product_tag",
+          fields: ["id"],
+          filters: { value: "Fabric: Cotton" },
+        })
+        // "Corak" is not a colour name in option-names.ts, so only the original title can match.
+        await getContainer()
+          .resolve(Modules.TRANSLATION)
+          .createTranslations([
+            {
+              reference_id: colour.id,
+              reference: "product_option",
+              locale_code: "id-ID",
+              translations: { title: "Corak" },
+            },
+            {
+              reference_id: white.id,
+              reference: "product_option_value",
+              locale_code: "id-ID",
+              translations: { value: "Putih" },
+            },
+            {
+              reference_id: cotton.id,
+              reference: "product_tag",
+              locale_code: "id-ID",
+              translations: { value: "Fabric: Katun" },
+            },
+          ])
+
+        const read = (locale: string) =>
+          api.get("/store/storefront/catalog/filters", {
+            headers: { "x-publishable-api-key": seed.publishableKey, "x-medusa-locale": locale },
+          })
+        const indonesian = await read("id-ID")
+        expect(indonesian.data.colours).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ key: "white", label: "Putih", ids: [white.id] }),
+          ])
+        )
+        expect(indonesian.data.colours.map((c: any) => c.key)).toEqual(["black", "white"])
+        expect(indonesian.data.fabrics).toEqual([
+          { key: "cotton", label: "Katun", ids: [cotton.id] },
+        ])
+
+        const english = await read("en-US")
+        expect(english.data.colours.map((c: any) => c.label)).toEqual(["Black", "White"])
       })
 
       it("rejects an unknown query field", async () => {

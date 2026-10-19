@@ -48,6 +48,35 @@ medusaIntegrationTestRunner({
         ])
       })
 
+      it("returns the Indonesian category name for the locale id-ID", async () => {
+        const seed = await runSeed(getContainer())
+        const category = await getContainer()
+          .resolve(Modules.PRODUCT)
+          .createProductCategories({
+            name: "Clothes",
+            handle: "clothes",
+            is_active: true,
+            metadata: { show_on_home: true },
+          })
+        await getContainer()
+          .resolve(Modules.TRANSLATION)
+          .createTranslations({
+            reference_id: category.id,
+            reference: "product_category",
+            locale_code: "id-ID",
+            translations: { name: "Pakaian" },
+          })
+
+        const names = async (locale: string) => {
+          const response = await api.get("/store/storefront/home-categories", {
+            headers: { "x-publishable-api-key": seed.publishableKey, "x-medusa-locale": locale },
+          })
+          return response.data.categories.map((c: any) => c.name)
+        }
+        expect(await names("id-ID")).toContain("Pakaian")
+        expect(await names("en-US")).toContain("Clothes")
+      })
+
       it("takes the thumbnail of the newest published product of the category", async () => {
         const seed = await runSeed(getContainer())
         const products = getContainer().resolve(Modules.PRODUCT)

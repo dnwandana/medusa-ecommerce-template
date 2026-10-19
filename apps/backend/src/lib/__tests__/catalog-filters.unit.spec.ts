@@ -1,4 +1,10 @@
-import { buildCatalogFilters, containsPattern, idList } from "../catalog-filters"
+import {
+  buildCatalogFilters,
+  containsPattern,
+  idList,
+  translatedLabels,
+  type FilterProduct,
+} from "../catalog-filters"
 
 describe("buildCatalogFilters", () => {
   it("merges values with the same name across products", () => {
@@ -94,6 +100,68 @@ describe("buildCatalogFilters", () => {
 
   it("returns empty lists for no product", () => {
     expect(buildCatalogFilters([])).toEqual({ sizes: [], colours: [], fabrics: [] })
+  })
+})
+
+describe("translated labels", () => {
+  const products: FilterProduct[] = [
+    {
+      options: [{ title: "Colour", values: [{ id: "ov_w", value: "White" }] }],
+      tags: [{ id: "tag_c", value: "Fabric: Cotton" }],
+    },
+  ]
+
+  it("takes the label from the translation and the key from the original value", () => {
+    const labels = new Map([
+      ["ov_w", "Putih"],
+      ["tag_c", "Katun"],
+    ])
+    expect(buildCatalogFilters(products, labels)).toEqual({
+      sizes: [],
+      colours: [{ key: "white", label: "Putih", ids: ["ov_w"] }],
+      fabrics: [{ key: "cotton", label: "Katun", ids: ["tag_c"] }],
+    })
+  })
+
+  it("keeps the original label with no translation", () => {
+    expect(buildCatalogFilters(products).colours).toEqual([
+      { key: "white", label: "White", ids: ["ov_w"] },
+    ])
+    expect(buildCatalogFilters(products, new Map()).fabrics).toEqual([
+      { key: "cotton", label: "Cotton", ids: ["tag_c"] },
+    ])
+  })
+
+  it("merges values with the same original key, and the first value gives the label", () => {
+    const merged = buildCatalogFilters(
+      [
+        ...products,
+        { options: [{ title: "Colour", values: [{ id: "ov_w2", value: "white" }] }], tags: null },
+      ],
+      new Map([
+        ["ov_w", "Putih"],
+        ["ov_w2", "Putih bersih"],
+      ])
+    )
+    expect(merged.colours).toEqual([{ key: "white", label: "Putih", ids: ["ov_w", "ov_w2"] }])
+  })
+
+  it("reads the labels of translated products, and only fabric tags with the prefix", () => {
+    const translated: FilterProduct[] = [
+      {
+        options: [{ title: "Corak", values: [{ id: "ov_w", value: "Putih" }] }],
+        tags: [
+          { id: "tag_c", value: "Fabric: Katun" },
+          { id: "tag_x", value: "Kain: Linen" },
+        ],
+      },
+    ]
+    expect(translatedLabels(translated)).toEqual(
+      new Map([
+        ["ov_w", "Putih"],
+        ["tag_c", "Katun"],
+      ])
+    )
   })
 })
 

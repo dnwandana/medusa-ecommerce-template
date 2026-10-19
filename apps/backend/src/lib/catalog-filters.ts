@@ -10,8 +10,9 @@ export const idList = z
     (Array.isArray(value) ? value : (value ?? "").split(",")).map((id) => id.trim()).filter(Boolean)
   )
 
-// One value of a filter. key is the label in lower case, for the URL. ids are the option value
-// ids, or the tag ids for a fabric.
+// One value of a filter. key is the original value in lower case, for the URL. The key does not
+// change with the locale, so a filter in the URL works in all locales. label is the translated
+// value when one exists. ids are the option value ids, or the tag ids for a fabric.
 export type FilterValue = { key: string; label: string; ids: string[] }
 
 export type CatalogFilters = {
@@ -35,20 +36,20 @@ export function containsPattern(text: string): string {
   return `%${text.replace(/[\\%_]/g, "\\$&")}%`
 }
 
-// Collects the values of one filter. Values with the same key merge, and the first spelling
-// gives the label.
+// Collects the values of one filter. Values with the same original key merge. The first value
+// gives the label: its translated label, or else its original spelling.
 class FilterValues {
   private values = new Map<string, FilterValue>()
 
-  add(label: string, id: string): void {
-    const trimmed = label.trim()
+  add(original: string, id: string, label?: string): void {
+    const trimmed = original.trim()
     const key = trimmed.toLowerCase()
     if (key === "") {
       return
     }
     const value = this.values.get(key)
     if (!value) {
-      this.values.set(key, { key, label: trimmed, ids: [id] })
+      this.values.set(key, { key, label: label?.trim() || trimmed, ids: [id] })
     } else if (!value.ids.includes(id)) {
       value.ids.push(id)
     }
@@ -79,9 +80,15 @@ function bySize(a: FilterValue, b: FilterValue): number {
   return valueA !== valueB ? valueA - valueB : byKey(a, b)
 }
 
-// Returns the size, colour and fabric values of the products. Sizes follow SIZE_ORDER, then the
-// numbers in numeric order, then the other sizes A to Z. Colours and fabrics go A to Z.
-export function buildCatalogFilters(products: FilterProduct[]): CatalogFilters {
+// Returns the size, colour and fabric values of the products. The products must have the
+// original, untranslated values, because the option titles and the keys come from them. labels
+// maps an option value id or a tag id to its translated label. Sizes follow SIZE_ORDER, then the
+// numbers in numeric order, then the other sizes A to Z. Colours and fabrics go A to Z by key, so
+// the order is the same in all locales.
+export function buildCatalogFilters(
+  products: FilterProduct[],
+  labels: ReadonlyMap<string, string> = new Map()
+): CatalogFilters {
   const sizes = new FilterValues()
   const colours = new FilterValues()
   const fabrics = new FilterValues()
@@ -97,13 +104,13 @@ export function buildCatalogFilters(products: FilterProduct[]): CatalogFilters {
         continue
       }
       for (const value of option.values ?? []) {
-        target.add(value.value, value.id)
+        target.add(value.value, value.id, labels.get(value.id))
       }
     }
     for (const tag of product.tags ?? []) {
       const label = fabricLabel(tag.value)
       if (label) {
-        fabrics.add(label, tag.id)
+        fabrics.add(label, tag.id, labels.get(tag.id))
       }
     }
   }
@@ -113,4 +120,25 @@ export function buildCatalogFilters(products: FilterProduct[]): CatalogFilters {
     colours: colours.list().sort(byKey),
     fabrics: fabrics.list().sort(byKey),
   }
+}
+
+// Returns the label of each option value id and each fabric tag id of the translated products.
+// The function does not check the option titles, because buildCatalogFilters uses only the ids of
+// the filter values. A translated fabric tag gives a label only when it keeps the fabric prefix.
+export function translatedLabels(products: FilterProduct[]): Map<string, string> {
+  const labels = new Map<string, string>()
+  for (const product of products) {
+    for (const option of product.options ?? []) {
+      for (const value of option.values ?? []) {
+        labels.set(value.id, value.value)
+      }
+    }
+    for (const tag of product.tags ?? []) {
+      const label = fabricLabel(tag.value)
+      if (label) {
+        labels.set(tag.id, label)
+      }
+    }
+  }
+  return labels
 }

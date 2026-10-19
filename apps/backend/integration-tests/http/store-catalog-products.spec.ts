@@ -1,5 +1,5 @@
 import { updateProductsWorkflow } from "@medusajs/medusa/core-flows"
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { medusaIntegrationTestRunner } from "@medusajs/test-utils"
 import { runSeed } from "../../src/seed"
 
@@ -93,6 +93,55 @@ medusaIntegrationTestRunner({
           "canvas-tote-bag",
           "plain-t-shirt",
         ])
+      })
+
+      it("returns the Indonesian title for the locale id-ID and keeps the filters on original values", async () => {
+        const seed = await runSeed(getContainer())
+        const headers = { "x-publishable-api-key": seed.publishableKey }
+        const query = getContainer().resolve(ContainerRegistrationKeys.QUERY)
+        const {
+          data: [shirt],
+        } = await query.graph({
+          entity: "product",
+          fields: ["id", "options.title", "options.values.id", "options.values.value"],
+          filters: { handle: "plain-t-shirt" },
+        })
+        const white = shirt!
+          .options!.find((option: any) => option.title === "Colour")!
+          .values.find((value: any) => value.value === "White")!
+        await getContainer()
+          .resolve(Modules.TRANSLATION)
+          .createTranslations([
+            {
+              reference_id: shirt.id,
+              reference: "product",
+              locale_code: "id-ID",
+              translations: { title: "Kaus Polos" },
+            },
+            {
+              reference_id: white.id,
+              reference: "product_option_value",
+              locale_code: "id-ID",
+              translations: { value: "Putih" },
+            },
+          ])
+
+        const indonesian = await api.get(
+          `/store/storefront/catalog/products?region_id=${seed.regionId}&colour=${white.id}`,
+          { headers: { ...headers, "x-medusa-locale": "id-ID" } }
+        )
+        expect(indonesian.data.count).toBe(1)
+        const [card] = indonesian.data.products
+        expect(card.title).toBe("Kaus Polos")
+        const values = card.options.flatMap((option: any) => option.values.map((v: any) => v.value))
+        expect(values).toContain("Putih")
+        expect(values).not.toContain("White")
+
+        const english = await api.get(
+          `/store/storefront/catalog/products?region_id=${seed.regionId}`,
+          { headers: { ...headers, "x-medusa-locale": "en-US" } }
+        )
+        expect(english.data.products.map((p: any) => p.title)).toContain("Plain T-Shirt")
       })
 
       it("needs a region", async () => {
