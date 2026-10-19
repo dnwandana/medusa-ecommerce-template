@@ -7,8 +7,17 @@
 	reverse_proxy storefront:3000
 }
 
+# Search engines must not index the API or Medusa Admin at /app.
 api.{$DOMAIN} {
-	reverse_proxy medusa-server:9000
+	header X-Robots-Tag "noindex, nofollow"
+	handle /robots.txt {
+		respond "User-agent: *
+Disallow: /
+" 200
+	}
+	handle {
+		reverse_proxy medusa-server:9000
+	}
 }
 
 # The Garage bucket has the global alias assets.<domain>. Garage finds the bucket by the Host header.
