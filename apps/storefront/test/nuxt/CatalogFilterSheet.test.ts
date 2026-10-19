@@ -11,7 +11,10 @@ const { storefront } = await vi.hoisted(async () => {
     storefront: {
       settings: computed(() => ({
         ...STOREFRONT_DEFAULTS,
-        colours: [{ name: "Sage", hex: "#9aa68c" }],
+        colours: [
+          { name: "Sage", hex: "#9aa68c" },
+          { name: "White", hex: "#ffffff" },
+        ],
       })),
     },
   }
@@ -120,6 +123,19 @@ describe("CatalogFilterSheet", () => {
 
     expect(wrapper.emitted("update:state")![0]![0]).toEqual(EMPTY_CATALOG_STATE)
     expect(wrapper.emitted("update:open")![0]).toEqual([false])
+  })
+
+  it("finds the swatch colour by the key, so a translated label keeps its swatch", async () => {
+    await mountSheet({
+      values: { ...values, colours: [{ key: "white", label: "Putih", ids: ["ov_w"] }] },
+    })
+    const label = [...document.body.querySelectorAll("label")].find(
+      (element) => element.textContent?.trim() === "Putih"
+    )!
+
+    expect(label.querySelector("span[style]")?.getAttribute("style")).toContain(
+      "background-color: #ffffff"
+    )
   })
 
   it("has a labelled close button", async () => {

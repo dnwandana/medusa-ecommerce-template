@@ -61,8 +61,10 @@ function triggerLabel(label: string, selected: number): string {
   return selected > 0 ? `${label} (${selected})` : label
 }
 
-function hexOf(name: string): string | null {
-  return colourHex(name, NO_PRODUCT, settings.value.colours)
+// The key is the original colour name. The label can be a translation, but the store colour
+// names are the original names.
+function hexOf(key: string): string | null {
+  return colourHex(key, NO_PRODUCT, settings.value.colours)
 }
 
 function toggle(name: FilterName, key: string): void {
@@ -112,9 +114,9 @@ function keepOpen(event: Event): void {
                 @update:model-value="toggle(filter.name, value.key)"
               >
                 <span
-                  v-if="filter.name === 'colour' && hexOf(value.label)"
+                  v-if="filter.name === 'colour' && hexOf(value.key)"
                   class="size-3 shrink-0 rounded-full shadow-[inset_0_0_0_1px_rgb(31_27_23/0.2)]"
-                  :style="{ backgroundColor: hexOf(value.label)! }"
+                  :style="{ backgroundColor: hexOf(value.key)! }"
                   aria-hidden="true"
                 />
                 {{ value.label }}

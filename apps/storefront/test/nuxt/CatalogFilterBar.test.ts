@@ -11,7 +11,10 @@ const { storefront } = await vi.hoisted(async () => {
     storefront: {
       settings: computed(() => ({
         ...STOREFRONT_DEFAULTS,
-        colours: [{ name: "Sage", hex: "#9aa68c" }],
+        colours: [
+          { name: "Sage", hex: "#9aa68c" },
+          { name: "White", hex: "#ffffff" },
+        ],
       })),
     },
   }
@@ -119,6 +122,20 @@ describe("CatalogFilterBar", () => {
       "background-color"
     )
     expect(items[1]!.querySelector("span[style]")).toBeNull()
+  })
+
+  it("finds the swatch colour by the key, so a translated label keeps its swatch", async () => {
+    const wrapper = await mountBar({
+      values: { ...values, colours: [{ key: "white", label: "Putih", ids: ["ov_w"] }] },
+    })
+    await openMenu(wrapper, "Colour")
+    const item = [...document.body.querySelectorAll("[role='menuitemcheckbox']")].find(
+      (element) => element.textContent?.trim() === "Putih"
+    )!
+
+    expect(item.querySelector("span[style]")?.getAttribute("style")).toContain(
+      "background-color: #ffffff"
+    )
   })
 
   it("shows the number of selected values on the trigger", async () => {
