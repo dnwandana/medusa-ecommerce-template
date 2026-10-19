@@ -4,6 +4,7 @@ import {
   isPurchasable,
   optionValueStock,
   stockLimit,
+  variantFromQuery,
   variantPrice,
 } from "../../app/utils/variantSelection"
 
@@ -149,5 +150,28 @@ describe("stockLimit", () => {
     expect(stockLimit({ inventory_quantity: 3, allow_backorder: true } as never)).toBeNull()
     expect(stockLimit({ manage_inventory: false } as never)).toBeNull()
     expect(stockLimit(null)).toBeNull()
+  })
+})
+
+describe("variantFromQuery", () => {
+  const product = {
+    id: "prod_1",
+    variants: [variant("v1", { opt_size: "S" }), variant("v2", { opt_size: "M" })],
+  } as never
+  const single = { id: "prod_2", variants: [variant("s1", {})] } as never
+
+  it("returns the variant with the id", () => {
+    expect(variantFromQuery(product, "v2")?.id).toBe("v2")
+  })
+
+  // Review Focus: odd query values.
+  it("ignores an unknown id, an array, and a missing value", () => {
+    expect(variantFromQuery(product, "v_old")).toBeNull()
+    expect(variantFromQuery(product, ["v2", "v1"])).toBeNull()
+    expect(variantFromQuery(product, undefined)).toBeNull()
+  })
+
+  it("ignores the id on a product with one variant", () => {
+    expect(variantFromQuery(single, "s1")).toBeNull()
   })
 })

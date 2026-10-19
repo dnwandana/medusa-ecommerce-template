@@ -15,6 +15,19 @@ export function findVariant(
   return match ?? null
 }
 
+// Returns the variant with the id in a `?variant=` query value, or null. The value is untrusted,
+// so an array, an unknown id, or a product with one variant gives null.
+export function variantFromQuery(
+  product: HttpTypes.StoreProduct,
+  value: unknown
+): HttpTypes.StoreProductVariant | null {
+  const variants = product.variants ?? []
+  if (typeof value !== "string" || variants.length < 2) {
+    return null
+  }
+  return variants.find((variant) => variant.id === value) ?? null
+}
+
 // Returns true if the customer can buy the variant now.
 export function isPurchasable(variant: HttpTypes.StoreProductVariant): boolean {
   if (variant.manage_inventory === false || variant.allow_backorder === true) {

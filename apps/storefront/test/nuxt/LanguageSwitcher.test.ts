@@ -1,3 +1,4 @@
+import { flushPromises } from "@vue/test-utils"
 import { mockNuxtImport, mountSuspended } from "@nuxt/test-utils/runtime"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { LanguageSwitcher } from "#components"
@@ -17,8 +18,9 @@ const { i18n } = await vi.hoisted(async () => {
 // The real t() reads the locale files. The mock keeps control of the locale and setLocale.
 mockNuxtImport("useI18n", () => () => ({ ...i18n, t: useNuxtApp().$i18n.t }))
 
-afterEach(() => {
+afterEach(async () => {
   document.body.innerHTML = ""
+  await useNuxtApp().$i18n.setLocale("en")
 })
 
 beforeEach(() => {
@@ -73,6 +75,22 @@ describe("LanguageSwitcher", () => {
     radioItems()[1]!.click()
 
     expect(i18n.setLocale).toHaveBeenCalledWith("id")
+  })
+
+  it("keeps the query when the language changes", async () => {
+    // The real setLocale changes the route, so this test does not use the mock.
+    i18n.setLocale.mockImplementation((code: string) => useNuxtApp().$i18n.setLocale(code))
+    const wrapper = await mountSuspended(LanguageSwitcher, {
+      route: "/products/plain-t-shirt?variant=v2",
+    })
+    await open(wrapper)
+
+    radioItems()[1]!.click()
+    expect(i18n.setLocale).toHaveBeenCalledWith("id")
+    await i18n.setLocale.mock.results[0]!.value
+    await flushPromises()
+
+    expect(useRoute().fullPath).toBe("/id/products/plain-t-shirt?variant=v2")
   })
 
   it("shows the full-width outline form in the sheet", async () => {

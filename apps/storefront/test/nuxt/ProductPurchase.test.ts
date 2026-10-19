@@ -51,9 +51,9 @@ const product = {
   ],
 } as never
 
-const mountPurchase = () =>
+const mountPurchase = (props: { startVariantId?: string | null } = {}) =>
   mountSuspended(ProductPurchase, {
-    props: { product },
+    props: { product, ...props },
     global: { stubs: { WishlistButton: true, QuantityStepper: true } },
   })
 
@@ -211,6 +211,38 @@ describe("ProductPurchase", () => {
     wrapper.findComponent({ name: "QuantityStepper" }).vm.$emit("update:modelValue", 3)
     await flushPromises()
     expect(wrapper.find("[role='alert']").exists()).toBe(false)
+  })
+
+  it("starts with the variant of startVariantId", async () => {
+    const wrapper = await mountPurchase({ startVariantId: "variant_sage_l" })
+
+    expect(optionButton(wrapper, "Sage").attributes("aria-checked")).toBe("true")
+    expect(optionButton(wrapper, "L").attributes("aria-checked")).toBe("true")
+    expect(wrapper.text()).toContain("Rp 170.000")
+    await wrapper.find('[data-testid="add-to-cart"]').trigger("click")
+    await flushPromises()
+
+    expect(cart.add).toHaveBeenCalledWith("variant_sage_l", 1)
+  })
+
+  it("starts with the first variant when startVariantId is null", async () => {
+    const wrapper = await mountPurchase({ startVariantId: null })
+
+    expect(optionButton(wrapper, "Sand").attributes("aria-checked")).toBe("true")
+    expect(optionButton(wrapper, "S").attributes("aria-checked")).toBe("true")
+    expect(wrapper.text()).toContain("Rp 150.000")
+  })
+
+  it("emits variant-change after a selection that matches a variant, and not at the start", async () => {
+    const wrapper = await mountPurchase({})
+    expect(wrapper.emitted("variant-change")).toBeUndefined()
+
+    // Sage with the held size S matches no variant, so the click emits nothing.
+    await optionButton(wrapper, "Sage").trigger("click")
+    expect(wrapper.emitted("variant-change")).toBeUndefined()
+
+    await optionButton(wrapper, "L").trigger("click")
+    expect(wrapper.emitted("variant-change")).toEqual([["variant_sage_l"]])
   })
 
   it("shows the sale price and the old price", async () => {

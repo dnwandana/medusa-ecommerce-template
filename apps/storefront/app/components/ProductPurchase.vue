@@ -6,19 +6,26 @@ import { findColourOption, isSizeOption } from "~/utils/optionNames"
 import { isLimitedStock, priceView } from "~/utils/productBadges"
 import { optionValueStock, stockLimit } from "~/utils/variantSelection"
 
-const props = defineProps<{ product: HttpTypes.StoreProduct }>()
-const emit = defineEmits<{ "colour-change": [value: string] }>()
+const props = defineProps<{ product: HttpTypes.StoreProduct; startVariantId?: string | null }>()
+const emit = defineEmits<{
+  "colour-change": [value: string]
+  "variant-change": [variantId: string]
+}>()
 
 const cart = useCart()
 const { settings } = useStorefront()
 const { t } = useI18n()
 const localePath = useLocalePath()
 
-// The selected value for each option ID. The start value is the options of the first variant.
-// The setup fills it, not onMounted, so that the server render has the price.
+// The selected value for each option ID. The start value is the options of the variant with
+// startVariantId, else of the first variant. The setup fills it, not onMounted, so that the
+// server render has the price of that variant.
+const startVariant =
+  props.product.variants?.find((item) => item.id === props.startVariantId) ??
+  props.product.variants?.[0]
 const selected = ref<Record<string, string>>(
   Object.fromEntries(
-    (props.product.variants?.[0]?.options ?? [])
+    (startVariant?.options ?? [])
       .filter((item) => !!item.option_id)
       .map((item) => [item.option_id as string, item.value])
   )
@@ -57,6 +64,18 @@ watch(
     stockError.value = null
   },
   { flush: "sync" }
+)
+
+// The page owns the URL, so the component only reports a new variant. The watcher is not
+// immediate, so the start selection emits nothing. A selection that matches no variant emits
+// nothing.
+watch(
+  () => variant.value?.id,
+  (id) => {
+    if (id) {
+      emit("variant-change", id)
+    }
+  }
 )
 
 function select(optionId: string, value: string): void {
