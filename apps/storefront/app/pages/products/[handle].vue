@@ -1,12 +1,19 @@
 <script setup lang="ts">
-import type { ReviewPage } from "~/composables/useReviews"
+import type { HttpTypes } from "@medusajs/types"
 import { galleryImages } from "~/utils/galleryImages"
+import { findColourOption } from "~/utils/optionNames"
 import { productBadge } from "~/utils/productBadges"
+import { productJsonLd } from "~/utils/productStructuredData"
+import { absoluteUrl, productSeoDescription } from "~/utils/seoText"
+import { breadcrumbJsonLd } from "~/utils/structuredData"
+import { variantFromQuery } from "~/utils/variantSelection"
 
 const { locale, t } = useI18n()
 const route = useRoute()
+const router = useRouter()
 const catalog = useCatalog()
 const storefront = useStorefront()
+const localePath = useLocalePath()
 
 const handle = computed(() => String(route.params.handle))
 
@@ -23,15 +30,40 @@ if (!product.value) {
   throw createError({ statusCode: 404, data: { messageKey: "products.notFound" }, fatal: true })
 }
 
-useHead({ title: () => product.value?.title ?? "" })
-
-// The breadcrumbs name the first category of the product and its parent.
+// The breadcrumbs name the first category of the product and its parent. A product with no
+// category links to the product list. The template and the JSON-LD use the same trail.
 const category = computed(() => product.value?.categories?.[0] ?? null)
 const parentCategory = computed(() => category.value?.parent_category ?? null)
+const breadcrumbLinks = computed(() => {
+  if (!category.value) {
+    return [{ name: t("nav.products"), path: "/products" }]
+  }
+  const parent = parentCategory.value
+  return [
+    ...(parent ? [{ name: parent.name, path: `/categories/${parent.handle}` }] : []),
+    { name: category.value.name, path: `/categories/${category.value.handle}` },
+  ]
+})
 
-// ProductPurchase sets the colour. Until then, the gallery shows the colour of the first variant,
-// which ProductPurchase selects at the start.
-const colour = ref<string | null>(null)
+// A valid ?variant= sets the start selection, so the server render shows that variant. The page
+// reads the value once: later URL changes come from the selection itself.
+const startVariant = variantFromQuery(product.value, route.query.variant)
+const currentVariant = computed(() =>
+  product.value ? variantFromQuery(product.value, route.query.variant) : null
+)
+
+// Returns the colour value of the variant, or null when the product has no colour option.
+function colourOf(variant: HttpTypes.StoreProductVariant | null): string | null {
+  const option = product.value ? findColourOption(product.value) : null
+  if (!option) {
+    return null
+  }
+  return variant?.options?.find((item) => item.option_id === option.id)?.value ?? null
+}
+
+// ProductPurchase sets the colour. Until then, the gallery shows the colour of the start variant.
+// With no start variant, galleryImages uses the first variant, which ProductPurchase selects.
+const colour = ref<string | null>(colourOf(startVariant))
 const images = computed(() => (product.value ? galleryImages(product.value, colour.value) : []))
 const badgeLabel = computed(() => {
   const badge = product.value ? productBadge(product.value, storefront.settings.value) : null
@@ -47,9 +79,69 @@ function openViewer(index: number): void {
   viewerOpen.value = true
 }
 
-// ReviewList loads the first review page with this key, so the rating link sends no request.
-const reviewKey = computed(() => `reviews:${product.value?.id}`)
-const { data: reviewPage } = useNuxtData<ReviewPage>(reviewKey.value)
+// The page waits for the first review page, so the server HTML and the JSON-LD have the rating.
+// ReviewList uses the same result. A failed request stays in the error of the key: the page
+// renders with no rating.
+const { data: reviewPage } = await useFirstReviewPage(product.value.id)
+
+// The URL names the selected variant, so a shared link opens it. replace adds no history entry,
+// and the other query parameters stay. The product key has no query, so nothing loads again.
+// The new location has no hash. Known edge: when the page opened from a URL with #reviews, the
+// first variant change removes the hash, and the Nuxt scrollBehavior then scrolls to the top. To
+// keep the hash is not better, because then each variant change scrolls to the reviews.
+function onVariantChange(id: string): void {
+  router.replace({ query: { ...route.query, variant: id } })
+}
+
+// The rating link scrolls to the reviews with no change to the URL. A #reviews hash in the route
+// would make the next variant change scroll to the top (see onVariantChange). The href stays for
+// a browser with no JavaScript and for "open in a new tab".
+function scrollToReviews(event: MouseEvent): void {
+  const section = document.getElementById("reviews")
+  if (!section || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey) {
+    return
+  }
+  event.preventDefault()
+  // scrollIntoView uses the scroll-margin of the section, as the browser does for a hash link.
+  section.scrollIntoView({ block: "start" })
+  // A hash link also moves the keyboard focus point to the target. The section has tabindex -1,
+  // so the next Tab key goes on from the reviews.
+  section.focus({ preventScroll: true })
+}
+
+const { brand } = useAppConfig()
+const siteUrl = useSiteUrl()
+
+// The head names the variant of ?variant= only in the description and the image. The canonical
+// URL has no variant, so all variant links point to one page.
+usePageSeo(() => {
+  if (!product.value) {
+    return null
+  }
+  const canonicalUrl = absoluteUrl(localePath(`/products/${handle.value}`), siteUrl)
+  const image = galleryImages(product.value, colourOf(currentVariant.value))[0]
+  // The stars in the JSON-LD come from the same review page as the rating link.
+  const rating = reviewPage.value
+    ? { average: reviewPage.value.average_rating ?? 0, count: reviewPage.value.count }
+    : null
+  return {
+    title: product.value.title,
+    description: productSeoDescription({ product: product.value, variant: currentVariant.value }),
+    image: image ? { url: image.url, alt: product.value.title } : null,
+    type: "product",
+    jsonLd: [
+      productJsonLd({ product: product.value, canonicalUrl, siteUrl, brand: brand.name, rating }),
+      breadcrumbJsonLd([
+        { name: t("nav.home"), url: absoluteUrl(localePath("/"), siteUrl) },
+        ...breadcrumbLinks.value.map((link) => ({
+          name: link.name,
+          url: absoluteUrl(localePath(link.path), siteUrl),
+        })),
+        { name: product.value.title, url: null },
+      ]),
+    ],
+  }
+})
 
 const relatedSource = computed(() =>
   product.value
@@ -68,31 +160,14 @@ const relatedSource = computed(() =>
           </BreadcrumbLink>
         </BreadcrumbItem>
         <BreadcrumbSeparator />
-        <template v-if="category">
-          <template v-if="parentCategory">
-            <BreadcrumbItem>
-              <BreadcrumbLink as-child>
-                <NuxtLinkLocale :to="`/categories/${parentCategory.handle}`">{{
-                  parentCategory.name
-                }}</NuxtLinkLocale>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-          </template>
+        <template v-for="link in breadcrumbLinks" :key="link.path">
           <BreadcrumbItem>
             <BreadcrumbLink as-child>
-              <NuxtLinkLocale :to="`/categories/${category.handle}`">{{
-                category.name
-              }}</NuxtLinkLocale>
+              <NuxtLinkLocale :to="link.path">{{ link.name }}</NuxtLinkLocale>
             </BreadcrumbLink>
           </BreadcrumbItem>
+          <BreadcrumbSeparator />
         </template>
-        <BreadcrumbItem v-else>
-          <BreadcrumbLink as-child>
-            <NuxtLinkLocale to="/products">{{ $t("nav.products") }}</NuxtLinkLocale>
-          </BreadcrumbLink>
-        </BreadcrumbItem>
-        <BreadcrumbSeparator />
         <BreadcrumbItem>
           <BreadcrumbPage>{{ product.title }}</BreadcrumbPage>
         </BreadcrumbItem>
@@ -119,6 +194,7 @@ const relatedSource = computed(() =>
           v-if="reviewPage && reviewPage.count > 0"
           href="#reviews"
           class="-mt-4 self-start underline-offset-4 hover:underline md:-mt-5"
+          @click="scrollToReviews"
         >
           <StarRating
             :rating="reviewPage.average_rating ?? 0"
@@ -127,7 +203,12 @@ const relatedSource = computed(() =>
             size="sm"
           />
         </a>
-        <ProductPurchase :product="product" @colour-change="colour = $event">
+        <ProductPurchase
+          :product="product"
+          :start-variant-id="startVariant?.id ?? null"
+          @colour-change="colour = $event"
+          @variant-change="onVariantChange"
+        >
           <p
             v-if="product.description"
             class="max-w-[560px] text-body whitespace-pre-line text-muted-foreground"
