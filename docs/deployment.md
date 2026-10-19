@@ -334,6 +334,45 @@ store contact. Replace them before you sell.
 
 To add a payment gateway, read `docs/payments/`.
 
+## SEO
+
+The storefront makes the head tags, the JSON-LD, `/sitemap.xml`, and `/robots.txt`. It makes the
+absolute URLs from `NUXT_PUBLIC_SITE_URL`. `docker-compose.yml` sets this key to
+`https://<domain>` from `DOMAIN`, so `.env` needs no new key.
+
+- The storefront keeps `/sitemap.xml` in a cache for 1 hour. Thus a new product can be missing
+  from the sitemap for at most 1 hour.
+- If the backend fails, `/sitemap.xml` returns the status 503.
+- The API host `api.<domain>` sends `X-Robots-Tag: noindex, nofollow`. Its `robots.txt` blocks all
+  paths. Thus search engines do not index the API or the dashboard.
+
+Do these steps one time, for the launch of the store.
+
+1. Replace `apps/storefront/public/og-default.jpg` (1200×630) and `logo.png` before the launch.
+   - `og-default.jpg` is the default share image. Keep the size of 1200×630.
+   - The template image has the English tagline "Made for every day". The same image serves the
+     two locales.
+   - `logo.png` is the logo in the JSON-LD of the home page. Use a square image of 112×112 px or
+     more.
+   - The images are part of the storefront image. Build the storefront image again after a
+     change.
+2. Add the site to Google Search Console.
+3. Send `https://<domain>/sitemap.xml` in Search Console.
+4. Set the shipping policy and the return policy in Search Console or Merchant Center. The
+   template gives only a link to the Returns page.
+5. Optional: add a `www` redirect. First add a DNS record for `www.<domain>`. Then add this site
+   block to the `Caddyfile`.
+
+   ```caddy
+   www.{$DOMAIN} {
+   	redir https://{$DOMAIN}{uri} permanent
+   }
+   ```
+
+   Make the `caddy` container again, as in step 6 of [Deploy a new version](#deploy-a-new-version).
+
+6. Upload product photos at about 1200 px wide. WhatsApp can skip a large preview image.
+
 ## Brevo click tracking
 
 Turn off click tracking in Brevo before you sell. When click tracking is on, Brevo changes the
