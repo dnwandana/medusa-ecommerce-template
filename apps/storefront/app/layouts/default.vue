@@ -1,9 +1,8 @@
 <script setup lang="ts">
-const { locale } = useI18n()
 const { load } = useCart()
 const { refresh } = useCustomer()
 
-useHead({ htmlAttrs: { lang: locale } })
+useLayoutHead()
 
 // The cart and the login state come from cookies of the browser. Load them after the mount.
 onMounted(() => {

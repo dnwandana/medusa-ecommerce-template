@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { computed, defineComponent, h, nextTick } from "vue"
 import CartPage from "~/pages/cart.vue"
 import { STOREFRONT_DEFAULTS } from "~/types/storefront"
+import { readHead } from "./helpers/head"
 
 const { useCartMock, catalog, wishlistMove, customer } = await vi.hoisted(async () => {
   const { ref } = await import("vue")
@@ -302,5 +303,12 @@ describe("cart page", () => {
     expect(wrapper.text()).toContain("Pieces you add will wait here.")
     expect(wrapper.text()).not.toContain("wishlist")
     expect(catalog.listVariantStock).not.toHaveBeenCalled()
+  })
+
+  it("tells search engines not to index the page", async () => {
+    await mountPage()
+    const head = await readHead()
+    expect(head.meta("robots")).toBe("noindex")
+    expect(head.links("canonical")).toEqual([])
   })
 })

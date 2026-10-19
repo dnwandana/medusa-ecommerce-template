@@ -91,6 +91,8 @@ onMounted(async () => {
   ready.value = true
 })
 
+// The route rules also send X-Robots-Tag: noindex. The meta tag keeps the rule in the HTML.
+useSeoMeta({ robots: "noindex" })
 useHead({ title: () => t("cart.title") })
 </script>
 

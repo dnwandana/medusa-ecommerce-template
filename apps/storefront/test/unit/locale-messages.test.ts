@@ -380,6 +380,17 @@ describe("locale messages", () => {
     expect(indonesian[key]).toBeUndefined()
   })
 
+  it("has the SEO description texts in both locales", () => {
+    expect(en.seo).toEqual({
+      categoryDescription: "Shop {category} at {store}.",
+      productsDescription: "Shop all products at {store}.",
+    })
+    expect(id.seo).toEqual({
+      categoryDescription: "Belanja {category} di {store}.",
+      productsDescription: "Belanja semua produk di {store}.",
+    })
+  })
+
   it("has each key that a source file reads", () => {
     const read = listFiles(join(root, "app"), [".vue", ".ts"]).flatMap((file) =>
       [...readFileSync(file, "utf8").matchAll(/\bt\(\s*["']([a-zA-Z0-9_.]+)["']/g)].map(

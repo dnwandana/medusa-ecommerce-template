@@ -386,6 +386,7 @@
     },
     "welcome": {
       "title": "Selamat datang di {store}",
+      "tabTitle": "Selamat datang",
       "intro": "Akun Anda sudah siap. Siapa nama Anda?",
       "fullName": "Nama lengkap",
       "continue": "Lanjutkan",
@@ -675,5 +676,9 @@
     "next": "Foto berikutnya",
     "hintPointer": "Klik foto untuk memperbesar. Gunakan tombol panah untuk mengganti foto. Esc menutup penampil.",
     "hintTouch": "Ketuk untuk memperbesar. Cubit untuk memperbesar lagi. Geser untuk mengganti foto."
+  },
+  "seo": {
+    "categoryDescription": "Belanja {category} di {store}.",
+    "productsDescription": "Belanja semua produk di {store}."
   }
 }

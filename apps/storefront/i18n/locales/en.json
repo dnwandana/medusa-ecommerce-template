@@ -386,6 +386,7 @@
     },
     "welcome": {
       "title": "Welcome to {store}",
+      "tabTitle": "Welcome",
       "intro": "Your account is ready. What should we call you?",
       "fullName": "Full name",
       "continue": "Continue",
@@ -675,5 +676,9 @@
     "next": "Next photo",
     "hintPointer": "Click the photo to zoom. Use the arrow keys to change the photo. Esc closes.",
     "hintTouch": "Tap to zoom. Pinch to zoom more. Swipe to change the photo."
+  },
+  "seo": {
+    "categoryDescription": "Shop {category} at {store}.",
+    "productsDescription": "Shop all products at {store}."
   }
 }

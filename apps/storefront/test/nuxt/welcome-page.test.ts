@@ -2,6 +2,7 @@ import { mockNuxtImport, mountSuspended } from "@nuxt/test-utils/runtime"
 import { flushPromises } from "@vue/test-utils"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import WelcomePage from "~/pages/account/welcome.vue"
+import { readHead } from "./helpers/head"
 
 const { customer, navigateToMock, localePathMock } = await vi.hoisted(async () => {
   const { ref } = await import("vue")
@@ -36,6 +37,11 @@ describe("welcome page", () => {
     expect(wrapper.text()).toContain("Your account is ready. What should we call you?")
     const input = wrapper.get('input[name="full_name"]')
     expect(input.attributes("autocomplete")).toBe("name")
+  })
+
+  it("gives the tab a title with no store name, because the layout adds the store name", async () => {
+    await mountSuspended(WelcomePage, { route: "/account/welcome" })
+    expect((await readHead()).title).toBe("Welcome")
   })
 
   it("asks for a name before Continue", async () => {

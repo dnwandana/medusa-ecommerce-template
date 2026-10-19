@@ -50,7 +50,8 @@ onMounted(() => {
   }
 })
 
-useHead({ title: () => t("auth.welcome.title", { store: brand.name }) })
+// The layout adds the store name to the tab title, so this title has no store name.
+useHead({ title: () => t("auth.welcome.tabTitle") })
 useSeoMeta({ robots: "noindex" })
 </script>
 

@@ -1,14 +1,16 @@
 <script setup lang="ts">
 import { ArrowLeft, Lock } from "@lucide/vue"
 
-const { locale } = useI18n()
 const { brand } = useAppConfig()
 const { load } = useCart()
 const { refresh } = useCustomer()
 
 const year = new Date().getFullYear()
 
-useHead({ htmlAttrs: { lang: locale } })
+useLayoutHead()
+// Only /checkout and /checkout/return use this layout, and no checkout page may be indexed.
+// The route rules also send X-Robots-Tag: noindex. The meta tag keeps the rule in the HTML.
+useSeoMeta({ robots: "noindex" })
 
 // The cart and the login state come from cookies of the browser. Load them after the mount.
 // The return page of a payment gateway also gets the cart id from this load.

@@ -1,8 +1,9 @@
 import { mockNuxtImport, mountSuspended } from "@nuxt/test-utils/runtime"
 import { flushPromises } from "@vue/test-utils"
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 import { AppFooter, AppHeader, Sonner } from "#components"
 import DefaultLayout from "~/layouts/default.vue"
+import { readHead } from "./helpers/head"
 
 const { cartState, customerState, catalog } = await vi.hoisted(async () => {
   const { ref } = await import("vue")
@@ -17,18 +18,18 @@ mockNuxtImport("useCart", () => () => cartState)
 mockNuxtImport("useCustomer", () => () => customerState)
 mockNuxtImport("useCatalog", () => () => catalog)
 
-afterEach(() => {
-  document.body.innerHTML = ""
-})
-
 beforeEach(() => {
   cartState.load.mockReset().mockResolvedValue(undefined)
   customerState.refresh.mockReset().mockResolvedValue(undefined)
   catalog.listCategories.mockReset().mockResolvedValue([])
 })
 
-const mountLayout = () =>
-  mountSuspended(DefaultLayout, { attachTo: document.body, slots: { default: () => "Page body" } })
+const mountLayout = (options: { slots?: Record<string, () => unknown> } = {}) =>
+  mountSuspended(DefaultLayout, {
+    attachTo: document.body,
+    slots: { default: () => "Page body" },
+    ...options,
+  })
 
 describe("default layout", () => {
   it("renders the header, the page in main, the footer, and the toaster", async () => {
@@ -70,5 +71,25 @@ describe("default layout", () => {
     await flushPromises()
 
     expect(wrapper.find("main").text()).toBe("Page body")
+  })
+
+  it("sets lang to the language tag of the locale", async () => {
+    await mountLayout()
+    expect((await readHead()).htmlAttrs.lang).toBe("en-US")
+    await useNuxtApp().$i18n.setLocale("id")
+    expect((await readHead()).htmlAttrs.lang).toBe("id-ID")
+    await useNuxtApp().$i18n.setLocale("en")
+  })
+
+  it("adds the store name to a page title", async () => {
+    // A slot component stands in for a page.
+    const Page = defineComponent({
+      setup: () => {
+        useHead({ title: "Your cart" })
+        return () => h("div")
+      },
+    })
+    await mountLayout({ slots: { default: () => h(Page) } })
+    expect((await readHead()).title).toBe("Your cart | Everyday")
   })
 })

@@ -13,6 +13,7 @@ import { clearNuxtData } from "#imports"
 import OrderPage from "~/pages/orders/[id].vue"
 import type { OrderTracking } from "~/composables/useOrders"
 import type { CustomerStatus, OrderPaymentState } from "~/utils/orderStatus"
+import { readHead } from "./helpers/head"
 
 const { orders, bankTransfer, receipts, toast, status } = vi.hoisted(() => ({
   orders: { getOrder: vi.fn(), listOrders: vi.fn(), getTracking: vi.fn() },
@@ -378,5 +379,12 @@ describe("order page", () => {
     expect(error.statusCode).toBe(404)
     expect(error.data).toEqual({ messageKey: "order.notFound" })
     expect(error.statusMessage ?? "").not.toContain("not")
+  })
+
+  it("tells search engines not to index the page", async () => {
+    await mountPage()
+    const head = await readHead()
+    expect(head.meta("robots")).toBe("noindex")
+    expect(head.links("canonical")).toEqual([])
   })
 })
