@@ -1,5 +1,6 @@
 <script setup lang="ts">
 const { t } = useI18n()
+const { brand } = useAppConfig()
 // The header loads the same categories, so the page makes no category request of its own.
 const { categories } = useNavCategories()
 
@@ -8,7 +9,12 @@ const links = computed(() => topCategoryLinks(categories.value, t("listing.all")
 const scope = {}
 const emptyAction = computed(() => ({ label: t("listing.backHome"), to: "/" }))
 
-useHead({ title: () => t("products.title") })
+// The page ignores the first-thumbnail event of the listing. A list of all products has no one
+// photo that stands for it, so the page keeps the default share image.
+usePageSeo(() => ({
+  title: t("products.title"),
+  description: t("seo.productsDescription", { store: brand.name }),
+}))
 </script>
 
 <template>

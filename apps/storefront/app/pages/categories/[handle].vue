@@ -1,7 +1,13 @@
 <script setup lang="ts">
+import { absoluteUrl } from "~/utils/seoText"
+import { breadcrumbJsonLd } from "~/utils/structuredData"
+
 const { t, locale } = useI18n()
 const route = useRoute()
+const localePath = useLocalePath()
 const catalog = useCatalog()
+const { brand } = useAppConfig()
+const siteUrl = useSiteUrl()
 
 const handle = computed(() => String(route.params.handle))
 
@@ -26,7 +32,37 @@ const scope = computed(() => ({
 }))
 const emptyAction = computed(() => ({ label: t("home.viewAll"), to: "/products" }))
 
-useHead({ title: () => category.value?.name ?? "" })
+// The listing gives the photo of its first product. With no product, the page uses the default
+// share image.
+const firstThumbnail = ref<string | null>(null)
+
+usePageSeo(() => {
+  const current = category.value
+  if (!current) {
+    return null
+  }
+  // The JSON-LD trail is the same as the visible breadcrumbs.
+  const trail = [
+    { name: t("nav.home"), url: absoluteUrl(localePath("/"), siteUrl) },
+    ...(parent.value
+      ? [
+          {
+            name: parent.value.name,
+            url: absoluteUrl(localePath(`/categories/${parent.value.handle}`), siteUrl),
+          },
+        ]
+      : []),
+    { name: current.name, url: null },
+  ]
+  return {
+    title: current.name,
+    description:
+      current.description ||
+      t("seo.categoryDescription", { category: current.name, store: brand.name }),
+    image: firstThumbnail.value ? { url: firstThumbnail.value, alt: current.name } : null,
+    jsonLd: [breadcrumbJsonLd(trail)],
+  }
+})
 </script>
 
 <template>
@@ -73,6 +109,7 @@ useHead({ title: () => category.value?.name ?? "" })
       :empty-body="$t('listing.categoryEmptyBody')"
       :empty-action="emptyAction"
       :categories="links"
+      @first-thumbnail="firstThumbnail = $event"
     />
   </div>
 </template>

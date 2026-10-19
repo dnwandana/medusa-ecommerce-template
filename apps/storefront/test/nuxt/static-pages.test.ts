@@ -7,6 +7,7 @@ import ReturnsPage from "~/pages/returns.vue"
 import TermsPage from "~/pages/terms.vue"
 import enSource from "~~/i18n/locales/en.json?raw"
 import idSource from "~~/i18n/locales/id.json?raw"
+import { readHead } from "./helpers/head"
 
 // The i18n plugin compiles a plain JSON import into message functions. The raw text keeps the strings.
 type Messages = {
@@ -54,5 +55,41 @@ describe("static pages", () => {
     expect(wrapper.findAll("h2").map((h) => h.text())).toEqual(
       id.pages.delivery!.sections.map((s) => s.heading)
     )
+  })
+
+  it.each(["delivery", "returns", "about", "privacy", "terms"] as const)(
+    "writes the head of the %s page from the locale file",
+    async (name) => {
+      const pages = {
+        delivery: DeliveryPage,
+        returns: ReturnsPage,
+        about: AboutPage,
+        privacy: PrivacyPage,
+        terms: TermsPage,
+      }
+      await mountSuspended(pages[name], { route: `/${name}` })
+      const head = await readHead()
+
+      expect(head.title).toBe(`${en.pages[name]!.title} | Everyday`)
+      expect(head.meta("description")).toBe(en.pages[name]!.intro)
+      expect(head.links("canonical")).toEqual([{ href: `http://localhost:3000/${name}` }])
+      expect(head.meta("og:image")).toBe("http://localhost:3000/og-default.jpg")
+    }
+  )
+
+  it("writes the Bahasa Indonesia head in the id locale", async () => {
+    await mountSuspended(DeliveryPage, { route: "/id/delivery" })
+    const head = await readHead()
+
+    expect(head.title).toBe(`${id.pages.delivery!.title} | Everyday`)
+    expect(head.meta("description")).toBe(id.pages.delivery!.intro)
+    expect(head.links("canonical")).toEqual([{ href: "http://localhost:3000/id/delivery" }])
+  })
+
+  it("changes the head when the locale changes", async () => {
+    await mountSuspended(DeliveryPage, { route: "/delivery" })
+    await useNuxtApp().$i18n.setLocale("id")
+
+    expect((await readHead()).meta("description")).toBe(id.pages.delivery!.intro)
   })
 })

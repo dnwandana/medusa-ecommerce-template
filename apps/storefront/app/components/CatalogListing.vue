@@ -23,6 +23,10 @@ const props = defineProps<{
   categories?: { id: string; name: string; to: string; current: boolean }[]
 }>()
 
+const emit = defineEmits<{
+  "first-thumbnail": [url: string | null]
+}>()
+
 const slots = defineSlots<{
   top?(props: { count: number }): unknown
   empty?(): unknown
@@ -121,6 +125,14 @@ watch(
     loadedPages.value = data?.pages ?? 0
     loadMoreError.value = false
   },
+  { immediate: true }
+)
+
+// The category page uses the photo for its link preview. The event fires in setup too, so the
+// server HTML has the photo.
+watch(
+  () => products.value[0]?.thumbnail ?? null,
+  (url) => emit("first-thumbnail", url),
   { immediate: true }
 )
 

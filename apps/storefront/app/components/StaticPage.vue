@@ -20,7 +20,11 @@ const sections = computed<Section[]>(() =>
   )
 )
 
-useHead({ title: () => t(`pages.${props.name}.title`) })
+// A getter, so the head changes with the locale.
+usePageSeo(() => ({
+  title: t(`pages.${props.name}.title`),
+  description: t(`pages.${props.name}.intro`),
+}))
 </script>
 
 <template>

@@ -1,29 +1,35 @@
 import { mockNuxtImport, mountSuspended } from "@nuxt/test-utils/runtime"
 import { flushPromises } from "@vue/test-utils"
-import { beforeEach, describe, expect, it, vi } from "vitest"
-import { clearNuxtData } from "#imports"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { clearNuxtData, useNuxtApp } from "#imports"
 import HomePage from "~/pages/index.vue"
 import type { HomeCategory } from "~/composables/useHomeCategories"
+import { readHead } from "./helpers/head"
 
-const { catalog, storefront, customerState, homeCategories } = await vi.hoisted(async () => {
-  const { computed, ref } = await import("vue")
-  const { STOREFRONT_DEFAULTS } = await import("~/types/storefront")
-  return {
-    catalog: { listProducts: vi.fn() },
-    storefront: {
-      getHomeCampaign: vi.fn(),
-      ensureSettings: () => Promise.resolve(STOREFRONT_DEFAULTS),
-      settings: computed(() => STOREFRONT_DEFAULTS),
-    },
-    customerState: { customer: ref(null), ensureLoaded: () => Promise.resolve() },
-    homeCategories: ref<HomeCategory[]>([]),
+const { catalog, storefront, customerState, homeCategories, bankTransfer } = await vi.hoisted(
+  async () => {
+    const { computed, ref } = await import("vue")
+    const { STOREFRONT_DEFAULTS } = await import("~/types/storefront")
+    return {
+      catalog: { listProducts: vi.fn() },
+      storefront: {
+        getHomeCampaign: vi.fn(),
+        ensureSettings: () => Promise.resolve(STOREFRONT_DEFAULTS),
+        settings: computed(() => STOREFRONT_DEFAULTS),
+      },
+      customerState: { customer: ref(null), ensureLoaded: () => Promise.resolve() },
+      homeCategories: ref<HomeCategory[]>([]),
+      bankTransfer: { getDetails: vi.fn() },
+    }
   }
-})
+)
 
 mockNuxtImport("useCatalog", () => () => catalog)
 mockNuxtImport("useStorefront", () => () => storefront)
 // The hearts of the cards load the customer. A guest makes no wishlist request.
 mockNuxtImport("useCustomer", () => () => customerState)
+// The home page reads the store email for the OnlineStore node.
+mockNuxtImport("useBankTransfer", () => () => bankTransfer)
 mockNuxtImport("useHomeCategories", () => () => ({
   categories: computed(() => homeCategories.value),
   pending: ref(false),
@@ -53,6 +59,14 @@ beforeEach(() => {
   homeCategories.value = []
   storefront.getHomeCampaign.mockReset().mockResolvedValue(null)
   catalog.listProducts.mockReset().mockResolvedValue({ products: [PRODUCT], count: 1 })
+  bankTransfer.getDetails.mockReset().mockResolvedValue({
+    bank_accounts: [],
+    contact: { email: "hello@shop.example", whatsapp: "+62 812" },
+  })
+})
+
+afterEach(async () => {
+  await useNuxtApp().$i18n.setLocale("en")
 })
 
 describe("home page", () => {
@@ -129,5 +143,52 @@ describe("home page", () => {
       "Complimentary returns",
       "Fit advice",
     ])
+  })
+
+  it("writes the home head with the store name first", async () => {
+    await mountSuspended(HomePage, { route: "/" })
+    const head = await readHead()
+
+    expect(head.title).toBe("Everyday – Clothes for the days you actually have.")
+    expect(head.meta("description")).toBe(
+      "Made for most days. Relaxed shirts, wide-leg chinos and the pieces you reach for without thinking."
+    )
+    expect(head.meta("og:image")).toBe("http://localhost:3000/og-default.jpg")
+    expect(head.links("canonical")).toEqual([{ href: "http://localhost:3000/" }])
+  })
+
+  it("writes the OnlineStore and the WebSite", async () => {
+    await mountSuspended(HomePage, { route: "/" })
+    const [store, site] = (await readHead()).jsonLd()
+
+    expect(store).toMatchObject({
+      "@type": "OnlineStore",
+      name: "Everyday",
+      url: "http://localhost:3000",
+      logo: "http://localhost:3000/logo.png",
+      email: "hello@shop.example",
+      hasMerchantReturnPolicy: { merchantReturnLink: "http://localhost:3000/returns" },
+    })
+    expect(store).not.toHaveProperty("telephone")
+    expect(site).toMatchObject({ "@type": "WebSite", inLanguage: "en-US" })
+  })
+
+  it("writes the Indonesian return link and language on /id", async () => {
+    await mountSuspended(HomePage, { route: "/id" })
+    const [store, site] = (await readHead()).jsonLd()
+
+    expect(store).toMatchObject({
+      hasMerchantReturnPolicy: { merchantReturnLink: "http://localhost:3000/id/returns" },
+    })
+    expect(site).toMatchObject({ "@type": "WebSite", inLanguage: "id-ID" })
+  })
+
+  it("writes the OnlineStore with no email when the contact request fails", async () => {
+    bankTransfer.getDetails.mockRejectedValue(new Error("down"))
+    const wrapper = await mountSuspended(HomePage, { route: "/" })
+
+    expect((await readHead()).jsonLd()[0]).not.toHaveProperty("email")
+    // The page still shows its content.
+    expect(wrapper.find("h1").exists()).toBe(true)
   })
 })

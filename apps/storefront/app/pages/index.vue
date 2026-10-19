@@ -1,27 +1,59 @@
 <script setup lang="ts">
-const { t, locale } = useI18n()
+import { absoluteUrl } from "~/utils/seoText"
+import { onlineStoreJsonLd, websiteJsonLd } from "~/utils/structuredData"
+
+const { t, locale, localeProperties } = useI18n()
+const localePath = useLocalePath()
 const catalog = useCatalog()
 const storefront = useStorefront()
+const { getDetails } = useBankTransfer()
+const { brand } = useAppConfig()
+const siteUrl = useSiteUrl()
 // The footer loads the same categories, so the tiles make no request of their own.
 const { categories } = useHomeCategories()
 
 // Each request catches its own failure. A failed campaign shows the text hero, and failed
 // products show the error state of the grid, while the other part still shows.
-const { data, status, refresh } = await useAsyncData(
-  () => `home:${locale.value}`,
-  async () => {
-    const [campaign, newIn] = await Promise.all([
-      storefront.getHomeCampaign().catch(() => null),
-      catalog.listProducts({ limit: 4 }).catch(() => null),
-    ])
-    return { campaign, products: newIn?.products ?? null }
-  }
-)
+const [{ data, status, refresh }, { data: contact }] = await Promise.all([
+  useAsyncData(
+    () => `home:${locale.value}`,
+    async () => {
+      const [campaign, newIn] = await Promise.all([
+        storefront.getHomeCampaign().catch(() => null),
+        catalog.listProducts({ limit: 4 }).catch(() => null),
+      ])
+      return { campaign, products: newIn?.products ?? null }
+    }
+  ),
+  // The OnlineStore node shows the store email. The contact page uses the same key and handler,
+  // so the two pages share one request. A failed request leaves data empty, and the node then has
+  // no email.
+  useAsyncData("store-contact", () => getDetails()),
+])
 
 const loading = computed(() => status.value === "pending")
 const productsFailed = computed(() => !loading.value && !data.value?.products)
 
-useHead({ title: () => t("home.title") })
+usePageSeo(() => ({
+  home: true,
+  title: t("home.title"),
+  description: t("home.subtitle"),
+  jsonLd: [
+    onlineStoreJsonLd({
+      name: brand.name,
+      siteUrl,
+      returnsUrl: absoluteUrl(localePath("/returns"), siteUrl),
+      email: contact.value?.contact.email ?? null,
+    }),
+    // The i18n config sets the language tag ("en-US") of each locale. The locale code is only a
+    // fallback.
+    websiteJsonLd({
+      name: brand.name,
+      siteUrl,
+      language: localeProperties.value.language ?? locale.value,
+    }),
+  ],
+}))
 </script>
 
 <template>

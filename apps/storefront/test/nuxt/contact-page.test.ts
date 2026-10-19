@@ -1,6 +1,14 @@
 import { mockNuxtImport, mountSuspended } from "@nuxt/test-utils/runtime"
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import ContactPage from "~/pages/contact.vue"
+import enSource from "~~/i18n/locales/en.json?raw"
+import idSource from "~~/i18n/locales/id.json?raw"
+import { readHead } from "./helpers/head"
+
+// The i18n plugin compiles a plain JSON import into message functions. The raw text keeps the strings.
+type Messages = { pages: { contact: { title: string; intro: string } } }
+const en = JSON.parse(enSource) as Messages
+const id = JSON.parse(idSource) as Messages
 
 const { getDetails } = vi.hoisted(() => ({ getDetails: vi.fn() }))
 mockNuxtImport("useBankTransfer", () => () => ({ getDetails }))
@@ -8,6 +16,10 @@ mockNuxtImport("useBankTransfer", () => () => ({ getDetails }))
 beforeEach(() => {
   clearNuxtData()
   getDetails.mockReset()
+})
+
+afterEach(async () => {
+  await useNuxtApp().$i18n.setLocale("en")
 })
 
 describe("contact page", () => {
@@ -47,5 +59,25 @@ describe("contact page", () => {
     getDetails.mockRejectedValue(new Error("down"))
     const wrapper = await mountSuspended(ContactPage, { route: "/contact" })
     expect(wrapper.text()).toContain("The contact details did not load. Try again later.")
+  })
+
+  it("writes the contact head from the locale file", async () => {
+    getDetails.mockResolvedValue({ bank_accounts: [], contact: { email: null, whatsapp: null } })
+    await mountSuspended(ContactPage, { route: "/contact" })
+    const head = await readHead()
+
+    expect(head.title).toBe(`${en.pages.contact.title} | Everyday`)
+    expect(head.meta("description")).toBe(en.pages.contact.intro)
+    expect(head.links("canonical")).toEqual([{ href: "http://localhost:3000/contact" }])
+    expect(head.meta("og:image")).toBe("http://localhost:3000/og-default.jpg")
+  })
+
+  it("writes the Bahasa Indonesia contact head in the id locale", async () => {
+    getDetails.mockResolvedValue({ bank_accounts: [], contact: { email: null, whatsapp: null } })
+    await mountSuspended(ContactPage, { route: "/id/contact" })
+    const head = await readHead()
+
+    expect(head.title).toBe(`${id.pages.contact.title} | Everyday`)
+    expect(head.meta("description")).toBe(id.pages.contact.intro)
   })
 })

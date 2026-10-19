@@ -172,6 +172,32 @@ describe("CatalogListing", () => {
     expect(wrapper.text()).toContain("Clear all filters")
   })
 
+  it("emits the thumbnail of the first product", async () => {
+    listing.listPage.mockResolvedValue({
+      products: [
+        { id: "p_1", title: "P 1", handle: "p-1", thumbnail: "/first.jpg", variants: [] },
+        { id: "p_2", title: "P 2", handle: "p-2", thumbnail: "/second.jpg", variants: [] },
+      ],
+      count: 2,
+    })
+    const wrapper = await mountSuspended(CatalogListing, {
+      props: { scope: {}, emptyText: "No products." },
+      route: "/products",
+    })
+
+    expect(wrapper.emitted("first-thumbnail")?.at(-1)).toEqual(["/first.jpg"])
+  })
+
+  it("emits null when the list has no product", async () => {
+    listing.listPage.mockResolvedValue({ products: [], count: 0 })
+    const wrapper = await mountSuspended(CatalogListing, {
+      props: { scope: {}, emptyText: "No products." },
+      route: "/products",
+    })
+
+    expect(wrapper.emitted("first-thumbnail")?.at(-1)).toEqual([null])
+  })
+
   it("shows the empty slot only with no active filter", async () => {
     listing.listPage.mockResolvedValue({ products: [], count: 0 })
     const wrapper = await mountSuspended(Host, { route: "/products" })

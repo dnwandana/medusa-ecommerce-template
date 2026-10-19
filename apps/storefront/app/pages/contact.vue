@@ -34,7 +34,8 @@ const rows = computed(() => {
   return list
 })
 
-useHead({ title: () => t("pages.contact.title") })
+// A getter, so the head changes with the locale.
+usePageSeo(() => ({ title: t("pages.contact.title"), description: t("pages.contact.intro") }))
 </script>
 
 <template>

@@ -1,9 +1,10 @@
 import { mockNuxtImport, mountSuspended } from "@nuxt/test-utils/runtime"
-import { beforeEach, describe, expect, it, vi } from "vitest"
-import { defineComponent, h } from "vue"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { defineComponent, h, nextTick } from "vue"
 import type { NuxtError } from "#app"
-import { clearNuxtData } from "#imports"
+import { clearNuxtData, useNuxtApp } from "#imports"
 import CategoryPage from "~/pages/categories/[handle].vue"
+import { readHead } from "./helpers/head"
 
 const { catalog } = vi.hoisted(() => ({
   catalog: { getCategoryByHandle: vi.fn() },
@@ -21,6 +22,7 @@ const CatalogListingStub = defineComponent({
     emptyAction: { type: Object, default: undefined },
     categories: { type: Array, default: undefined },
   },
+  emits: ["first-thumbnail"],
   setup: () => () => h("div"),
 })
 
@@ -33,6 +35,8 @@ const SHIRTS = {
   category_children: [],
 }
 
+const WOMEN = { id: "pcat_w", name: "Women", handle: "women" }
+
 const mountPage = (route: string) =>
   mountSuspended(CategoryPage, {
     route,
@@ -42,6 +46,10 @@ const mountPage = (route: string) =>
 beforeEach(() => {
   clearNuxtData()
   catalog.getCategoryByHandle.mockReset().mockResolvedValue(SHIRTS)
+})
+
+afterEach(async () => {
+  await useNuxtApp().$i18n.setLocale("en")
 })
 
 describe("category page", () => {
@@ -143,5 +151,75 @@ describe("category page", () => {
     expect(error.statusCode).toBe(404)
     expect(error.data).toEqual({ messageKey: "categories.notFound" })
     expect(error.statusMessage ?? "").not.toContain("not")
+  })
+
+  it("writes the category head and the breadcrumbs", async () => {
+    catalog.getCategoryByHandle.mockResolvedValue({ ...SHIRTS, parent_category: WOMEN })
+    await mountPage("/categories/shirts")
+    const head = await readHead()
+
+    expect(head.title).toBe("Shirts | Everyday")
+    expect(head.meta("description")).toBe("Relaxed shirts for most days.")
+    expect(head.meta("og:image")).toBe("http://localhost:3000/og-default.jpg")
+    expect(head.links("canonical")).toEqual([{ href: "http://localhost:3000/categories/shirts" }])
+    expect(head.jsonLd()).toEqual([
+      expect.objectContaining({
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Home", item: "http://localhost:3000/" },
+          {
+            "@type": "ListItem",
+            position: 2,
+            name: "Women",
+            item: "http://localhost:3000/categories/women",
+          },
+          { "@type": "ListItem", position: 3, name: "Shirts" },
+        ],
+      }),
+    ])
+  })
+
+  it("writes Home / category in the breadcrumbs with no parent", async () => {
+    await mountPage("/categories/shirts")
+
+    expect((await readHead()).jsonLd()[0]?.itemListElement).toEqual([
+      { "@type": "ListItem", position: 1, name: "Home", item: "http://localhost:3000/" },
+      { "@type": "ListItem", position: 2, name: "Shirts" },
+    ])
+  })
+
+  it("writes the breadcrumb URLs in the page locale", async () => {
+    catalog.getCategoryByHandle.mockResolvedValue({ ...SHIRTS, parent_category: WOMEN })
+    await mountPage("/id/categories/shirts")
+    const head = await readHead()
+
+    expect(head.links("canonical")).toEqual([
+      { href: "http://localhost:3000/id/categories/shirts" },
+    ])
+    expect(head.jsonLd()[0]?.itemListElement).toEqual([
+      expect.objectContaining({ position: 1, item: "http://localhost:3000/id" }),
+      expect.objectContaining({ position: 2, item: "http://localhost:3000/id/categories/women" }),
+      { "@type": "ListItem", position: 3, name: "Shirts" },
+    ])
+  })
+
+  it("uses the locale text for a category with no description", async () => {
+    catalog.getCategoryByHandle.mockResolvedValue({ ...SHIRTS, description: null })
+    await mountPage("/categories/shirts")
+
+    expect((await readHead()).meta("description")).toBe("Shop Shirts at Everyday.")
+  })
+
+  it("uses the thumbnail of the first product as the share image", async () => {
+    const wrapper = await mountPage("/categories/shirts")
+    wrapper
+      .findComponent({ name: "CatalogListing" })
+      .vm.$emit("first-thumbnail", "https://cdn.example/f.jpg")
+    await nextTick()
+    const head = await readHead()
+
+    expect(head.meta("og:image")).toBe("https://cdn.example/f.jpg")
+    expect(head.meta("og:image:alt")).toBe("Shirts")
+    expect(head.meta("og:image:width")).toBeNull()
   })
 })

@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { defineComponent, h } from "vue"
 import { clearNuxtData } from "#imports"
 import ProductsPage from "~/pages/products/index.vue"
+import { readHead } from "./helpers/head"
 
 const { catalog, navCategories } = await vi.hoisted(async () => {
   const { computed } = await import("vue")
@@ -72,5 +73,24 @@ describe("products page", () => {
     expect(wrapper.findAll("h1")).toHaveLength(1)
     expect(wrapper.find("h1").text()).toBe("All products")
     expect(wrapper.find("nav[aria-label='Breadcrumb']").exists()).toBe(false)
+  })
+
+  it("writes the product list head with the default share image", async () => {
+    await mountPage()
+    const head = await readHead()
+
+    expect(head.title).toBe("All products | Everyday")
+    expect(head.meta("description")).toBe("Shop all products at Everyday.")
+    expect(head.meta("og:image")).toBe("http://localhost:3000/og-default.jpg")
+    expect(head.links("canonical")).toEqual([{ href: "http://localhost:3000/products" }])
+  })
+
+  it("keeps the default share image when the listing emits a thumbnail", async () => {
+    const wrapper = await mountPage()
+    wrapper
+      .findComponent({ name: "CatalogListing" })
+      .vm.$emit("first-thumbnail", "https://cdn.example/f.jpg")
+
+    expect((await readHead()).meta("og:image")).toBe("http://localhost:3000/og-default.jpg")
   })
 })
