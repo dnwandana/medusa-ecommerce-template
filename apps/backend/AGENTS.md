@@ -67,6 +67,19 @@ pnpm --filter @store/backend lint                         # ESLint, eslint.confi
   `validateAndTransformQuery` to the custom routes. A newer route group has its own
   `middlewares.ts` that exports a `MiddlewareRoute[]`, for example
   `api/admin/storefront/middlewares.ts`. `src/api/middlewares.ts` spreads each array.
+- The catalog routes and the home categories route (`src/api/store/storefront/`) return the
+  display text in the request locale.
+  - `catalog/products`, `home-categories`, and `catalog/filters` pass `{ locale: req.locale }` as
+    the second argument of `query.graph`, as the Medusa Store product route does.
+  - Only the calls that read display text have the locale. The `catalog/products` call that
+    selects the product ids has no locale. Thus the `q` title search matches only the original
+    title.
+  - `catalog/filters` gets the filter keys and the option match from a call with no locale. The
+    keys stay the lower-case original values in all locales, so `?colour=white` works on `/id/`.
+    When the request has a locale, a second call gives only the labels, through
+    `translatedLabels` in `src/lib/catalog-filters.ts`.
+  - The label of a filter value is the translated value, else the original value. A translated
+    fabric tag gives a label only when it keeps the `Fabric:` prefix.
 - `src/modules/`:
   - `bank-transfer/`: payment provider (identifier `bank-transfer`, stored id
     `pp_bank-transfer_bank-transfer`). The constants `BANK_TRANSFER_PROVIDER_ID` and
