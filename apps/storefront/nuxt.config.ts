@@ -1,5 +1,6 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 import tailwindcss from "@tailwindcss/vite"
+import { storefrontRouteRules } from "./app/utils/routeRules"
 
 export default defineNuxtConfig({
   compatibilityDate: "2025-07-15",
@@ -23,8 +24,8 @@ export default defineNuxtConfig({
     strategy: "prefix_except_default",
     defaultLocale: "en",
     locales: [
-      { code: "en", name: "English", file: "en.json" },
-      { code: "id", name: "Bahasa Indonesia", file: "id.json" },
+      { code: "en", language: "en-US", name: "English", file: "en.json" },
+      { code: "id", language: "id-ID", name: "Bahasa Indonesia", file: "id.json" },
     ],
     detectBrowserLanguage: {
       useCookie: true,
@@ -32,13 +33,7 @@ export default defineNuxtConfig({
       redirectOn: "root",
     },
   },
-  // The account pages need the session cookie, which only the browser has.
-  routeRules: {
-    "/account": { ssr: false },
-    "/account/**": { ssr: false },
-    "/id/account": { ssr: false },
-    "/id/account/**": { ssr: false },
-  },
+  routeRules: storefrontRouteRules(),
   runtimeConfig: {
     // The URL that the Nuxt server uses to call Medusa. Set it with NUXT_MEDUSA_BACKEND_URL.
     medusaBackendUrl: "http://localhost:9000",
@@ -47,6 +42,9 @@ export default defineNuxtConfig({
       medusaBackendUrl: "http://localhost:9000",
       // Set it with NUXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY.
       medusaPublishableKey: "",
+      // The public origin of the storefront, with no trailing slash.
+      // Set it with NUXT_PUBLIC_SITE_URL.
+      siteUrl: "http://localhost:3000",
     },
   },
 })

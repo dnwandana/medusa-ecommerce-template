@@ -127,6 +127,7 @@ services:
       NUXT_PUBLIC_MEDUSA_BACKEND_URL: https://api.${DOMAIN}
       NUXT_MEDUSA_BACKEND_URL: http://medusa-server:9000
       NUXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY: ${MEDUSA_PUBLISHABLE_KEY:-}
+      NUXT_PUBLIC_SITE_URL: https://${DOMAIN}
     depends_on:
       - medusa-server
     logging: *logging
