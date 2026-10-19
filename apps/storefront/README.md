@@ -25,14 +25,16 @@ Run the commands from the repository root.
 
 The keys are in `apps/storefront/.env`. Copy the file from `.env.example`.
 
-| Key                                  | Purpose                                     | Development value       |
-| ------------------------------------ | ------------------------------------------- | ----------------------- |
-| `NUXT_PUBLIC_MEDUSA_BACKEND_URL`     | The backend URL that the browser calls.     | `http://localhost:9000` |
-| `NUXT_MEDUSA_BACKEND_URL`            | The backend URL that the Nuxt server calls. | `http://localhost:9000` |
-| `NUXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY` | The publishable API key.                    | The output of the seed  |
+| Key                                  | Purpose                                                                                                                | Development value       |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- | ----------------------- |
+| `NUXT_PUBLIC_MEDUSA_BACKEND_URL`     | The backend URL that the browser calls.                                                                                | `http://localhost:9000` |
+| `NUXT_MEDUSA_BACKEND_URL`            | The backend URL that the Nuxt server calls.                                                                            | `http://localhost:9000` |
+| `NUXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY` | The publishable API key.                                                                                               | The output of the seed  |
+| `NUXT_PUBLIC_SITE_URL`               | The public origin of the storefront, with no trailing slash. The canonical URLs, the sitemap, and `robots.txt` use it. | `http://localhost:3000` |
 
 The two URL keys are different only when the Nuxt server reaches the backend on a private network.
-Nuxt reads the keys when the server starts. A new value does not need a new build.
+Nuxt reads the keys when the server starts. A new value does not need a new build. In production,
+`docker-compose.yml` sets `NUXT_PUBLIC_SITE_URL` to `https://<domain>`.
 
 ## Pages
 
@@ -67,6 +69,22 @@ Each route also exists with the prefix `/id`. The text of the five static pages 
 The home hero shows the live campaign that staff publish in the admin: a full-width photo, then
 a row of two text columns. With no live campaign, the hero shows the text of the locale files.
 
+A product URL can name a variant: `/products/:handle?variant=<variant id>`. The page then opens
+with that variant selected. A new selection changes the URL, but it adds no browser history entry.
+
+## SEO
+
+- The server HTML of each indexable page has the title, the description, the canonical URL, the
+  hreflang links, the Open Graph tags, and the JSON-LD. The indexable pages are the home page,
+  `/products`, the category pages, the product pages, the static pages, and `/contact`.
+- The private pages (`/cart`, `/checkout`, `/orders`, `/account`, `/search`, and their `/id`
+  copies) send the header `X-Robots-Tag: noindex`.
+- `/robots.txt` and `/sitemap.xml` are Nitro routes in `server/routes/`. The sitemap reads the
+  products and the categories from the backend, and keeps the result for 1 hour.
+- `public/og-default.jpg` (1200×630) is the default share image. `public/logo.png` is the logo in
+  the JSON-LD. Each client replaces the two files. See
+  [docs/deployment.md](../../docs/deployment.md#seo).
+
 ## Source layout
 
 | Path                          | Content                                                                                                                                           |
@@ -82,6 +100,7 @@ a row of two text columns. With no live campaign, the hero shows the text of the
 | `app/utils/`                  | Pure functions: price format, address form, catalog query, price ranges, badges, sign-in, retry, redirects, bank transfer, order status, receipts |
 | `app/types/storefront.ts`     | The types of the storefront settings and the home campaign                                                                                        |
 | `app/middleware/auth.ts`      | Sends a guest to the sign-in page                                                                                                                 |
+| `server/routes/`              | The Nitro routes `robots.txt` and `sitemap.xml`. Their helpers are in `server/utils/`.                                                            |
 | `app/assets/css/tailwind.css` | Tailwind, the design tokens, the type utilities, and the `@font-face` rules                                                                       |
 | `public/fonts/`               | The font files: Cormorant Garamond (regular and italic) and Instrument Sans                                                                       |
 | `i18n/locales/`               | Interface text in `en.json` and `id.json`                                                                                                         |

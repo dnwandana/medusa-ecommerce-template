@@ -32,11 +32,22 @@ pnpm --filter @store/storefront lint                       # ESLint, eslint.conf
   - `medusaBackendUrl` (`NUXT_MEDUSA_BACKEND_URL`): server side.
   - `public.medusaBackendUrl` (`NUXT_PUBLIC_MEDUSA_BACKEND_URL`): browser side.
   - `public.medusaPublishableKey` (`NUXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY`).
+  - `public.siteUrl` (`NUXT_PUBLIC_SITE_URL`): the public origin of the storefront, with no
+    trailing slash. The default is `http://localhost:3000`. `docker-compose.yml` sets it to
+    `https://${DOMAIN}`. All absolute URLs in the head, the JSON-LD, the sitemap, and `robots.txt`
+    come from it. No code reads the `Host` header for a URL.
 - i18n:
-  - Locales `en` (default) and `id`, with the strategy `prefix_except_default`. The files are in
-    `i18n/locales/`.
+  - Locales `en` (default, `language: "en-US"`) and `id` (`language: "id-ID"`), with the strategy
+    `prefix_except_default`. The files are in `i18n/locales/`.
+  - The `language` tags give the `lang` attribute and the hreflang links.
+  - The i18n `baseUrl` is not set. `usePageSeo` makes the relative links absolute with
+    `public.siteUrl`.
   - The locale cookie is `i18n_redirected`.
-- `routeRules` set `ssr: false` for `/account`, `/account/**`, `/id/account`, and `/id/account/**`.
+- `routeRules` come from `storefrontRouteRules()` in `app/utils/routeRules.ts`. The file imports
+  nothing from Nuxt, because `nuxt.config.ts` loads it.
+  - Each path of `PRIVATE_PATHS` (`/cart`, `/checkout`, `/orders`, `/account`, `/search`) sends
+    `X-Robots-Tag: noindex`. The rule also covers the subpaths and the `/id` copies.
+  - The account paths also have `ssr: false`.
 - `app/app.config.ts` has the store name (`brand.name`, "Everyday"). The name is not a locale text.
 - `components.json` (shadcn-vue) uses the style `reka-nova` and the base color `neutral`. It puts
   the components in `app/components/ui/`, with no prefix.
@@ -73,6 +84,9 @@ pnpm --filter @store/storefront lint                       # ESLint, eslint.conf
   footer. The header has no navigation, so the customer stays in the checkout. `/checkout` and
   `/checkout/return` use it with `definePageMeta({ layout: "checkout" })`.
 - The two layouts load the cart and the customer in `onMounted`.
+- The two layouts call `useLayoutHead()` (`app/composables/useLayoutHead.ts`). It sets the `lang`
+  attribute from the locale `language` tag and the title template `<page title> | <store>`. A page
+  sets only its own title.
 - The 404 rule: a page throws `createError({ statusCode: 404, data: { messageKey }, fatal: true })`.
   `app/error.vue` shows the text of the locale key `messageKey`. The product page, the category
   page, and the order page use this rule.
@@ -121,6 +135,21 @@ The composables call the custom routes with `sdk.client.fetch`:
 - `CatalogListing.vue` keeps the filters, the sort, and the page in the URL query, for example
   `?colour=sage&size=m&sort=price-asc&page=2`. `PAGE_SIZE` is 12. A reload loads at most 10
   pages.
+- The product page reads `?variant=<Medusa variant id>` with `variantFromQuery`
+  (`app/utils/variantSelection.ts`).
+  - A valid id sets the start variant on the server. The page gives it to `ProductPurchase` as
+    `startVariantId`.
+  - The page ignores an unknown id, an array, and the parameter on a product with one variant.
+  - `ProductPurchase` emits `variant-change` when the selection matches one variant. The page then
+    calls `router.replace` with the new `?variant=`. It adds no history entry and keeps the other
+    query parameters.
+  - The canonical URL has no `?variant=`. The description and the share image use the variant.
+- The product page waits for `useFirstReviewPage(productId)` (`useReviews.ts`). `ReviewList` calls
+  the same composable with `{ lazy: true }`. The two callers share the key `reviews:<product id>`,
+  the handler, and the options. Thus the stars and the `aggregateRating` are in the server HTML,
+  and `ReviewList` sends no second request. A failed request gives no rating.
+  - Do not add a second `useAsyncData` call for this key. Different options give a Nuxt warning
+    and a second request.
 - `useSearchSuggestions(query)` starts at 2 characters, 300 ms after the last key, and returns up
   to 5 products.
 - `useRelatedProducts(key, source)` reads 12 products of the first category and returns up to 4,
@@ -129,6 +158,43 @@ The composables call the custom routes with `sdk.client.fetch`:
   campaign. A failed settings request gives `STOREFRONT_DEFAULTS`.
 - `useMoveToWishlist()` moves a cart line to the wishlist. A guest goes to the sign-in page, and
   the cart does not change.
+
+### SEO
+
+- Every indexable page calls `usePageSeo(input)` (`app/composables/usePageSeo.ts`): the home
+  page, `/products`, the category page, the product page, `StaticPage.vue`, and the contact page.
+  - It writes the title, the description, the canonical URL, the hreflang links (`en-US`,
+    `id-ID`, `x-default`), the Open Graph and Twitter tags, and the JSON-LD scripts.
+  - The canonical URL keeps only the query parameter `page`.
+  - With no `image`, the share image is `/og-default.jpg` (1200×630). The alt text is the store
+    name.
+  - While the input is `null`, it writes nothing, for example while the page data loads.
+- `useSiteUrl()` (same file) returns `public.siteUrl` with no trailing slash.
+- Private pages must not call `usePageSeo`. They have no canonical, hreflang, or Open Graph tags.
+  - `storefrontRouteRules` sends `X-Robots-Tag: noindex` for them.
+  - The cart page, the order page, and the checkout layout also set the `robots: "noindex"` meta
+    tag. The search, sign-in, verify, and welcome pages keep their `noindex` meta tag.
+- The pure helpers are in `app/utils/`:
+  - `seoText.ts`: the titles, the description cut at 160 characters, the variant label, the
+    product description, and `absoluteUrl`.
+  - `productStructuredData.ts`: `productJsonLd` gives a `ProductGroup` for a product with more
+    than one variant, else a `Product`. It gives `null` when no variant has a price.
+  - `structuredData.ts`: the `BreadcrumbList`, `OnlineStore`, and `WebSite` nodes, and
+    `jsonLdScript`. `jsonLdScript` replaces each `<` with the six characters `\u003c`. Thus
+    a product text cannot close the script tag.
+- The Nitro routes are in `server/routes/`. Their helpers are in `server/utils/`. The server code
+  has no `~` alias, so it imports `app/utils/` with a relative path.
+  - `robots.txt.ts` blocks the filter and sort parameters: `FILTER_NAMES` of
+    `app/utils/catalogQuery.ts`, then `price` and `sort`. It names the sitemap. It does not block
+    the private pages, because a crawler must fetch a page to see its noindex. There is no
+    `public/robots.txt`.
+  - `sitemap.xml.ts` reads all products and categories from the Store API with
+    `medusaBackendUrl` and the publishable key. Each page gives one URL for each locale, with the
+    hreflang alternates. The product URLs have the product images.
+  - `defineCachedEventHandler` keeps the sitemap for 1 hour. A backend failure gives the
+    status 503. Nitro does not keep a failure in the cache.
+- `public/og-default.jpg` and `public/logo.png` are placeholders. Each client replaces them.
+- The head tests read the head with `readHead()` from `test/nuxt/helpers/head.ts`.
 
 ### Sign-in with a magic link
 
@@ -235,6 +301,8 @@ The composables call the custom routes with `sdk.client.fetch`:
 - Order status: `customerStatus`, `receiptPhase`, `trackerSteps`, `cancelNoticeKey`, and
   `refundedAmount`.
 - Receipt files: `checkReceiptFile` and `formatFileSize`.
+- SEO: the texts in `seoText.ts` and the JSON-LD in `productStructuredData.ts` and
+  `structuredData.ts`.
 
 ## Code conventions
 
