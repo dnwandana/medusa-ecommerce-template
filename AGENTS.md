@@ -18,6 +18,11 @@ This file gives guidance to AI coding agents that work with code in this reposit
 - Prettier has one config at the root (`.prettierrc.json`): no semicolons, double quotes, and a
   line width of 100. `.prettierignore` excludes the shadcn-vue files in `components/ui/` and the
   MikroORM migrations.
+  - `prettier-plugin-tailwindcss` sorts the Tailwind classes in `apps/storefront` only. It sorts
+    the `class` attributes and the arguments of `cn()` and `cva()`. It reads the theme from
+    `app/assets/css/tailwind.css`.
+  - The plugin does not run on the backend. The admin extensions use the Tailwind preset of
+    Medusa UI, not the storefront theme.
 - There is no type-check script in the repository.
 
 ## Commands

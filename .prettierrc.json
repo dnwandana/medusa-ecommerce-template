@@ -2,5 +2,15 @@
   "semi": false,
   "singleQuote": false,
   "printWidth": 100,
-  "trailingComma": "es5"
+  "trailingComma": "es5",
+  "overrides": [
+    {
+      "files": "apps/storefront/**",
+      "options": {
+        "plugins": ["prettier-plugin-tailwindcss"],
+        "tailwindStylesheet": "./apps/storefront/app/assets/css/tailwind.css",
+        "tailwindFunctions": ["cn", "cva"]
+      }
+    }
+  ]
 }
