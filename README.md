@@ -17,7 +17,8 @@ of your store.
 - Product reviews with approval in the admin dashboard.
 - Wishlist for logged-in customers.
 - Storefront in English and Indonesian.
-- Order and password-reset emails through Brevo.
+- Emails in English and Indonesian over SMTP, with any email provider. Mailpit catches the emails
+  in development.
 - Production setup for one server with Docker Compose, Caddy, and Garage.
 
 ## Repository layout
@@ -41,7 +42,7 @@ The repository is a pnpm workspace. The package names are `@store/backend` and
 ```text
 Browser ──> Nuxt storefront (:3000) ──> Medusa server (:9000) ──> PostgreSQL
                                                  │                 Redis
-                                                 └──> Brevo API
+                                                 └──> SMTP server (email provider)
                                          Medusa worker (scheduled jobs, events)
 ```
 

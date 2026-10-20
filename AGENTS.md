@@ -25,7 +25,7 @@ This file gives guidance to AI coding agents that work with code in this reposit
 Run the commands from the repository root.
 
 ```bash
-docker compose -f docker-compose.local.yml up -d --wait   # PostgreSQL 5432, Redis 6379, Garage 3900 and 3902
+docker compose -f docker-compose.local.yml up -d --wait   # PostgreSQL 5432, Redis 6379, Garage 3900 and 3902, Mailpit 1025 and 8025
 # The Garage bucket and key need the one-time step 3 of docs/development.md.
 pnpm install                                # also runs `nuxt prepare` in the storefront
 pnpm --filter @store/backend exec medusa db:migrate
@@ -109,6 +109,8 @@ pnpm format:check
     (`customer.metadata.locale`).
   - The owner emails stay in English. The `low-stock-owner` email goes to the owner when the
     stock of a variant crosses the low stock threshold.
+- To change the email provider, read `docs/email/README.md` and the doc of the provider. The
+  template sends over SMTP with the `smtp` provider. Development sends to Mailpit.
 - The store has one region (Indonesia), one currency (`idr`), and amounts in whole rupiah. No code
   divides an amount by 100.
 - Provider ids that both apps depend on:

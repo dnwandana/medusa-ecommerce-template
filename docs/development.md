@@ -11,17 +11,18 @@ command, so you can see what each step does. Run all commands from the repositor
 - PostgreSQL 16 or higher.
 - Redis 7 or higher. Redis is optional, but production uses it.
 - Garage v2.4.1. It stores the product images, as in production.
+- Mailpit. It catches the emails of the backend.
 
-You can get PostgreSQL, Redis, and Garage from one of these sources:
+You can get PostgreSQL, Redis, Garage, and Mailpit from one of these sources:
 
 - Your own containers or a local install.
 - The `docker-compose.local.yml` file of this project. Run
   `docker compose -f docker-compose.local.yml up -d --wait`. This starts PostgreSQL with the user
-  `postgres`, the password `postgres`, and the database `medusa-store`. It also starts Redis, and
-  Garage on the ports 3900 and 3902.
+  `postgres`, the password `postgres`, and the database `medusa-store`. It also starts Redis,
+  Garage on the ports 3900 and 3902, and Mailpit on the ports 1025 and 8025.
 
-The Compose services use the ports 5432, 6379, 3900, and 3902. Do not start them while other
-containers or programs use the same ports.
+The Compose services use the ports 5432, 6379, 3900, 3902, 1025, and 8025. Do not start them while
+other containers or programs use the same ports.
 
 ## 1. Install the dependencies
 
@@ -148,21 +149,21 @@ S3_SECRET_ACCESS_KEY=<Secret key>
 The other keys have development values in the example file. This table shows the keys that you
 can change in development.
 
-| Key                    | Development value              | Note                                                                            |
-| ---------------------- | ------------------------------ | ------------------------------------------------------------------------------- |
-| `DATABASE_URL`         | your database                  | Required.                                                                       |
-| `DATABASE_SSL`         | empty                          | Set `false` only if Medusa cannot connect because the server has no TLS.        |
-| `REDIS_URL`            | `redis://localhost:6379`       | If it is empty, Medusa uses its in-memory modules.                              |
-| `BREVO_API_KEY`        | empty                          | If it is empty, the backend writes each email to the log.                       |
-| `STORE_OWNER_EMAIL`    | empty                          | If it is empty, the backend writes the `paid-cart-alert` email to the log.      |
-| `S3_BUCKET`            | `store-assets`                 | If it is empty, Medusa keeps the product images in local storage.               |
-| `S3_FILE_URL`          | `http://assets.localhost:3902` | The Garage web endpoint with the bucket alias.                                  |
-| `S3_REGION`            | `garage`                       | The region in `garage.toml`.                                                    |
-| `S3_ENDPOINT`          | `http://localhost:3900`        | The Garage S3 API.                                                              |
-| `S3_ACCESS_KEY_ID`     | empty                          | Required. The `Key ID` from step 3.                                             |
-| `S3_SECRET_ACCESS_KEY` | empty                          | Required. The `Secret key` from step 3.                                         |
-| `S3_RECEIPTS_BUCKET`   | `store-receipts`               | Private bucket for the payment receipts. Required when `S3_BUCKET` has a value. |
-| `RECEIPTS_DIR`         | empty                          | Receipt directory when `S3_BUCKET` is empty. Default `uploads/receipts`.        |
+| Key                    | Development value              | Note                                                                                                                                                  |
+| ---------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`         | your database                  | Required.                                                                                                                                             |
+| `DATABASE_SSL`         | empty                          | Set `false` only if Medusa cannot connect because the server has no TLS.                                                                              |
+| `REDIS_URL`            | `redis://localhost:6379`       | If it is empty, Medusa uses its in-memory modules.                                                                                                    |
+| `SMTP_HOST`            | `localhost`                    | Mailpit. If it is empty, the backend writes each email to the log.                                                                                    |
+| `STORE_OWNER_EMAIL`    | empty                          | The fallback for the owner emails when the store contact email is empty. If both are empty, the backend skips the owner emails and writes a log line. |
+| `S3_BUCKET`            | `store-assets`                 | If it is empty, Medusa keeps the product images in local storage.                                                                                     |
+| `S3_FILE_URL`          | `http://assets.localhost:3902` | The Garage web endpoint with the bucket alias.                                                                                                        |
+| `S3_REGION`            | `garage`                       | The region in `garage.toml`.                                                                                                                          |
+| `S3_ENDPOINT`          | `http://localhost:3900`        | The Garage S3 API.                                                                                                                                    |
+| `S3_ACCESS_KEY_ID`     | empty                          | Required. The `Key ID` from step 3.                                                                                                                   |
+| `S3_SECRET_ACCESS_KEY` | empty                          | Required. The `Secret key` from step 3.                                                                                                               |
+| `S3_RECEIPTS_BUCKET`   | `store-receipts`               | Private bucket for the payment receipts. Required when `S3_BUCKET` has a value.                                                                       |
+| `RECEIPTS_DIR`         | empty                          | Receipt directory when `S3_BUCKET` is empty. Default `uploads/receipts`.                                                                              |
 
 `apps/backend/README.md` has the full list of the backend keys.
 
@@ -274,9 +275,26 @@ You can also test the Store API with the key:
 curl -H "x-publishable-api-key: pk_..." http://localhost:9000/store/products
 ```
 
+## Read the emails
+
+Do these steps to see a sign-in email in Mailpit.
+
+1. Open `http://localhost:8025`. Mailpit shows each email that the backend sends.
+2. Open `http://localhost:3000/account/sign-in`.
+3. Enter an email address. Any address works, because no email leaves the machine.
+4. Open the new email in Mailpit.
+5. Click **Sign in**.
+
+Mailpit keeps the emails only until it stops.
+
+If Mailpit does not run, the send fails. The magic link request then returns an HTTP 500 error.
+The other emails write an error line to the backend log, and the order continues.
+
+The **HTML check** and **Link check** tabs of Mailpit find problems in the email HTML.
+
 ## Daily start
 
-1. Start PostgreSQL, Redis, and Garage.
+1. Start PostgreSQL, Redis, Garage, and Mailpit.
 
 ```bash
 docker compose -f docker-compose.local.yml up -d --wait
@@ -301,7 +319,8 @@ To fix the problems, run `pnpm lint:fix` and `pnpm format`.
 These services are not necessary to start the store. Each one has a section in `apps/backend/README.md`.
 Checkout needs no optional service.
 
-- **Email.** Set the three `BREVO_` keys to send real email.
+- **Real email.** To test a real email provider, set the `SMTP_` keys and `EMAIL_FROM` from
+  [docs/email/README.md](email/README.md).
 
 Start the backend again after you change `apps/backend/.env`.
 

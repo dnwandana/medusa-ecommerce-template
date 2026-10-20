@@ -525,8 +525,8 @@ Write the tests before the code. Two kinds of test are necessary.
 - Create the service directly:
   `new <Name>ProviderService({ logger } as any, options)`, as
   `apps/backend/src/modules/bank-transfer/__tests__/service.unit.spec.ts` does.
-- Replace `global.fetch` with a `jest.fn()` in `beforeEach`, and give each call a response object.
-  `apps/backend/src/modules/brevo/__tests__/service.unit.spec.ts` shows the pattern.
+- Replace `global.fetch` with a `jest.fn()` in `beforeEach`. Give each call a response object with
+  `ok`, `status`, and `text()`.
 - Use the JSON of the section "Example JSON for test mocks" of the gateway doc.
 - Test at least these cases:
   - The identifier is `<slug>`, and the constant is `<provider_id>`.

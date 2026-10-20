@@ -41,8 +41,8 @@ pnpm --filter @store/backend lint                         # ESLint, eslint.confi
 - Conditional modules:
   - `REDIS_URL` set: the Redis event bus, workflow engine, caching, and locking modules load.
     Otherwise Medusa uses its in-memory modules.
-  - `BREVO_API_KEY` set: the `brevo` provider sends email. Otherwise `notification-local` writes the
-    email to the log.
+  - `SMTP_HOST` set: the `smtp` provider sends email. Otherwise `notification-local` writes the
+    email to the log. `.env.test` sets `SMTP_HOST=` empty.
   - `S3_BUCKET` set: the S3 file provider loads (Garage options: `forcePathStyle`, `acl: false`).
     Development sets it to the Garage of `docker-compose.local.yml`. The key comes from step 3
     of `docs/development.md`. `.env.test` sets `S3_BUCKET=` empty, so the tests store the files
@@ -55,7 +55,9 @@ pnpm --filter @store/backend lint                         # ESLint, eslint.confi
 - The bank transfer payment provider is always registered. It needs no env key.
 - These conditions stop startup with an error:
   - `SHIPPING_RATE_PER_KG` is not a positive integer.
-  - `BREVO_API_KEY` has a value and `BREVO_SENDER_EMAIL` is empty.
+  - `SMTP_HOST` has a value and `EMAIL_FROM` is empty.
+  - `SMTP_PORT` is not an integer from 1 to 65535, or is 465 with `SMTP_SECURE=false`.
+  - Only one of `SMTP_USER` and `SMTP_PASSWORD` has a value.
   - `S3_BUCKET` has a value and an `S3_` key is missing.
   - `S3_BUCKET` has a value and `S3_RECEIPTS_BUCKET` is empty or is the same as `S3_BUCKET`.
 
@@ -88,55 +90,14 @@ pnpm --filter @store/backend lint                         # ESLint, eslint.confi
     The service adds `getContact()` and `setContact()`, because the module keeps one contact row.
   - `weight-shipping/`: fulfillment provider. `calculate.ts` has the weight rule: grams, rounded up
     to whole kg, minimum 1 kg, and 1000 g for a variant with no weight.
-  - `brevo/`: notification provider. The templates are in `templates/`:
-    - Customer templates: `magic-link`, `welcome`, `order-placed`, `payment-confirmed`,
-      `order-shipped`, `order-delivered`, `review-request`, `order-cancelled`, `refund-sent`,
-      `more-payment-needed`, and `wishlist-alert`.
-    - Owner templates: `new-order-owner`, `receipt-uploaded`, `paid-cart-alert`, and
-      `low-stock-owner`.
-    - Admin template: `password-reset`.
-    - Each template is a pure function `render(data): { subject, html }` in the map of
-      `templates/index.ts`.
-    - `order-cancelled` has three wordings. `metadata.cancel_reason === "payment_timeout"` gives
-      the timeout text. Each other value gives the staff text, with the quote of
-      `metadata.cancel_note` when the note is not empty.
-    - The refund line of `order-cancelled` comes from the first captured payment. A bank
-      transfer payment gives the refund amount and two working days. A gateway payment says that
-      a separate email comes. No captured payment gives no line.
-    - `wishlist-alert` has two optional groups, `back_in_stock` and `price_drops`. A group with
-      no items gets no part. The template throws when both groups are empty.
-      - The subject names the first product: "Back in stock: …" when the stock group has items,
-        else "Price drop: …". The button "Open your wishlist" goes to `/account/wishlist`.
-      - The "Price drop" part strikes through the old price. The new price is not bold, because
-        `productRows` escapes the price text.
-      - The locale comes from `customer.metadata.locale` (`CUSTOMER_LOCALE`), not from an order.
-    - `low-stock-owner` has the subject "Low stock: {product}, {variant} ({n} left)". The button
-      "Open the product" goes to the admin product page.
-    - `templates/shell.ts`: `renderShell` renders the shell of every email (dark header bar with
-      the store name, footer, preheader, and one media query). It also exports the block helpers,
-      for example `heading`, `paragraph`, `keyValues`, `callout`, `quote`, `button`, `orderLines`,
-      `productRows`, and `address`. The types `EmailStore`, `EmailLineItem`, and `EmailAddress`
-      are here.
-      - Use `list(items)` for a bullet list and `paragraphHtml(html)` for a paragraph that holds a
-        text link. Do not copy the font stack or the colours into a template.
-      - `paragraphHtml` does not escape its HTML. The caller escapes each value in it.
-      - `isHttpsUrl` is the one check for a URL that goes into an `href` or an `src`.
-    - `templates/i18n/`: the dictionaries `en.ts` and `id.ts`, and `index.ts` with `EmailLocale`
-      (`en-US` or `id-ID`), `toEmailLocale`, `langOf`, and `t(locale, key, values)`. A missing
-      key in the Indonesian dictionary falls back to the English text.
-    - `templates/html.ts`: only `escapeHtml`, `formatRupiah`, `formatWibTime`, `formatWibDate`,
-      and `RenderedEmail`. The two time functions take a locale. `layout`, `emailButton`, and
-      `greeting` do not exist.
-    - Every customer template takes `locale` and `store` (an `EmailStore`: `name`,
-      `contact_email`, `whatsapp`) in its data. The subscribers and the routes must send both.
-      The store name goes into the wordmark and the footer.
-    - The owner templates (`new-order-owner`, `paid-cart-alert`, `receipt-uploaded`,
-      `low-stock-owner`) and `password-reset` stay in English. They need no `locale`.
-    - Every template needs `store`, also the owner templates and `password-reset`. The shell
-      reads `store.name`. `templates/index.ts` types `data` as `any`, so a missing `store` gives
-      no compile error. The send then throws a `TypeError`.
-    - `service.ts` sets the Brevo `replyTo` to `data.store.contact_email` when the value is not
-      empty. Else Brevo uses the sender address.
+  - `smtp/`: notification provider (identifier `smtp`).
+    - `options.ts` validates the options and builds the Nodemailer transport. The transport has
+      10 s timeouts. With a user name, it sets `requireTLS`.
+    - `service.ts` renders the template and adds the text part from `src/email/text.ts`.
+    - `service.ts` sets Reply-To to `data.store.contact_email` when the value is not empty. Else
+      the reply goes to the sender address.
+    - A failed send logs only the error `code` and `responseCode`. The log line never contains
+      the recipient, `SMTP_USER`, or `SMTP_PASSWORD`.
   - `product-review/`: data module `productReview` with the model `review`.
   - `wishlist/`: data module `wishlist` with the models `wishlist` and `wishlist_item`.
     - `wishlist_item` has three columns for the alerts. `saved_unit_price` (null: not read yet)
@@ -169,6 +130,55 @@ pnpm --filter @store/backend lint                         # ESLint, eslint.confi
       summary has no `file_key`.
     - The file key is `<order_id>/<receipt_id>.<jpg|png|webp>`.
   - Each data module has its own `migrations/`.
+- `src/email/`: the email templates in `src/email/templates/` and the plain text part. The unit
+  tests are in `src/email/__tests__/`.
+  - `src/email/text.ts`: `htmlToText(html)` makes the plain text part of each email.
+  - Customer templates: `magic-link`, `welcome`, `order-placed`, `payment-confirmed`,
+    `order-shipped`, `order-delivered`, `review-request`, `order-cancelled`, `refund-sent`,
+    `more-payment-needed`, and `wishlist-alert`.
+  - Owner templates: `new-order-owner`, `receipt-uploaded`, `paid-cart-alert`, and
+    `low-stock-owner`.
+  - Admin template: `password-reset`.
+  - Each template is a pure function `render(data): { subject, html }` in the map of
+    `src/email/templates/index.ts`.
+  - `order-cancelled` has three wordings. `metadata.cancel_reason === "payment_timeout"` gives
+    the timeout text. Each other value gives the staff text, with the quote of
+    `metadata.cancel_note` when the note is not empty.
+  - The refund line of `order-cancelled` comes from the first captured payment. A bank
+    transfer payment gives the refund amount and two working days. A gateway payment says that
+    a separate email comes. No captured payment gives no line.
+  - `wishlist-alert` has two optional groups, `back_in_stock` and `price_drops`. A group with
+    no items gets no part. The template throws when both groups are empty.
+    - The subject names the first product: "Back in stock: …" when the stock group has items,
+      else "Price drop: …". The button "Open your wishlist" goes to `/account/wishlist`.
+    - The "Price drop" part strikes through the old price. The new price is not bold, because
+      `productRows` escapes the price text.
+    - The locale comes from `customer.metadata.locale` (`CUSTOMER_LOCALE`), not from an order.
+  - `low-stock-owner` has the subject "Low stock: {product}, {variant} ({n} left)". The button
+    "Open the product" goes to the admin product page.
+  - `src/email/templates/shell.ts`: `renderShell` renders the shell of every email (dark header
+    bar with the store name, footer, preheader, and one media query). It also exports the block
+    helpers, for example `heading`, `paragraph`, `keyValues`, `callout`, `quote`, `button`,
+    `orderLines`, `productRows`, and `address`. The types `EmailStore`, `EmailLineItem`, and
+    `EmailAddress` are here.
+    - Use `list(items)` for a bullet list and `paragraphHtml(html)` for a paragraph that holds a
+      text link. Do not copy the font stack or the colours into a template.
+    - `paragraphHtml` does not escape its HTML. The caller escapes each value in it.
+    - `isHttpsUrl` is the one check for a URL that goes into an `href` or an `src`.
+  - `src/email/templates/i18n/`: the dictionaries `en.ts` and `id.ts`, and `index.ts` with
+    `EmailLocale` (`en-US` or `id-ID`), `toEmailLocale`, `langOf`, and `t(locale, key, values)`.
+    A missing key in the Indonesian dictionary falls back to the English text.
+  - `src/email/templates/html.ts`: only `escapeHtml`, `formatRupiah`, `formatWibTime`,
+    `formatWibDate`, and `RenderedEmail`. The two time functions take a locale. `layout`,
+    `emailButton`, and `greeting` do not exist.
+  - Every customer template takes `locale` and `store` (an `EmailStore`: `name`,
+    `contact_email`, `whatsapp`) in its data. The subscribers and the routes must send both.
+    The store name goes into the wordmark and the footer.
+  - The owner templates (`new-order-owner`, `paid-cart-alert`, `receipt-uploaded`,
+    `low-stock-owner`) and `password-reset` stay in English. They need no `locale`.
+  - Every template needs `store`, also the owner templates and `password-reset`. The shell
+    reads `store.name`. `src/email/templates/index.ts` types `data` as `any`, so a missing
+    `store` gives no compile error. The send then throws a `TypeError`.
 - `src/lib/`: pure code with no module.
   - `option-names.ts`: the option names of a colour (`colour`, `color`, `warna`) and of a size
     (`size`, `ukuran`), and the fabric tag prefix `Fabric:`.

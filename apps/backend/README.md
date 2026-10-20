@@ -32,34 +32,40 @@ this document from the repository root.
 
 The file is `apps/backend/.env`. Copy it from `.env.example`.
 
-| Key                                        | Default                                                    | Function                                                                                                                                                              |
-| ------------------------------------------ | ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`                             | `postgres://postgres:postgres@localhost:5432/medusa-store` | PostgreSQL connection                                                                                                                                                 |
-| `DATABASE_SSL`                             | empty                                                      | Set `false` only when PostgreSQL has no TLS. The production Compose file sets it.                                                                                     |
-| `REDIS_URL`                                | `redis://localhost:6379`                                   | Redis connection. If it is empty, Medusa uses its in-memory modules.                                                                                                  |
-| `STORE_CORS`, `ADMIN_CORS`, `AUTH_CORS`    | local addresses                                            | Origins that can call the API                                                                                                                                         |
-| `JWT_SECRET`, `COOKIE_SECRET`              | `supersecret`                                              | Secrets. Set new values in production.                                                                                                                                |
-| `STOREFRONT_URL`                           | `http://localhost:3000`                                    | Base URL for the email links and for the return URL of a payment gateway                                                                                              |
-| `MEDUSA_BACKEND_URL`                       | `http://localhost:9000`                                    | Public URL of the backend. The admin dashboard reads it at build time.                                                                                                |
-| `MEDUSA_WORKER_MODE`                       | `shared`                                                   | `shared`, `server`, or `worker`                                                                                                                                       |
-| `DISABLE_MEDUSA_ADMIN`                     | `false`                                                    | `true` on a worker instance                                                                                                                                           |
-| `SHIPPING_RATE_PER_KG`                     | `10000`                                                    | Shipping price in IDR for each kilogram. Must be a positive whole number.                                                                                             |
-| `BREVO_API_KEY`                            | empty                                                      | Brevo API key. If it is empty, the backend writes each email to the log.                                                                                              |
-| `BREVO_SENDER_EMAIL`                       | empty                                                      | Sender address. Required when `BREVO_API_KEY` has a value.                                                                                                            |
-| `BREVO_SENDER_NAME`                        | `Everyday`                                                 | Sender name                                                                                                                                                           |
-| `STORE_OWNER_EMAIL`                        | empty                                                      | The fallback address for the `paid-cart-alert` and `receipt-uploaded` emails when the store contact email is empty. If both are empty, the backend writes a log line. |
-| `S3_BUCKET`                                | `store-assets`                                             | Garage bucket for the product images. If it is empty, Medusa keeps the images in `static/`. Only `.env.test` sets it empty.                                           |
-| `S3_FILE_URL`                              | `http://assets.localhost:3902`                             | Public address of the product images                                                                                                                                  |
-| `S3_REGION`                                | `garage`                                                   | S3 region of Garage                                                                                                                                                   |
-| `S3_ENDPOINT`                              | `http://localhost:3900`                                    | S3 API of Garage                                                                                                                                                      |
-| `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | empty                                                      | The Garage key from [step 3 of `docs/development.md`](../../docs/development.md). Required when `S3_BUCKET` has a value.                                              |
-| `S3_RECEIPTS_BUCKET`                       | `store-receipts`                                           | Private Garage bucket for the payment receipts. Required when `S3_BUCKET` has a value. It must not be `S3_BUCKET`.                                                    |
-| `RECEIPTS_DIR`                             | `uploads/receipts`                                         | Private directory for the payment receipts when `S3_BUCKET` is empty. The path is relative to the backend directory.                                                  |
+| Key                                        | Default                                                    | Function                                                                                                                                                                                                             |
+| ------------------------------------------ | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`                             | `postgres://postgres:postgres@localhost:5432/medusa-store` | PostgreSQL connection                                                                                                                                                                                                |
+| `DATABASE_SSL`                             | empty                                                      | Set `false` only when PostgreSQL has no TLS. The production Compose file sets it.                                                                                                                                    |
+| `REDIS_URL`                                | `redis://localhost:6379`                                   | Redis connection. If it is empty, Medusa uses its in-memory modules.                                                                                                                                                 |
+| `STORE_CORS`, `ADMIN_CORS`, `AUTH_CORS`    | local addresses                                            | Origins that can call the API                                                                                                                                                                                        |
+| `JWT_SECRET`, `COOKIE_SECRET`              | `supersecret`                                              | Secrets. Set new values in production.                                                                                                                                                                               |
+| `STOREFRONT_URL`                           | `http://localhost:3000`                                    | Base URL for the email links and for the return URL of a payment gateway                                                                                                                                             |
+| `MEDUSA_BACKEND_URL`                       | `http://localhost:9000`                                    | Public URL of the backend. The admin dashboard reads it at build time.                                                                                                                                               |
+| `MEDUSA_WORKER_MODE`                       | `shared`                                                   | `shared`, `server`, or `worker`                                                                                                                                                                                      |
+| `DISABLE_MEDUSA_ADMIN`                     | `false`                                                    | `true` on a worker instance                                                                                                                                                                                          |
+| `SHIPPING_RATE_PER_KG`                     | `10000`                                                    | Shipping price in IDR for each kilogram. Must be a positive whole number.                                                                                                                                            |
+| `SMTP_HOST`                                | `localhost`                                                | SMTP server. If it is empty, the backend writes each email to the log.                                                                                                                                               |
+| `SMTP_PORT`                                | `1025`                                                     | SMTP port. Required when `SMTP_HOST` has a value. Port 465 requires `SMTP_SECURE=true`.                                                                                                                              |
+| `SMTP_SECURE`                              | `false`                                                    | `true` for implicit TLS (port 465). `false` for a plain connection or STARTTLS.                                                                                                                                      |
+| `SMTP_USER`                                | empty                                                      | SMTP user name. Empty for Mailpit. With a user name, the backend requires TLS.                                                                                                                                       |
+| `SMTP_PASSWORD`                            | empty                                                      | SMTP password. Set it together with `SMTP_USER`.                                                                                                                                                                     |
+| `EMAIL_FROM`                               | `orders@everyday.test`                                     | Sender address. Required when `SMTP_HOST` has a value.                                                                                                                                                               |
+| `EMAIL_FROM_NAME`                          | `Everyday`                                                 | Sender name                                                                                                                                                                                                          |
+| `STORE_OWNER_EMAIL`                        | empty                                                      | The fallback address for the owner emails (`new-order-owner`, `paid-cart-alert`, `receipt-uploaded`, and `low-stock-owner`) when the store contact email is empty. If both are empty, the backend writes a log line. |
+| `S3_BUCKET`                                | `store-assets`                                             | Garage bucket for the product images. If it is empty, Medusa keeps the images in `static/`. Only `.env.test` sets it empty.                                                                                          |
+| `S3_FILE_URL`                              | `http://assets.localhost:3902`                             | Public address of the product images                                                                                                                                                                                 |
+| `S3_REGION`                                | `garage`                                                   | S3 region of Garage                                                                                                                                                                                                  |
+| `S3_ENDPOINT`                              | `http://localhost:3900`                                    | S3 API of Garage                                                                                                                                                                                                     |
+| `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | empty                                                      | The Garage key from [step 3 of `docs/development.md`](../../docs/development.md). Required when `S3_BUCKET` has a value.                                                                                             |
+| `S3_RECEIPTS_BUCKET`                       | `store-receipts`                                           | Private Garage bucket for the payment receipts. Required when `S3_BUCKET` has a value. It must not be `S3_BUCKET`.                                                                                                   |
+| `RECEIPTS_DIR`                             | `uploads/receipts`                                         | Private directory for the payment receipts when `S3_BUCKET` is empty. The path is relative to the backend directory.                                                                                                 |
 
 The backend does not start in these conditions:
 
 - `SHIPPING_RATE_PER_KG` is not a positive whole number.
-- `BREVO_API_KEY` has a value and `BREVO_SENDER_EMAIL` is empty.
+- `SMTP_HOST` has a value and `EMAIL_FROM` is empty.
+- `SMTP_PORT` is not an integer from 1 to 65535, or is 465 with `SMTP_SECURE=false`.
+- Only one of `SMTP_USER` and `SMTP_PASSWORD` has a value.
 - `S3_BUCKET` has a value and one of the other `S3_` keys is empty.
 - `S3_BUCKET` has a value and `S3_RECEIPTS_BUCKET` is the same bucket.
 
@@ -73,7 +79,8 @@ The backend does not start in these conditions:
 | `src/modules/bank-transfer/`        | Bank transfer payment provider                                                                                                                              |
 | `src/modules/bank-account/`         | Bank account and store contact data module                                                                                                                  |
 | `src/modules/weight-shipping/`      | Fulfillment provider that calculates the price from the weight                                                                                              |
-| `src/modules/brevo/`                | Brevo email provider and the email templates                                                                                                                |
+| `src/modules/smtp/`                 | SMTP email provider                                                                                                                                         |
+| `src/email/`                        | The email templates and the plain text part                                                                                                                 |
 | `src/modules/product-review/`       | Review data module                                                                                                                                          |
 | `src/modules/wishlist/`             | Wishlist data module                                                                                                                                        |
 | `src/modules/storefront/`           | Storefront data module: the settings row, the store colours, and the home campaigns                                                                         |
@@ -130,24 +137,35 @@ The provider id is `weight-shipping_weight-shipping`.
 
 The backend sends these emails:
 
-| Template              | Event                                                                       | To                |
-| --------------------- | --------------------------------------------------------------------------- | ----------------- |
-| `magic-link`          | A customer asks for a sign-in link.                                         | The customer      |
-| `welcome`             | A customer signs in for the first time. The storefront asks for the email.  | The customer      |
-| `order-placed`        | A customer places an order.                                                 | The customer      |
-| `order-shipped`       | Staff mark a shipment as shipped.                                           | The customer      |
-| `password-reset`      | An admin user asks for a password reset.                                    | The admin user    |
-| `paid-cart-alert`     | The recovery job cannot complete a paid cart.                               | The owner address |
-| `receipt-uploaded`    | A customer uploads a payment receipt. The email links to the order.         | The owner address |
-| `more-payment-needed` | The owner uses **Ask for more**. The email has the note and the order link. | The customer      |
+| Template              | Event                                                                                                  | To                |
+| --------------------- | ------------------------------------------------------------------------------------------------------ | ----------------- |
+| `magic-link`          | A customer asks for a sign-in link.                                                                    | The customer      |
+| `welcome`             | A customer signs in for the first time. The storefront asks for the email.                             | The customer      |
+| `order-placed`        | A customer places an order.                                                                            | The customer      |
+| `new-order-owner`     | A customer places an order (`order.placed`).                                                           | The owner address |
+| `payment-confirmed`   | Medusa captures a bank transfer payment (`payment.captured`).                                          | The customer      |
+| `order-shipped`       | Staff mark a shipment as shipped.                                                                      | The customer      |
+| `order-delivered`     | Staff mark a fulfillment as delivered (`delivery.created`).                                            | The customer      |
+| `review-request`      | The `review-requests` job runs 7 days after the delivery. The email names the products with no review. | The customer      |
+| `order-cancelled`     | Medusa cancels an order (`order.canceled`).                                                            | The customer      |
+| `refund-sent`         | Medusa refunds a payment (`payment.refunded`).                                                         | The customer      |
+| `more-payment-needed` | The owner uses **Ask for more**. The email has the note and the order link.                            | The customer      |
+| `wishlist-alert`      | A wishlist variant is back in stock, or the `wishlist-price-drops` job finds a lower price.            | The customer      |
+| `password-reset`      | An admin user asks for a password reset.                                                               | The admin user    |
+| `paid-cart-alert`     | The recovery job cannot complete a paid cart.                                                          | The owner address |
+| `receipt-uploaded`    | A customer uploads a payment receipt. The email links to the order.                                    | The owner address |
+| `low-stock-owner`     | The stock of a variant crosses the low stock threshold.                                                | The owner address |
 
 The emails exist in English (`en-US`) and Indonesian (`id-ID`):
 
 - An order email uses the order locale. The storefront sets the locale on the cart.
 - The `magic-link` and `welcome` emails use the header `x-medusa-locale` of the request.
-- The owner emails (`paid-cart-alert` and `receipt-uploaded`) and `password-reset` stay in English.
+- The `wishlist-alert` email uses the customer locale (`customer.metadata.locale`).
+- The owner emails (`new-order-owner`, `paid-cart-alert`, `receipt-uploaded`, and
+  `low-stock-owner`) and `password-reset` stay in English.
 
-The owner emails go to the owner address. The owner address is the store contact email
+The owner emails (`new-order-owner`, `paid-cart-alert`, `receipt-uploaded`, and
+`low-stock-owner`) go to the owner address. The owner address is the store contact email
 (Settings → Bank transfer in the admin dashboard). If the store contact email is empty, the owner
 address is `STORE_OWNER_EMAIL`. If both are empty, the backend sends no owner email and writes a
 log line.
@@ -157,9 +175,9 @@ owner opens the receipt in the admin dashboard.
 
 Customers have no password, so the backend sends no password reset email to a customer.
 
-In development, `BREVO_API_KEY` is empty, and the backend writes each email to its log. To send
-real email, set the three `BREVO_` keys and start the backend again. A failed email does not stop
-the order.
+In development, the backend sends each email to Mailpit (`http://localhost:8025`). If `SMTP_HOST`
+is empty, the backend writes each email to the log. A failed email does not stop the order.
+`docs/email/` describes the production providers.
 
 ## Bank transfer payments
 
@@ -470,7 +488,8 @@ The answer has no address, email, price, or customer field.
 
 When staff mark a fulfillment as shipped in the admin, the backend sends the `order-shipped`
 email with the tracking numbers. The email links only an https tracking URL. A shipment with
-`no_notification: true` sends no email. A delivery sends no email.
+`no_notification: true` sends no email. When staff mark a fulfillment as delivered, the backend
+sends the `order-delivered` email.
 
 ## Tests
 
