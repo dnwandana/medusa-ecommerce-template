@@ -32,7 +32,7 @@ const selected = computed(() => props.single || group?.modelValue.value === prop
           <slot name="caption">{{ caption }}</slot>
         </span>
       </span>
-      <span v-if="aside" class="text-price shrink-0 text-foreground">{{ aside }}</span>
+      <span v-if="aside" class="shrink-0 text-price text-foreground">{{ aside }}</span>
     </div>
     <!-- The label makes the full row the target of the radio. -->
     <label v-else :for="id" class="flex min-h-16 cursor-pointer items-center gap-4 py-4">
@@ -45,9 +45,9 @@ const selected = computed(() => props.single || group?.modelValue.value === prop
           <slot name="caption">{{ caption }}</slot>
         </span>
       </span>
-      <span v-if="aside" class="text-price shrink-0 text-foreground">{{ aside }}</span>
+      <span v-if="aside" class="shrink-0 text-price text-foreground">{{ aside }}</span>
     </label>
-    <div v-if="selected && $slots.default" class="pb-4 pt-2">
+    <div v-if="selected && $slots.default" class="pt-2 pb-4">
       <slot />
     </div>
   </div>

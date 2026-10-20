@@ -40,9 +40,9 @@ function starKind(n: number): "full" | "half" | "empty" {
         <template v-if="starKind(n) === 'half'">
           <!-- The half star sits on an empty star, so the star keeps its full outline. -->
           <Star :class="[starClass, 'text-icon-subtle']" />
-          <StarHalf :class="[starClass, 'absolute inset-0 text-star fill-current']" />
+          <StarHalf :class="[starClass, 'absolute inset-0 fill-current text-star']" />
         </template>
-        <Star v-else-if="starKind(n) === 'full'" :class="[starClass, 'text-star fill-current']" />
+        <Star v-else-if="starKind(n) === 'full'" :class="[starClass, 'fill-current text-star']" />
         <Star v-else :class="[starClass, 'text-icon-subtle']" />
       </span>
     </span>

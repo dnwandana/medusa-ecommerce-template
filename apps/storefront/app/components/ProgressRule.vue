@@ -21,7 +21,7 @@ const percent = computed<number | null>(() =>
     <div
       v-if="percent === null"
       data-slot="bar"
-      class="absolute top-0 left-0 h-0.5 w-1/3 bg-primary animate-[progress-rule_1.6s_ease-in-out_infinite] motion-reduce:animate-none"
+      class="absolute top-0 left-0 h-0.5 w-1/3 animate-[progress-rule_1.6s_ease-in-out_infinite] bg-primary motion-reduce:animate-none"
     />
     <div
       v-else

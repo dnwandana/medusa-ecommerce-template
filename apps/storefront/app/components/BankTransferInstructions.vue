@@ -92,7 +92,7 @@ async function copyNumber(account: BankAccount): Promise<void> {
               <p class="font-mono text-base break-all select-all" data-testid="account-number">
                 {{ account.account_number }}
               </p>
-              <p class="text-body-sm text-muted-foreground break-words">
+              <p class="text-body-sm break-words text-muted-foreground">
                 {{ $t("bankTransfer.holder") }}: {{ account.account_holder }}
               </p>
               <p v-if="failedId === account.id" role="status" class="text-body-sm text-destructive">

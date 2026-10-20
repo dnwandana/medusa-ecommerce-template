@@ -28,7 +28,7 @@ function select(value: AcceptableValue | AcceptableValue[] | undefined): void {
       v-for="option in options"
       :key="option.value"
       :value="option.value"
-      class="min-h-11 flex-1 border-l border-foreground px-4 text-nav uppercase text-foreground outline-none first:border-l-0 focus-visible:shadow-[var(--focus-ring)] data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+      class="min-h-11 flex-1 border-l border-foreground px-4 text-nav text-foreground uppercase outline-none first:border-l-0 focus-visible:shadow-[var(--focus-ring)] data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
     >
       {{ option.label }}
     </ToggleGroupItem>

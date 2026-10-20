@@ -10,7 +10,7 @@ defineProps<{ links: CategoryLink[] }>()
   <nav
     v-if="links.length > 1"
     :aria-label="$t('products.categories')"
-    class="-mr-4 flex gap-6 overflow-x-auto pr-4 [scrollbar-width:none] md:mr-0 md:flex-wrap md:gap-x-7 md:gap-y-2 md:overflow-visible md:pr-0"
+    class="-mr-4 flex [scrollbar-width:none] gap-6 overflow-x-auto pr-4 md:mr-0 md:flex-wrap md:gap-x-7 md:gap-y-2 md:overflow-visible md:pr-0"
   >
     <NuxtLinkLocale
       v-for="link in links"

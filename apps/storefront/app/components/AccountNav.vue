@@ -54,7 +54,7 @@ async function leave(): Promise<void> {
     <nav
       :aria-label="$t('account.title')"
       data-testid="account-tabs"
-      class="-mr-4 flex gap-6 overflow-x-auto border-b border-border pr-4 [scrollbar-width:none] [grid-area:tabs] md:hidden"
+      class="-mr-4 flex [scrollbar-width:none] gap-6 overflow-x-auto border-b border-border pr-4 [grid-area:tabs] md:hidden"
     >
       <NuxtLinkLocale
         v-for="link in links"

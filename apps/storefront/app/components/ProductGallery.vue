@@ -68,7 +68,7 @@ defineExpose({ focusPhoto })
       <ul
         ref="list"
         :aria-label="$t('product.photos')"
-        class="-mx-4 flex snap-x snap-mandatory overflow-x-auto [scrollbar-width:none] md:-mx-12 lg:mx-0 lg:snap-none lg:flex-col lg:gap-0.5 lg:overflow-visible [&::-webkit-scrollbar]:hidden"
+        class="-mx-4 flex snap-x snap-mandatory [scrollbar-width:none] overflow-x-auto md:-mx-12 lg:mx-0 lg:snap-none lg:flex-col lg:gap-0.5 lg:overflow-visible [&::-webkit-scrollbar]:hidden"
         @scroll.passive="onScroll"
       >
         <li v-for="(image, index) in images" :key="image.id" class="w-full shrink-0 snap-start">

@@ -17,7 +17,7 @@ const columnsClass = computed(() =>
     </h2>
     <!-- Phones show one sideways row that snaps to each tile. The row runs to the screen edge. -->
     <div
-      class="-mr-4 grid snap-x snap-mandatory auto-cols-[260px] grid-flow-col gap-3 overflow-x-auto pr-4 [scrollbar-width:none] md:mr-0 md:auto-cols-auto md:grid-flow-row md:gap-x-8 md:gap-y-12 md:overflow-visible md:pr-0"
+      class="-mr-4 grid snap-x snap-mandatory [scrollbar-width:none] auto-cols-[260px] grid-flow-col gap-3 overflow-x-auto pr-4 md:mr-0 md:auto-cols-auto md:grid-flow-row md:gap-x-8 md:gap-y-12 md:overflow-visible md:pr-0"
       :class="columnsClass"
     >
       <NuxtLinkLocale

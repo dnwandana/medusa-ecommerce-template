@@ -42,7 +42,7 @@ const actionClass =
     <div class="flex flex-col gap-0.5">
       <p v-if="fullName" class="text-body">{{ fullName }}</p>
       <!-- The saved address keeps the line breaks that the customer typed. -->
-      <p v-if="address.address_1" class="whitespace-pre-line text-body-sm text-muted-foreground">
+      <p v-if="address.address_1" class="text-body-sm whitespace-pre-line text-muted-foreground">
         {{ address.address_1 }}
       </p>
       <p v-if="address.city" class="text-body-sm text-muted-foreground">{{ address.city }}</p>

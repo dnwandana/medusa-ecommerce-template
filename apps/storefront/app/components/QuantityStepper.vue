@@ -49,7 +49,7 @@ const buttonClass = computed(() => [
     >
       <Minus :size="16" :stroke-width="1.5" aria-hidden="true" />
     </button>
-    <span aria-live="polite" class="w-10 text-center text-price tabular-nums text-foreground">{{
+    <span aria-live="polite" class="w-10 text-center text-price text-foreground tabular-nums">{{
       quantity
     }}</span>
     <button

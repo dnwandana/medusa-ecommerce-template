@@ -31,7 +31,7 @@ function select(value: AcceptableValue): void {
       :disabled="size.soldOut"
       :aria-disabled="size.soldOut ? 'true' : undefined"
       :aria-label="size.soldOut ? `${size.value}, ${soldOutLabel}` : undefined"
-      class="relative flex h-12 items-center justify-center border border-border text-body text-foreground outline-none focus-visible:shadow-[var(--focus-ring)] data-[state=checked]:border-foreground data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground data-[disabled]:cursor-not-allowed data-[disabled]:text-muted-foreground"
+      class="relative flex h-12 items-center justify-center border border-border text-body text-foreground outline-none focus-visible:shadow-[var(--focus-ring)] data-[disabled]:cursor-not-allowed data-[disabled]:text-muted-foreground data-[state=checked]:border-foreground data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
     >
       {{ size.value }}
       <span

@@ -100,7 +100,7 @@ function setPrice(value: unknown): void {
       <!-- Only the sections scroll, so the title and the footer stay in view. -->
       <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 md:px-6">
         <section v-if="categories?.length" class="border-b border-border py-6">
-          <h3 data-testid="filter-section-title" class="text-field-label mb-3">
+          <h3 data-testid="filter-section-title" class="mb-3 text-field-label">
             {{ $t("listing.filters.category") }}
           </h3>
           <ul class="flex flex-col">
@@ -123,7 +123,7 @@ function setPrice(value: unknown): void {
         </section>
 
         <section v-if="values.sizes.length" class="border-b border-border py-6">
-          <h3 data-testid="filter-section-title" class="text-field-label mb-3">
+          <h3 data-testid="filter-section-title" class="mb-3 text-field-label">
             {{ $t("listing.filters.size") }}
           </h3>
           <div class="grid grid-cols-3 gap-2 md:grid-cols-4">
@@ -145,7 +145,7 @@ function setPrice(value: unknown): void {
           :key="section.name"
           class="border-b border-border py-6"
         >
-          <h3 data-testid="filter-section-title" class="text-field-label mb-3">
+          <h3 data-testid="filter-section-title" class="mb-3 text-field-label">
             {{ section.label }}
           </h3>
           <ul class="flex flex-col">
@@ -172,7 +172,7 @@ function setPrice(value: unknown): void {
         </section>
 
         <section v-if="ranges.length" class="py-6">
-          <h3 data-testid="filter-section-title" class="text-field-label mb-3">
+          <h3 data-testid="filter-section-title" class="mb-3 text-field-label">
             {{ $t("listing.filters.price") }}
           </h3>
           <RadioGroup
