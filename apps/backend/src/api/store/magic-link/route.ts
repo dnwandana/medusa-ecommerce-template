@@ -5,7 +5,10 @@ import { z } from "@medusajs/framework/zod"
 import { MAGIC_LINK_MODULE } from "../../../modules/magic-link"
 import { describeBrowser } from "../../../modules/magic-link/browser"
 import type MagicLinkModuleService from "../../../modules/magic-link/service"
+import type { EmailLocale } from "../../../modules/brevo/templates/i18n"
 import type { MagicLinkEmailData } from "../../../modules/brevo/templates/magic-link"
+import { readStoreForEmail } from "../../../lib/store-for-email"
+import { readStorefrontUrl, storefrontLink } from "../../../lib/storefront-url"
 
 export const PostStoreMagicLinkSchema = z
   .object({ email: z.string().trim().pipe(z.email().max(254)) })
@@ -13,24 +16,9 @@ export const PostStoreMagicLinkSchema = z
 
 export type PostStoreMagicLinkBody = z.infer<typeof PostStoreMagicLinkSchema>
 
-const DEFAULT_STORE_NAME = "our store"
-
 // The sign-in page has a Bahasa Indonesia version only. Each other locale gets the English page.
-export function magicLinkLocale(header: string | undefined): "en-US" | "id-ID" {
+export function magicLinkLocale(header: string | undefined): EmailLocale {
   return header === "id-ID" ? "id-ID" : "en-US"
-}
-
-// Returns admin.storefrontUrl of the config with no trailing slash, or null when it has no value.
-export function readStorefrontUrl(scope: MedusaContainer): string | null {
-  const config = scope.resolve(ContainerRegistrationKeys.CONFIG_MODULE)
-  const url = config.admin?.storefrontUrl?.trim()
-  return url ? url.replace(/\/+$/, "") : null
-}
-
-// Returns the name of the first Medusa store for the emails.
-export async function readStoreName(scope: MedusaContainer): Promise<string> {
-  const [store] = await scope.resolve(Modules.STORE).listStores({}, { take: 1 })
-  return store?.name || DEFAULT_STORE_NAME
 }
 
 // The account customer wins. Else a guest customer with a first name gives the name.
@@ -72,17 +60,20 @@ export const POST = async (
     return
   }
 
-  const localePath = locale === "id-ID" ? "/id" : ""
-  const sign_in_url =
-    `${storefrontUrl}${localePath}/account/sign-in/verify` +
-    `?id=${encodeURIComponent(request.request_id)}&token=${encodeURIComponent(request.token)}`
+  const sign_in_url = storefrontLink(
+    storefrontUrl,
+    locale,
+    `/account/sign-in/verify?id=${encodeURIComponent(request.request_id)}` +
+      `&token=${encodeURIComponent(request.token)}`
+  )
 
-  const [first_name, store_name] = await Promise.all([
+  const [first_name, store] = await Promise.all([
     readFirstName(req.scope, email),
-    readStoreName(req.scope),
+    readStoreForEmail(req.scope),
   ])
   const data: MagicLinkEmailData = {
-    store_name,
+    locale,
+    store,
     first_name,
     sign_in_url,
     browser,

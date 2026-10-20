@@ -1,4 +1,5 @@
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import { BANK_ACCOUNT_MODULE } from "../../modules/bank-account"
 import passwordResetHandler, { config } from "../password-reset"
 
 const makeContainer = (admin: Record<string, unknown>) => {
@@ -8,6 +9,10 @@ const makeContainer = (admin: Record<string, unknown>) => {
     [ContainerRegistrationKeys.LOGGER]: logger,
     [ContainerRegistrationKeys.CONFIG_MODULE]: { admin },
     [Modules.NOTIFICATION]: { createNotifications },
+    [BANK_ACCOUNT_MODULE]: {
+      getContact: jest.fn().mockResolvedValue({ email: "hello@everyday.id", whatsapp: null }),
+    },
+    [Modules.STORE]: { listStores: jest.fn().mockResolvedValue([{ name: "Everyday" }]) },
   }
   const container = { resolve: (key: string) => registry[key] } as any
   return { container, createNotifications, logger }
@@ -46,6 +51,14 @@ describe("password-reset subscriber", () => {
     expect(createNotifications.mock.calls[0][0].data.reset_url).toBe(
       "https://api.shop.example.com/app/reset-password?token=tok_2&email=owner%40example.com"
     )
+  })
+
+  it("passes the store to the template", async () => {
+    const { container, createNotifications } = makeContainer(admin)
+
+    await run(container, { entity_id: "owner@example.com", actor_type: "user", token: "tok_2" })
+
+    expect(createNotifications.mock.calls[0][0].data.store.name).toBe("Everyday")
   })
 
   // Review Focus: characters in the email and the token that need URL encoding.

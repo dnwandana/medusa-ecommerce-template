@@ -1,6 +1,8 @@
 import type { MedusaContainer } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { completeCartWorkflow } from "@medusajs/medusa/core-flows"
+import { readOwnerEmail } from "../lib/owner-email"
+import { readStoreForEmail } from "../lib/store-for-email"
 import { RECOVERY_ADAPTERS, type RecoveryAdapter } from "./adapters"
 import type { PendingSession, RecoveryDeps } from "./check-paid-carts"
 
@@ -23,7 +25,7 @@ export function buildRecoveryDeps(
 
   return {
     now: () => new Date(),
-    ownerEmail: env.STORE_OWNER_EMAIL ?? "",
+    readOwnerEmail: () => readOwnerEmail(container, env),
     adapters,
     logger: container.resolve(ContainerRegistrationKeys.LOGGER),
 
@@ -87,7 +89,7 @@ export function buildRecoveryDeps(
         to,
         channel: "email",
         template: "paid-cart-alert",
-        data,
+        data: { ...data, store: await readStoreForEmail(container) },
       })
     },
 

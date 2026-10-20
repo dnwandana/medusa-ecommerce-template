@@ -20,7 +20,7 @@ type AdapterOverrides = Partial<Omit<RecoveryAdapter, "isSessionPaid">> & {
 }
 
 type DepsOverrides = {
-  ownerEmail?: string
+  readOwnerEmail?: jest.Mock
   completeCart?: jest.Mock
   sendAlert?: jest.Mock
 }
@@ -40,7 +40,7 @@ const makeDeps = (
 ) => {
   const deps = {
     now: () => NOW,
-    ownerEmail: "owner@example.com",
+    readOwnerEmail: jest.fn().mockResolvedValue("owner@example.com"),
     adapters,
     listPendingSessions: jest.fn(
       async (providerId: string) => sessionsByProvider[providerId] ?? []
@@ -234,7 +234,7 @@ describe("checkPaidCarts", () => {
       [makeAdapter()],
       { pp_test_test: [session()] },
       {
-        ownerEmail: "",
+        readOwnerEmail: jest.fn().mockResolvedValue(""),
         completeCart: failedCompletion(),
       }
     )
@@ -244,7 +244,7 @@ describe("checkPaidCarts", () => {
     expect(deps.sendAlert).not.toHaveBeenCalled()
     expect(deps.markAlertSent).toHaveBeenCalledWith("cart_1", "2026-10-02T12:00:00.000Z")
     expect(deps.logger.error).toHaveBeenCalledWith(
-      "The cart cart_1 is paid, but it has no order. Payment provider: pp_test_test. Payment reference: ref-1. Amount: 150000. Customer: buyer@example.com. STORE_OWNER_EMAIL is empty, so the job sent no email."
+      "The cart cart_1 is paid, but it has no order. Payment provider: pp_test_test. Payment reference: ref-1. Amount: 150000. Customer: buyer@example.com. The owner email is empty, so the job sent no email."
     )
     expect(result).toEqual({ checked: 1, completed: 0, alerted: 0 })
   })

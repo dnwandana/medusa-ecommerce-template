@@ -2,9 +2,11 @@ import type { AuthenticatedMedusaRequest, MedusaResponse } from "@medusajs/frame
 import { ContainerRegistrationKeys, MedusaError, Modules } from "@medusajs/framework/utils"
 import { z } from "@medusajs/framework/zod"
 import { updateCustomersWorkflow } from "@medusajs/medusa/core-flows"
-import { CUSTOMER_WELCOME_SENT_AT } from "../../../../../lib/storefront-metadata"
+import { readStoreForEmail } from "../../../../../lib/store-for-email"
+import { readStorefrontUrl, storefrontLink } from "../../../../../lib/storefront-url"
+import { CUSTOMER_LOCALE, CUSTOMER_WELCOME_SENT_AT } from "../../../../../lib/storefront-metadata"
+import { toEmailLocale } from "../../../../../modules/brevo/templates/i18n"
 import type { WelcomeEmailData } from "../../../../../modules/brevo/templates/welcome"
-import { readStoreName, readStorefrontUrl } from "../../../magic-link/route"
 
 export const PostStoreWelcomeSchema = z
   .object({
@@ -28,6 +30,7 @@ export const POST = async (
     throw new MedusaError(MedusaError.Types.UNEXPECTED_STATE, "We could not send the email.")
   }
 
+  const locale = toEmailLocale(req.get("x-medusa-locale"))
   const customerId = req.auth_context.actor_id
   const firstName = req.validatedBody.first_name ?? ""
   const lastName = req.validatedBody.last_name ?? ""
@@ -48,6 +51,7 @@ export const POST = async (
             metadata: {
               ...customer.metadata,
               [CUSTOMER_WELCOME_SENT_AT]: new Date().toISOString(),
+              [CUSTOMER_LOCALE]: locale,
             },
             ...(firstName ? { first_name: firstName, last_name: lastName || null } : {}),
           },
@@ -55,9 +59,11 @@ export const POST = async (
       })
 
       const data: WelcomeEmailData = {
-        store_name: await readStoreName(req.scope),
+        locale,
+        store: await readStoreForEmail(req.scope),
         first_name: firstName || customer.first_name || null,
-        shop_url: shopUrl,
+        // The home page URL has no trailing slash: the base for en-US and the base plus /id for id-ID.
+        shop_url: storefrontLink(shopUrl, locale, "/").replace(/\/+$/, ""),
       }
       try {
         await req.scope.resolve(Modules.NOTIFICATION).createNotifications({

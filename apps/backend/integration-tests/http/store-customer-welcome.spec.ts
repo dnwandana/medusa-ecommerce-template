@@ -49,11 +49,49 @@ medusaIntegrationTestRunner({
           "Invalid Date"
         )
         const [email] = await welcomes("sari@example.com")
-        expect(email!.data).toEqual({
-          store_name: storeName,
+        expect(email!.data).toMatchObject({
+          locale: "en-US",
+          store: { name: storeName },
           first_name: "Sari",
           shop_url: STOREFRONT_URL,
         })
+      })
+
+      it("sends the welcome email in the header locale and saves the locale", async () => {
+        const actor = await createCustomerWithToken(getContainer(), {
+          email: "dewi@example.com",
+          first_name: null,
+        })
+        const response = await api
+          .post(
+            "/store/customers/me/welcome",
+            { first_name: "Dewi" },
+            { headers: { ...storeHeaders, ...actor.headers, "x-medusa-locale": "id-ID" } }
+          )
+          .catch((e: any) => e.response)
+        expect(response.data).toEqual({ sent: true })
+        const [sent] = await welcomes("dewi@example.com")
+        expect(sent!.data!.locale).toBe("id-ID")
+        expect(sent!.data!.shop_url).toBe(`${STOREFRONT_URL}/id`)
+        const customer = await customerModule.retrieveCustomer(actor.id)
+        expect(customer.metadata?.locale).toBe("id-ID")
+        expect(customer.metadata?.welcome_sent_at).toEqual(expect.any(String))
+      })
+
+      it("saves the locale on Skip", async () => {
+        const actor = await createCustomerWithToken(getContainer(), {
+          email: "lewat@example.com",
+          first_name: null,
+        })
+        await api.post(
+          "/store/customers/me/welcome",
+          {},
+          {
+            headers: { ...storeHeaders, ...actor.headers, "x-medusa-locale": "id-ID" },
+          }
+        )
+        const customer = await customerModule.retrieveCustomer(actor.id)
+        expect(customer.metadata?.locale).toBe("id-ID")
       })
 
       it("sends no second email and keeps the first name", async () => {

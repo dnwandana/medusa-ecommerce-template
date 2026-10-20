@@ -1,15 +1,15 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
-import type {
-  OrderShippedData,
-  OrderShippedItem,
-  OrderShippedLabel,
-} from "../modules/brevo/templates/order-shipped"
+import { readStoreForEmail } from "../lib/store-for-email"
+import { readStorefrontUrl, storefrontLink } from "../lib/storefront-url"
+import { toEmailLocale } from "../modules/brevo/templates/i18n"
+import type { OrderShippedData, OrderShippedLabel } from "../modules/brevo/templates/order-shipped"
+import type { EmailLineItem } from "../modules/brevo/templates/shell"
 
 type ShipmentCreatedEvent = { id: string; no_notification?: boolean }
 
 // The link order_fulfillment gives the fulfillment the field alias "order".
-const FULFILLMENT_FIELDS = [
+export const FULFILLMENT_FIELDS = [
   "id",
   "shipped_at",
   "labels.tracking_number",
@@ -20,6 +20,7 @@ const FULFILLMENT_FIELDS = [
   "order.id",
   "order.display_id",
   "order.email",
+  "order.locale",
   "order.shipping_address.*",
   "order.shipping_methods.name",
   "order.items.id",
@@ -39,6 +40,7 @@ type ShippedFulfillment = {
     id: string
     display_id: number
     email?: string | null
+    locale?: string | null
     shipping_address?: OrderShippedData["order"]["shipping_address"]
     shipping_methods?: { name?: string | null }[] | null
     items?: OrderLine[] | null
@@ -47,10 +49,10 @@ type ShippedFulfillment = {
 
 // Returns the items of this shipment. The order line gives the product and the variant titles.
 // With no matching line, the item keeps the title of the fulfillment item.
-function shipmentItems(
+export function shipmentItems(
   items: FulfillmentItem[] | null | undefined,
   lines: OrderLine[] | null | undefined
-): OrderShippedItem[] {
+): EmailLineItem[] {
   const lineById = new Map((lines ?? []).map((line) => [line.id, line]))
   return (items ?? []).map((item) => {
     const line = item.line_item_id ? lineById.get(item.line_item_id) : undefined
@@ -100,11 +102,17 @@ export default async function shipmentCreatedHandler({
       return
     }
 
-    const configModule = container.resolve(ContainerRegistrationKeys.CONFIG_MODULE)
-    const storefrontUrl = (configModule.admin?.storefrontUrl ?? "").replace(/\/$/, "")
+    const storefrontUrl = readStorefrontUrl(container)
+    if (!storefrontUrl) {
+      logger.warn("The order-shipped email was not sent. STOREFRONT_URL has no value.")
+      return
+    }
+    const locale = toEmailLocale(order.locale)
 
     const emailData: OrderShippedData = {
-      order_url: `${storefrontUrl}/orders/${order.id}`,
+      locale,
+      store: await readStoreForEmail(container),
+      order_url: storefrontLink(storefrontUrl, locale, `/orders/${order.id}`),
       order: { display_id: order.display_id, shipping_address: order.shipping_address },
       shipment: {
         shipped_at: new Date(fulfillment.shipped_at).toISOString(),

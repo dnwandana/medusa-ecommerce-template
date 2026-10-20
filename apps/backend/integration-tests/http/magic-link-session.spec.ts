@@ -18,8 +18,14 @@ medusaIntegrationTestRunner({
       })
 
       // Asks for a link and reads the token from the sent email.
-      const requestLink = async (email: string) => {
-        const { data } = await api.post("/store/magic-link", { email }, storeHeaders)
+      const requestLink = async (email: string, extra: Record<string, string> = {}) => {
+        const { data } = await api.post(
+          "/store/magic-link",
+          { email },
+          {
+            headers: { ...storeHeaders.headers, ...extra },
+          }
+        )
         const [sent] = await notificationModule.listNotifications({
           to: email,
           template: "magic-link",
@@ -46,6 +52,22 @@ medusaIntegrationTestRunner({
         const me = await api.get("/store/customers/me", bearer(session.data.token))
         expect(me.data.customer.email).toBe("sari@example.com")
         expect((await post("status", { id, secret })).data).toEqual({ status: "used" })
+      })
+
+      it("saves the locale on the customer", async () => {
+        const { id, secret, token } = await requestLink("lokal@example.com", {
+          "x-medusa-locale": "id-ID",
+        })
+        const session = await api.post(
+          "/store/magic-link/session",
+          { id, secret, token },
+          { headers: { ...storeHeaders.headers, "x-medusa-locale": "id-ID" } }
+        )
+        expect(session.status).toBe(200)
+        const [customer] = await getContainer()
+          .resolve(Modules.CUSTOMER)
+          .listCustomers({ email: "lokal@example.com", has_account: true })
+        expect(customer!.metadata?.locale).toBe("id-ID")
       })
 
       it("gives a session in the same browser with the token and the secret", async () => {

@@ -1,5 +1,6 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import { readStoreForEmail } from "../lib/store-for-email"
 
 type PasswordResetEvent = { entity_id: string; actor_type: string; token: string }
 
@@ -39,7 +40,7 @@ export default async function passwordResetHandler({
       to: entity_id,
       channel: "email",
       template: "password-reset",
-      data: { reset_url },
+      data: { store: await readStoreForEmail(container), reset_url },
     })
   } catch (error) {
     const cause = error instanceof Error ? error.message : String(error)

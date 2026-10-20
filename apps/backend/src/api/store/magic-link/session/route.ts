@@ -3,6 +3,8 @@ import type { AuthIdentityDTO } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, MedusaError, Modules } from "@medusajs/framework/utils"
 import { z } from "@medusajs/framework/zod"
 import { generateJwtTokenForAuthIdentity } from "@medusajs/medusa/api/auth/utils/generate-jwt-token"
+import { CUSTOMER_LOCALE } from "../../../../lib/storefront-metadata"
+import { toEmailLocale } from "../../../../modules/brevo/templates/i18n"
 import { MAGIC_LINK_MODULE } from "../../../../modules/magic-link"
 import type MagicLinkModuleService from "../../../../modules/magic-link/service"
 import { resolveCustomerAccountWorkflow } from "../../../../workflows/resolve-customer-account"
@@ -35,6 +37,24 @@ export const POST = async (
   const { result: account } = await resolveCustomerAccountWorkflow(req.scope).run({
     input: { email: link.email },
   })
+
+  // The customer locale decides the language of the later emails. A failed write must not stop
+  // the sign-in, so the route logs the error and goes on.
+  try {
+    const customerModule = req.scope.resolve(Modules.CUSTOMER)
+    const customer = await customerModule.retrieveCustomer(account.customer_id)
+    await customerModule.updateCustomers(account.customer_id, {
+      metadata: {
+        ...customer.metadata,
+        [CUSTOMER_LOCALE]: toEmailLocale(req.get("x-medusa-locale")),
+      },
+    })
+  } catch (error) {
+    const cause = error instanceof Error ? error.message : String(error)
+    req.scope
+      .resolve(ContainerRegistrationKeys.LOGGER)
+      .error(`The customer locale was not saved. Cause: ${cause}`)
+  }
 
   const { http } = req.scope.resolve(ContainerRegistrationKeys.CONFIG_MODULE).projectConfig
   const token = await generateJwtTokenForAuthIdentity(

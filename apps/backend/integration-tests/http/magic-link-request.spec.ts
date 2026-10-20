@@ -61,7 +61,8 @@ medusaIntegrationTestRunner({
         expect(email!.data).toMatchObject({
           first_name: "Sari",
           browser: "Chrome on Windows",
-          store_name: storeName,
+          locale: "id-ID",
+          store: { name: storeName },
         })
         expect(email!.data!.sign_in_url).toMatch(
           new RegExp(
@@ -69,6 +70,21 @@ medusaIntegrationTestRunner({
           )
         )
         expect(JSON.stringify(email!.data)).not.toContain(response.data.secret)
+      })
+
+      it("sends the Indonesian email for id-ID", async () => {
+        await post({ email: "dewi@example.com" }, { "x-medusa-locale": "id-ID" })
+        const [email] = await sentTo("dewi@example.com")
+        expect(email!.data!.locale).toBe("id-ID")
+        expect(email!.data!.sign_in_url).toMatch(/\/id\/account\/sign-in\/verify\?id=/)
+        expect((email!.data!.store as { name: string }).name).toEqual(expect.any(String))
+      })
+
+      it("sends the English email with no /id prefix for en-US", async () => {
+        await post({ email: "ann@example.com" }, { "x-medusa-locale": "en-US" })
+        const [email] = await sentTo("ann@example.com")
+        expect(email!.data!.locale).toBe("en-US")
+        expect(email!.data!.sign_in_url).not.toContain("/id/")
       })
 
       it("gives the same answer for an unknown email", async () => {

@@ -1,10 +1,21 @@
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import { BANK_ACCOUNT_MODULE } from "../../modules/bank-account"
 import { PAYMENT_RECEIPT_MODULE } from "../../modules/payment-receipt"
 import { PAYMENT_RECEIPT_UPLOADED } from "../../modules/payment-receipt/constants"
 import paymentReceiptUploadedHandler, { config } from "../payment-receipt-uploaded"
 
-const makeContainer = (backendUrl = "https://api.example.com/") => {
-  const graph = jest.fn().mockResolvedValue({ data: [{ id: "order_1", display_id: 12 }] })
+type ContainerOptions = {
+  backendUrl?: string
+  contactEmail?: string | null
+}
+
+const makeContainer = ({
+  backendUrl = "https://api.example.com/",
+  contactEmail = null,
+}: ContainerOptions = {}) => {
+  const graph = jest
+    .fn()
+    .mockResolvedValue({ data: [{ id: "order_1", display_id: 12, total: 318000 }] })
   const createNotifications = jest.fn().mockResolvedValue({})
   const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() }
   const receiptService = {
@@ -17,6 +28,10 @@ const makeContainer = (backendUrl = "https://api.example.com/") => {
     [ContainerRegistrationKeys.CONFIG_MODULE]: { admin: { backendUrl } },
     [Modules.NOTIFICATION]: { createNotifications },
     [PAYMENT_RECEIPT_MODULE]: receiptService,
+    [BANK_ACCOUNT_MODULE]: {
+      getContact: jest.fn().mockResolvedValue({ email: contactEmail, whatsapp: null }),
+    },
+    [Modules.STORE]: { listStores: jest.fn().mockResolvedValue([{ name: "Everyday" }]) },
   }
   const container = { resolve: (key: string) => registry[key] } as any
   return { container, graph, createNotifications, logger, receiptService }
@@ -55,7 +70,7 @@ describe("payment-receipt-uploaded subscriber", () => {
 
     expect(graph).toHaveBeenCalledWith({
       entity: "order",
-      fields: ["id", "display_id"],
+      fields: ["id", "display_id", "total"],
       filters: { id: "order_1" },
     })
     expect(receiptService.listPaymentReceipts).toHaveBeenCalledWith({ id: "prcpt_1" })
@@ -65,16 +80,18 @@ describe("payment-receipt-uploaded subscriber", () => {
       channel: "email",
       template: "receipt-uploaded",
       data: {
+        store: { name: "Everyday", contact_email: null, whatsapp: null },
         order: { display_id: 12 },
         file_name: "bukti.png",
         receipt_count: 1,
+        amount_due: 318000,
         admin_url: "https://api.example.com/app/orders/order_1",
       },
     })
   })
 
   it("uses the local backend URL when backendUrl is the Medusa default", async () => {
-    const { container, createNotifications } = makeContainer("/")
+    const { container, createNotifications } = makeContainer({ backendUrl: "/" })
 
     await run(container)
 
@@ -83,15 +100,34 @@ describe("payment-receipt-uploaded subscriber", () => {
     )
   })
 
-  it("sends nothing and logs a warning when STORE_OWNER_EMAIL is empty", async () => {
+  it("sends to the store contact email with the amount due", async () => {
+    const { container, createNotifications } = makeContainer({ contactEmail: "owner@everyday.id" })
+
+    await run(container)
+
+    const call = createNotifications.mock.calls[0][0]
+    expect(call.to).toBe("owner@everyday.id")
+    expect(call.data.amount_due).toBe(318000)
+    expect(call.data.store.name).toBe("Everyday")
+  })
+
+  it("falls back to STORE_OWNER_EMAIL when the store has no contact email", async () => {
+    const { container, createNotifications } = makeContainer({ contactEmail: null })
+
+    await run(container)
+
+    expect(createNotifications.mock.calls[0][0].to).toBe("owner@example.com")
+  })
+
+  it("sends nothing and logs a warning when both addresses are empty", async () => {
     process.env.STORE_OWNER_EMAIL = ""
-    const { container, createNotifications, logger } = makeContainer()
+    const { container, createNotifications, logger } = makeContainer({ contactEmail: null })
 
     await run(container)
 
     expect(createNotifications).not.toHaveBeenCalled()
     expect(logger.warn).toHaveBeenCalledWith(
-      "STORE_OWNER_EMAIL is empty. The receipt email for order #12 was not sent."
+      "The owner email is empty. The receipt email for order #12 was not sent. Set the store contact email or STORE_OWNER_EMAIL."
     )
   })
 

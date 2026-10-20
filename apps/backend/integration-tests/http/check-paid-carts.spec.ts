@@ -97,7 +97,8 @@ medusaIntegrationTestRunner({
         expect(await orders()).toHaveLength(0)
         const sent = await alerts()
         expect(sent).toHaveLength(1)
-        expect(sent[0].to).toBe("owner@example.com")
+        // The seed sets the store contact, and the contact wins over STORE_OWNER_EMAIL.
+        expect(sent[0].to).toBe("store@example.com")
         expect(sent[0].channel).toBe("email")
         expect(sent[0].data).toMatchObject({
           cart_id: cartId,

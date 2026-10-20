@@ -1,12 +1,11 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import { adminLink } from "../lib/admin-url"
+import { readOwnerEmail } from "../lib/owner-email"
+import { readStoreForEmail } from "../lib/store-for-email"
 import { PAYMENT_RECEIPT_MODULE } from "../modules/payment-receipt"
 import { PAYMENT_RECEIPT_UPLOADED } from "../modules/payment-receipt/constants"
 import type PaymentReceiptModuleService from "../modules/payment-receipt/service"
-
-// The same defaults as the password reset email.
-const DEFAULT_BACKEND_URL = "http://localhost:9000"
-const DEFAULT_ADMIN_PATH = "/app"
 
 // Sends the "receipt-uploaded" email to the store owner. The upload is already saved, so an email
 // failure must not stop it. This handler catches each error and writes it to the log.
@@ -22,7 +21,7 @@ export default async function paymentReceiptUploadedHandler({
       data: [order],
     } = await query.graph({
       entity: "order",
-      fields: ["id", "display_id"],
+      fields: ["id", "display_id", "total"],
       filters: { id: data.order_id },
     })
     if (!order) {
@@ -30,11 +29,11 @@ export default async function paymentReceiptUploadedHandler({
       return
     }
 
-    // The same env value as the paid cart alert of src/recovery/dependencies.ts.
-    const to = process.env.STORE_OWNER_EMAIL ?? ""
+    // The same address as the paid cart alert of src/recovery/dependencies.ts.
+    const to = await readOwnerEmail(container)
     if (!to) {
       logger.warn(
-        `STORE_OWNER_EMAIL is empty. The receipt email for order #${order.display_id} was not sent.`
+        `The owner email is empty. The receipt email for order #${order.display_id} was not sent. Set the store contact email or STORE_OWNER_EMAIL.`
       )
       return
     }
@@ -49,24 +48,19 @@ export default async function paymentReceiptUploadedHandler({
       return
     }
 
-    const configModule = container.resolve(ContainerRegistrationKeys.CONFIG_MODULE)
-    const admin = configModule.admin ?? {}
-    // The Medusa default for backendUrl is "/", and an email needs a full URL.
-    const backendUrl =
-      !admin.backendUrl || admin.backendUrl === "/"
-        ? DEFAULT_BACKEND_URL
-        : admin.backendUrl.replace(/\/$/, "")
-
+    const store = await readStoreForEmail(container)
     const notificationService = container.resolve(Modules.NOTIFICATION)
     await notificationService.createNotifications({
       to,
       channel: "email",
       template: "receipt-uploaded",
       data: {
+        store,
         order: { display_id: order.display_id },
         file_name: receipt.file_name,
         receipt_count: receiptCount,
-        admin_url: `${backendUrl}${admin.path ?? DEFAULT_ADMIN_PATH}/orders/${order.id}`,
+        amount_due: Number(order.total),
+        admin_url: adminLink(container, `/orders/${order.id}`),
       },
     })
   } catch (error) {

@@ -1,4 +1,5 @@
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import { BANK_ACCOUNT_MODULE } from "../../modules/bank-account"
 import shipmentCreatedHandler, { config } from "../shipment-created"
 
 const fulfillment = {
@@ -12,6 +13,7 @@ const fulfillment = {
     id: "order_123",
     display_id: 24117,
     email: "sari@example.com",
+    locale: "en-US",
     shipping_address: { first_name: "Sari", city: "Jakarta Selatan" },
     shipping_methods: [{ name: "Standard Shipping" }],
     items: [{ id: "ordli_1", product_title: "Relaxed Linen Shirt", variant_title: "Sand / M" }],
@@ -27,6 +29,10 @@ const makeContainer = (fulfillments: unknown[], storefrontUrl = "https://shop.ex
     [ContainerRegistrationKeys.LOGGER]: logger,
     [ContainerRegistrationKeys.CONFIG_MODULE]: { admin: { storefrontUrl } },
     [Modules.NOTIFICATION]: { createNotifications },
+    [BANK_ACCOUNT_MODULE]: {
+      getContact: jest.fn().mockResolvedValue({ email: "hello@everyday.id", whatsapp: null }),
+    },
+    [Modules.STORE]: { listStores: jest.fn().mockResolvedValue([{ name: "Everyday" }]) },
   }
   const container = { resolve: (key: string) => registry[key] } as any
   return { container, graph, createNotifications, logger }
@@ -52,6 +58,8 @@ describe("shipment-created subscriber", () => {
       channel: "email",
       template: "order-shipped",
       data: {
+        locale: "en-US",
+        store: { name: "Everyday", contact_email: "hello@everyday.id", whatsapp: null },
         order_url: "https://shop.example.com/orders/order_123",
         order: { display_id: 24117, shipping_address: fulfillment.order.shipping_address },
         shipment: {
@@ -62,6 +70,41 @@ describe("shipment-created subscriber", () => {
         },
       },
     })
+  })
+
+  it("passes the locale, the store, and the Indonesian link", async () => {
+    const { container, createNotifications } = makeContainer([
+      { ...fulfillment, order: { ...fulfillment.order, locale: "id-ID" } },
+    ])
+    await run(container)
+    const { data } = createNotifications.mock.calls[0][0]
+    expect([data.locale, data.store.name, data.order_url]).toEqual([
+      "id-ID",
+      "Everyday",
+      "https://shop.example.com/id/orders/order_123",
+    ])
+    expect(data.shipment.items[0]).toEqual({
+      title: "Relaxed Linen Shirt",
+      variant_title: "Sand / M",
+      quantity: 1,
+    })
+  })
+
+  it("uses English for an order with no locale", async () => {
+    const { container, createNotifications } = makeContainer([
+      { ...fulfillment, order: { ...fulfillment.order, locale: null } },
+    ])
+    await run(container)
+    expect(createNotifications.mock.calls[0][0].data.locale).toBe("en-US")
+  })
+
+  it("warns and sends nothing without STOREFRONT_URL", async () => {
+    const { container, createNotifications, logger } = makeContainer([fulfillment], "")
+    await run(container)
+    expect(createNotifications).not.toHaveBeenCalled()
+    expect(logger.warn).toHaveBeenCalledWith(
+      "The order-shipped email was not sent. STOREFRONT_URL has no value."
+    )
   })
 
   it("uses the fulfillment item title when no order line matches", async () => {

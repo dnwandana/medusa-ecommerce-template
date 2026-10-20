@@ -16,11 +16,12 @@ export type PendingSession = {
 
 export type RecoveryDeps = {
   now: () => Date
-  ownerEmail: string
+  readOwnerEmail(): Promise<string>
   adapters: RecoveryAdapter[]
   listPendingSessions(providerId: string): Promise<PendingSession[]>
   completeCart(cartId: string): Promise<void>
-  sendAlert(to: string, data: PaidCartAlertData): Promise<void>
+  // The wiring adds the store details to the data.
+  sendAlert(to: string, data: Omit<PaidCartAlertData, "store">): Promise<void>
   markAlertSent(cartId: string, sentAt: string): Promise<void>
   logger: {
     info(message: string): void
@@ -71,16 +72,27 @@ async function alertOwner(
   const { cartId } = session
   const paymentReference = paymentReferenceOf(adapter, session)
 
-  if (!deps.ownerEmail) {
+  let to: string
+  try {
+    to = await deps.readOwnerEmail()
+  } catch (error) {
+    // The cart keeps no mark, so the next run reads the address again.
     deps.logger.error(
-      `The cart ${cartId} is paid, but it has no order. Payment provider: ${adapter.providerId}. Payment reference: ${paymentReference}. Amount: ${session.amount}. Customer: ${session.customerEmail || "no email address"}. STORE_OWNER_EMAIL is empty, so the job sent no email.`
+      `The check-paid-carts job did not read the owner email for the cart ${cartId}. Cause: ${causeOf(error)}`
+    )
+    return false
+  }
+
+  if (!to) {
+    deps.logger.error(
+      `The cart ${cartId} is paid, but it has no order. Payment provider: ${adapter.providerId}. Payment reference: ${paymentReference}. Amount: ${session.amount}. Customer: ${session.customerEmail || "no email address"}. The owner email is empty, so the job sent no email.`
     )
     await markAlert(deps, cartId)
     return false
   }
 
   try {
-    await deps.sendAlert(deps.ownerEmail, {
+    await deps.sendAlert(to, {
       cart_id: cartId,
       provider_id: adapter.providerId,
       payment_reference: paymentReference,
