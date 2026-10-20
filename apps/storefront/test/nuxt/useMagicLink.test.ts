@@ -188,7 +188,7 @@ describe("useMagicLink", () => {
     sdk.client.fetch
       .mockResolvedValueOnce({ request_id: "mlr_1", secret: "sec", expires_at: "x" })
       .mockResolvedValueOnce({ request_id: "mlr_2", secret: "sec2", expires_at: "x" })
-      .mockRejectedValueOnce(new Error("Brevo is down"))
+      .mockRejectedValueOnce(new Error("SMTP is down"))
     const flow = useMagicLink({ onSignedIn: vi.fn() })
     await flow.requestLink("sari@example.com", null)
     await flow.resend()
