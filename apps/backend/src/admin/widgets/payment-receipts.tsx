@@ -5,6 +5,7 @@ import { Button, Container, Heading, InlineTip, Text, toast, usePrompt } from "@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { AskForMoreDrawer } from "../components/ask-for-more-drawer"
+import { CancelOrderDrawer } from "../components/cancel-order-drawer"
 import {
   isBankTransferOrder,
   receiptColumnClass,
@@ -31,7 +32,8 @@ const errorText = (error: unknown): string =>
 const PaymentReceiptsWidget = ({ data: order }: DetailWidgetProps<HttpTypes.AdminOrder>) => {
   const queryClient = useQueryClient()
   const prompt = usePrompt()
-  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [askDrawerOpen, setAskDrawerOpen] = useState(false)
+  const [cancelDrawerOpen, setCancelDrawerOpen] = useState(false)
   const widgetOrder = order as unknown as WidgetOrder
   const isBankTransfer = isBankTransferOrder(widgetOrder)
   const receiptsKey = ["payment-receipts", order.id]
@@ -70,16 +72,23 @@ const PaymentReceiptsWidget = ({ data: order }: DetailWidgetProps<HttpTypes.Admi
       }),
     onSuccess: async () => {
       await refresh()
-      setDrawerOpen(false)
+      setAskDrawerOpen(false)
       toast.success("The note is sent to the customer.")
     },
     onError: (error) => toast.error(errorText(error)),
   })
 
+  // The native cancel route has no note, so the widget uses the custom route. The custom route
+  // writes the note into the order metadata for the cancellation email.
   const cancel = useMutation({
-    mutationFn: () => sdk.admin.order.cancel(order.id),
+    mutationFn: (note: string) =>
+      sdk.client.fetch<{ cancelled: boolean }>(`/admin/orders/${order.id}/receipts/cancel`, {
+        method: "POST",
+        body: note ? { note } : {},
+      }),
     onSuccess: async () => {
       await refresh()
+      setCancelDrawerOpen(false)
       toast.success("The order is cancelled.")
     },
     onError: (error) => toast.error(errorText(error)),
@@ -106,21 +115,13 @@ const PaymentReceiptsWidget = ({ data: order }: DetailWidgetProps<HttpTypes.Admi
     }
   }
 
-  const onCancel = async () => {
-    const confirmed = await prompt({
-      title: "Cancel order",
-      description: `Cancel order #${order.display_id}? Medusa releases the stock.`,
-      confirmText: "Cancel order",
-      cancelText: "Keep order",
-    })
-    if (confirmed) {
-      cancel.mutate()
-    }
-  }
-
-  // The drawer keeps the typed note when the request fails, so the error must reach it.
+  // The drawers keep the typed note when the request fails, so the error must reach them.
   const onSendNote = async (text: string) => {
     await askForMore.mutateAsync(text)
+  }
+
+  const onConfirmCancel = async (text: string) => {
+    await cancel.mutateAsync(text)
   }
 
   return (
@@ -183,7 +184,12 @@ const PaymentReceiptsWidget = ({ data: order }: DetailWidgetProps<HttpTypes.Admi
       {(actions.accept || actions.askForMore || actions.cancel) && (
         <div className="flex flex-wrap items-center justify-end gap-2 px-6 py-4">
           {actions.cancel && (
-            <Button size="small" variant="danger" disabled={busy} onClick={onCancel}>
+            <Button
+              size="small"
+              variant="danger"
+              disabled={busy}
+              onClick={() => setCancelDrawerOpen(true)}
+            >
               Cancel order
             </Button>
           )}
@@ -192,7 +198,7 @@ const PaymentReceiptsWidget = ({ data: order }: DetailWidgetProps<HttpTypes.Admi
               size="small"
               variant="secondary"
               disabled={busy}
-              onClick={() => setDrawerOpen(true)}
+              onClick={() => setAskDrawerOpen(true)}
             >
               Ask for more
             </Button>
@@ -205,10 +211,16 @@ const PaymentReceiptsWidget = ({ data: order }: DetailWidgetProps<HttpTypes.Admi
         </div>
       )}
       <AskForMoreDrawer
-        open={drawerOpen}
-        onOpenChange={setDrawerOpen}
+        open={askDrawerOpen}
+        onOpenChange={setAskDrawerOpen}
         onSubmit={onSendNote}
         busy={askForMore.isPending}
+      />
+      <CancelOrderDrawer
+        open={cancelDrawerOpen}
+        onOpenChange={setCancelDrawerOpen}
+        onSubmit={onConfirmCancel}
+        busy={cancel.isPending}
       />
     </Container>
   )

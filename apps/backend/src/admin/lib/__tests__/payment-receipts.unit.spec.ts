@@ -4,6 +4,7 @@ import {
   receiptCountLabel,
   receiptFileUrl,
   validateNote,
+  validateOptionalNote,
   widgetActions,
 } from "../payment-receipts"
 
@@ -63,6 +64,17 @@ describe("payment receipt widget helpers", () => {
     expect(validateNote("x".repeat(501))).toBe("Write at most 500 characters.")
     expect(validateNote("x".repeat(500))).toBeNull()
     expect(validateNote("Rp 50.000 is missing")).toBeNull()
+  })
+
+  it("accepts an empty or a short optional note", () => {
+    expect(validateOptionalNote("")).toBeNull()
+    expect(validateOptionalNote("   ")).toBeNull()
+    expect(validateOptionalNote("  ok  ")).toBeNull()
+    expect(validateOptionalNote(` ${"x".repeat(500)} `)).toBeNull()
+  })
+
+  it("refuses a long optional note", () => {
+    expect(validateOptionalNote("x".repeat(501))).toBe("Write at most 500 characters.")
   })
 
   it("builds the file URL", () => {

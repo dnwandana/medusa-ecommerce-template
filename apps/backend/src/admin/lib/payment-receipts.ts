@@ -66,6 +66,15 @@ export function validateNote(note: string): string | null {
   return null
 }
 
+/** Returns the error text for a note that POST .../receipts/cancel refuses, or null. */
+export function validateOptionalNote(note: string): string | null {
+  // The note is optional, so only the length can be wrong. The route trims before it checks.
+  if (note.trim().length > MAX_NOTE_LENGTH) {
+    return `Write at most ${MAX_NOTE_LENGTH} characters.`
+  }
+  return null
+}
+
 /** Returns the Admin API path of the receipt image. */
 export function receiptFileUrl(receiptId: string): string {
   return `/admin/payment-receipts/${encodeURIComponent(receiptId)}/file`

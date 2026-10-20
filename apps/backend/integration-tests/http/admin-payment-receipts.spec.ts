@@ -1,11 +1,16 @@
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
-import { cancelOrderWorkflow, capturePaymentWorkflow } from "@medusajs/medusa/core-flows"
+import {
+  cancelOrderWorkflow,
+  capturePaymentWorkflow,
+  createOrderFulfillmentWorkflow,
+} from "@medusajs/medusa/core-flows"
 import { medusaIntegrationTestRunner } from "@medusajs/test-utils"
 import { PAYMENT_RECEIPT_MODULE } from "../../src/modules/payment-receipt"
 import type PaymentReceiptModuleService from "../../src/modules/payment-receipt/service"
 import { runSeed } from "../../src/seed"
 import { createAdminWithToken, type Actor } from "../helpers/actors"
 import { placeOrder } from "../helpers/checkout"
+import { getOrderItems } from "../helpers/shipping"
 
 jest.setTimeout(180 * 1000)
 
@@ -249,6 +254,90 @@ medusaIntegrationTestRunner({
         ])
         const unknown = await ask({ note: "x" }, "order_none")
         expect([unknown.status, unknown.data.message]).toEqual([404, "The order does not exist."])
+      })
+    })
+
+    describe("cancel", () => {
+      const cancelByStaff = (body: object, orderId = order.id) =>
+        api.post(`/admin/orders/${orderId}/receipts/cancel`, body, {
+          headers: admin.headers,
+          validateStatus: () => true,
+        })
+
+      const savedOrder = () =>
+        getContainer()
+          .resolve(Modules.ORDER)
+          .retrieveOrder(order.id, { select: ["id", "status", "metadata"] })
+
+      it("cancels the order and writes the reason and the trimmed note", async () => {
+        const res = await cancelByStaff({ note: "  Out of stock  " })
+        expect([res.status, res.data]).toEqual([200, { cancelled: true }])
+        const updated = await savedOrder()
+        expect(updated.status).toBe("canceled")
+        expect(updated.metadata).toMatchObject({
+          cancel_reason: "staff",
+          cancel_note: "Out of stock",
+        })
+      })
+
+      it("writes no cancel_note for a note of only spaces or no note", async () => {
+        expect((await cancelByStaff({ note: "   " })).status).toBe(200)
+        const updated = await savedOrder()
+        expect(updated.status).toBe("canceled")
+        expect(updated.metadata).toEqual(expect.objectContaining({ cancel_reason: "staff" }))
+        expect(updated.metadata).not.toHaveProperty("cancel_note")
+      })
+
+      it("keeps the other metadata keys", async () => {
+        await getContainer()
+          .resolve(Modules.ORDER)
+          .updateOrders(order.id, { metadata: { source: "test" } })
+        expect((await cancelByStaff({})).status).toBe(200)
+        expect((await savedOrder()).metadata).toEqual({ source: "test", cancel_reason: "staff" })
+      })
+
+      it("removes the reason and the note when the cancel workflow fails", async () => {
+        await getContainer()
+          .resolve(Modules.ORDER)
+          .updateOrders(order.id, { metadata: { source: "test" } })
+        // Medusa does not cancel an order with an open fulfillment, so the workflow throws.
+        const [line] = await getOrderItems(getContainer(), order.id)
+        await createOrderFulfillmentWorkflow(getContainer()).run({
+          input: { order_id: order.id, items: [{ id: line!.id, quantity: 1 }] },
+        })
+        const res = await cancelByStaff({ note: "Out of stock" })
+        expect(res.status).toBeGreaterThanOrEqual(400)
+        const updated = await savedOrder()
+        expect(updated.status).not.toBe("canceled")
+        expect(updated.metadata).toEqual({ source: "test" })
+      })
+
+      it("refuses a captured order", async () => {
+        await capture(order.id)
+        const res = await cancelByStaff({})
+        expect([res.status, res.data.message]).toEqual([
+          400,
+          "The store already confirmed the payment of this order.",
+        ])
+      })
+
+      it("refuses a cancelled order and an unknown order", async () => {
+        await cancel(order.id)
+        const cancelled = await cancelByStaff({})
+        expect([cancelled.status, cancelled.data.message]).toEqual([
+          400,
+          "This order is cancelled.",
+        ])
+        const unknown = await cancelByStaff({}, "order_none")
+        expect([unknown.status, unknown.data.message]).toEqual([404, "The order does not exist."])
+      })
+
+      it("refuses a long note and an extra field", async () => {
+        const long = await cancelByStaff({ note: "x".repeat(501) })
+        expect(long.status).toBe(400)
+        expect(long.data.message).toContain("Write at most 500 characters.")
+        expect((await cancelByStaff({ reason: "staff" })).status).toBe(400)
+        expect((await savedOrder()).status).not.toBe("canceled")
       })
     })
   },
