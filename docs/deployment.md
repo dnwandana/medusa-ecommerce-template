@@ -76,24 +76,27 @@ openssl rand -hex 32
 
 Do not use the characters `$` and `` ` `` in a value. Compose can expand these characters.
 
-| Key                      | Purpose                                                                                   | Value                                                                                           |
-| ------------------------ | ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `DOMAIN`                 | The storefront host. The Compose file makes `api.<domain>` and `assets.<domain>` from it. | The host name only, for example `example.com`. Do not add `https://` or a path.                 |
-| `ACME_EMAIL`             | Caddy gives this address to the certificate authority.                                    | Your email address.                                                                             |
-| `POSTGRES_PASSWORD`      | The password of the database user `postgres`.                                             | `openssl rand -hex 32`. Use only letters, digits, `-`, and `_`.                                 |
-| `JWT_SECRET`             | Medusa signs the authentication tokens with this secret.                                  | `openssl rand -hex 32`. Use 32 characters or more.                                              |
-| `COOKIE_SECRET`          | Medusa signs the session cookie with this secret.                                         | `openssl rand -hex 32`. Use 32 characters or more.                                              |
-| `GARAGE_RPC_SECRET`      | The RPC secret of Garage.                                                                 | `openssl rand -hex 32`.                                                                         |
-| `GARAGE_ADMIN_TOKEN`     | The token of the Garage admin API.                                                        | `openssl rand -hex 32`.                                                                         |
-| `GARAGE_METRICS_TOKEN`   | The token of the Garage metrics endpoint.                                                 | `openssl rand -hex 32`.                                                                         |
-| `S3_ACCESS_KEY_ID`       | Medusa uses this Garage key to write the product images.                                  | The `Key ID` from `key create`. See [Garage: one-time commands](#garage-one-time-commands).     |
-| `S3_SECRET_ACCESS_KEY`   | The secret of the Garage key.                                                             | The `Secret key` from `key create`. See [Garage: one-time commands](#garage-one-time-commands). |
-| `MEDUSA_PUBLISHABLE_KEY` | The storefront reads the store API with this key.                                         | The `PUBLISHABLE_KEY` line of the seed. Keep it empty until the [first deploy](#first-deploy).  |
-| `SHIPPING_RATE_PER_KG`   | The shipping price in IDR for each kilogram.                                              | `10000`, or your price.                                                                         |
-| `BREVO_API_KEY`          | The backend sends the order emails through Brevo with this key.                           | A key from the Brevo dashboard.                                                                 |
-| `BREVO_SENDER_EMAIL`     | The sender address of the emails.                                                         | An address that Brevo verified for your account.                                                |
-| `BREVO_SENDER_NAME`      | The sender name of the emails.                                                            | The name of the store.                                                                          |
-| `STORE_OWNER_EMAIL`      | The address that gets the `paid-cart-alert` and `receipt-uploaded` emails.                | Your email address.                                                                             |
+| Key                      | Purpose                                                                                                                                                                                                      | Value                                                                                                                                          |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DOMAIN`                 | The storefront host. The Compose file makes `api.<domain>` and `assets.<domain>` from it.                                                                                                                    | The host name only, for example `example.com`. Do not add `https://` or a path.                                                                |
+| `ACME_EMAIL`             | Caddy gives this address to the certificate authority.                                                                                                                                                       | Your email address.                                                                                                                            |
+| `POSTGRES_PASSWORD`      | The password of the database user `postgres`.                                                                                                                                                                | `openssl rand -hex 32`. Use only letters, digits, `-`, and `_`.                                                                                |
+| `JWT_SECRET`             | Medusa signs the authentication tokens with this secret.                                                                                                                                                     | `openssl rand -hex 32`. Use 32 characters or more.                                                                                             |
+| `COOKIE_SECRET`          | Medusa signs the session cookie with this secret.                                                                                                                                                            | `openssl rand -hex 32`. Use 32 characters or more.                                                                                             |
+| `GARAGE_RPC_SECRET`      | The RPC secret of Garage.                                                                                                                                                                                    | `openssl rand -hex 32`.                                                                                                                        |
+| `GARAGE_ADMIN_TOKEN`     | The token of the Garage admin API.                                                                                                                                                                           | `openssl rand -hex 32`.                                                                                                                        |
+| `GARAGE_METRICS_TOKEN`   | The token of the Garage metrics endpoint.                                                                                                                                                                    | `openssl rand -hex 32`.                                                                                                                        |
+| `S3_ACCESS_KEY_ID`       | Medusa uses this Garage key to write the product images.                                                                                                                                                     | The `Key ID` from `key create`. See [Garage: one-time commands](#garage-one-time-commands).                                                    |
+| `S3_SECRET_ACCESS_KEY`   | The secret of the Garage key.                                                                                                                                                                                | The `Secret key` from `key create`. See [Garage: one-time commands](#garage-one-time-commands).                                                |
+| `MEDUSA_PUBLISHABLE_KEY` | The storefront reads the store API with this key.                                                                                                                                                            | The `PUBLISHABLE_KEY` line of the seed. Keep it empty until the [first deploy](#first-deploy).                                                 |
+| `SHIPPING_RATE_PER_KG`   | The shipping price in IDR for each kilogram.                                                                                                                                                                 | `10000`, or your price.                                                                                                                        |
+| `BREVO_API_KEY`          | The backend sends the order emails through Brevo with this key.                                                                                                                                              | A key from the Brevo dashboard.                                                                                                                |
+| `BREVO_SENDER_EMAIL`     | The sender address of the emails. When the store contact email is set, every email uses it as Reply-To, also the owner emails and `password-reset`.                                                          | An address that Brevo verified for your account. A no-reply address works only when the store contact email is set (Settings → Bank transfer). |
+| `BREVO_SENDER_NAME`      | The sender name of the emails.                                                                                                                                                                               | The store name. Use the same text as the Medusa store name.                                                                                    |
+| `STORE_OWNER_EMAIL`      | The address that gets the owner emails `new-order-owner`, `paid-cart-alert`, `receipt-uploaded`, and `low-stock-owner`. It is the fallback when the store contact email (Settings → Bank transfer) is empty. | Your email address.                                                                                                                            |
+
+The Medusa store name (Settings → Store) and `brand.name` in `apps/storefront/app/app.config.ts`
+must be the same text. The email wordmark uses the store name.
 
 Set all values now, but keep the example values of `S3_ACCESS_KEY_ID` and `S3_SECRET_ACCESS_KEY`.
 The next section gives these two values.
@@ -333,6 +336,47 @@ store contact. Replace them before you sell.
 4. Make one real order with a small amount. Make sure that the order page shows the real account.
 
 To add a payment gateway, read `docs/payments/`.
+
+## Orders
+
+Staff do these steps in the Admin, on the order page.
+
+1. For a bank transfer order, check the receipts in the widget **Payment receipts**.
+2. Click **Accept payment** when the money is in the bank account. The customer gets the
+   `payment-confirmed` email.
+3. Click **Create Fulfillment**.
+4. Click **Mark as shipped**, and add the tracking number. The customer gets the `order-shipped`
+   email. If you turn off **Send notification**, the customer gets no email.
+5. Mark the fulfillment as delivered when the parcel arrives (**Mark as delivered**). The
+   delivered email and the review request depend on this step.
+
+To cancel an unpaid bank transfer order, click **Cancel order** in the widget **Payment
+receipts**. The drawer takes an optional note of at most 500 characters. The note goes into the
+`order-cancelled` email. The cancel in the Medusa order menu sends the same email with no note.
+
+Return the money within two working days after you cancel a paid bank transfer order. The
+`order-cancelled` email promises this time to the customer. Medusa records the refund, but it does
+not move the money.
+
+The `medusa-worker` service runs the scheduled jobs. The schedules are in UTC, and WIB is UTC+7.
+
+| Job                    | Schedule                          | Task                                                                                      |
+| ---------------------- | --------------------------------- | ----------------------------------------------------------------------------------------- |
+| `check-paid-carts`     | Every 15 minutes                  | Completes a paid gateway cart that has no order. With no gateway, the job does nothing.   |
+| `cancel-unpaid-orders` | Every 15 minutes                  | Cancels a bank transfer order with no receipt and no captured payment after 24 hours.     |
+| `review-requests`      | Daily at 03:00 WIB (`0 20 * * *`) | Sends the review request 7 days after the delivery, for the products that have no review. |
+| `wishlist-price-drops` | Daily at 04:00 WIB (`0 21 * * *`) | Sends one email to each customer with a lower price on a wishlist item.                   |
+
+The `review-requests` job reads only the deliveries of 7 to 37 days ago. An order with a delivery
+more than 37 days before a run never gets a review request, for example after the worker stops
+for a month.
+
+The `wishlist-price-drops` job checks at most 500 wishlist items in each run. With more items, it
+checks the next 500 items on the next day.
+
+The "Low stock threshold" at **Settings → Storefront** controls the limited stock badge and the
+`low-stock-owner` email. The owner gets one email when the stock of a variant goes down to the
+threshold or below. The value 0 turns off the badge and the email.
 
 ## SEO
 

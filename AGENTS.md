@@ -80,6 +80,9 @@ pnpm format:check
   - `/store/orders/:id/tracking`.
   - `/store/orders/:id/receipts`, `/store/payment-states`. The storefront adds the payment state of
     each order as `order.payment_state`.
+- Custom Admin API routes that the order widget uses: `/admin/orders/:id/receipts`,
+  `/admin/orders/:id/receipts/accept`, `/admin/orders/:id/receipts/ask-for-more`, and
+  `/admin/orders/:id/receipts/cancel`.
 - `apps/storefront/AGENTS.md` gives the composable that calls each route. `apps/backend/AGENTS.md`
   gives the modules, the workflows, and the subscribers behind the routes.
 - The option names and the metadata keys have one copy in each app. Change the two copies
@@ -89,6 +92,23 @@ pnpm format:check
   - Metadata keys: `apps/backend/src/lib/storefront-metadata.ts`. The storefront reads
     `product_details`, `colour_hex`, and `welcome_sent_at` in `app/utils/productDetails.ts`,
     `app/utils/colourDots.ts`, and `app/composables/useCustomer.ts`.
+    The key `locale` (`CUSTOMER_LOCALE`) is on the customer. The backend writes it. The storefront
+    does not read it.
+    The keys `cancel_reason`, `cancel_note`, and `review_request_sent_at` are on the order. Only
+    the backend reads and writes them.
+    The key `low_stock_alerted_at` (`INVENTORY_LOW_STOCK_ALERTED_AT`) is on the inventory item.
+    Only the low stock subscriber reads and writes it.
+  - The wishlist item columns `saved_unit_price`, `available`, and `alerted_at` hold the state of
+    the wishlist alerts. Only the backend reads and writes them.
+- The emails exist in English (`en-US`) and Indonesian (`id-ID`).
+  - An order email uses the order locale. The storefront sets it on the cart (`locale` on
+    `cart.create` and `cart.update`).
+  - The sign-in email and the welcome email use the header `x-medusa-locale`. Links in
+    Indonesian emails have the prefix `/id`.
+  - The `wishlist-alert` email (back in stock and price drop) uses the customer locale
+    (`customer.metadata.locale`).
+  - The owner emails stay in English. The `low-stock-owner` email goes to the owner when the
+    stock of a variant crosses the low stock threshold.
 - The store has one region (Indonesia), one currency (`idr`), and amounts in whole rupiah. No code
   divides an amount by 100.
 - Provider ids that both apps depend on:
@@ -108,7 +128,10 @@ pnpm format:check
    opens `/orders/:id`.
    - The order page shows the bank accounts and the receipt upload until the admin captures the
      payment. The bank accounts come from `/store/bank-transfer`.
-   - The owner checks the receipts in the order widget.
+   - The owner checks the receipts in the order widget. **Accept payment** captures the payment.
+     The `payment.captured` subscriber then sends the `payment-confirmed` email.
+   - **Cancel order** in the order widget takes an optional note. The note goes into the
+     `order-cancelled` email.
    - The job `cancel-unpaid-orders` cancels an unpaid order with no receipt after 24 hours.
 5. Redirect gateway: the session has an https `payment_url`. The browser goes to that page. The
    gateway redirects to `${STOREFRONT_URL}/checkout/return`, a URL with no locale prefix. The
@@ -122,6 +145,9 @@ pnpm format:check
 7. Staff create a shipment in the admin. The `shipment.created` subscriber sends the
    `order-shipped` email with the tracking number. `GET /store/orders/:id/tracking` returns the
    shipments. The order page shows them below the order tracker.
+8. Staff mark the fulfillment as delivered. The `delivery.created` subscriber sends the
+   `order-delivered` email. Seven days later, the job `review-requests` sends the
+   `review-request` email for the products with no review.
 
 ## Production
 

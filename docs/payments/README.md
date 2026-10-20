@@ -476,6 +476,29 @@ Add each new key to these five places:
 - Make no other storefront change. The checkout gets the providers from the region, and
   `startPayment` works for each provider that obeys this contract.
 
+## The payment confirmed email
+
+The subscriber on `payment.captured` (`apps/backend/src/subscribers/payment-captured.ts`) sends the
+email `payment-confirmed`. It sends the email only for a provider in `PAYMENT_CONFIRMED_PROVIDERS`
+(`apps/backend/src/lib/payment-confirmed-providers.ts`). The list has one entry,
+`BANK_TRANSFER_PROVIDER_ID`.
+
+- Add `<provider_id>` to the list when the gateway captures the payment later than the order
+  placement.
+- Do not add `<provider_id>` when the gateway captures the payment at the redirect. The
+  `order-placed` email already confirms the payment. A provider that obeys
+  [authorizePayment](#authorizepayment) captures at the redirect.
+
+The refund emails also depend on the provider:
+
+- In Medusa 2.21.2, `cancelOrderWorkflow` refunds each captured payment of the order. Thus the
+  cancellation of a captured order also emits `payment.refunded`.
+- The subscriber on `payment.refunded` (`apps/backend/src/subscribers/payment-refunded.ts`) sends
+  the email `refund-sent`. A refund of a cancelled gateway order sends it. The `order-cancelled`
+  email tells the customer that the refund comes in a separate email.
+- A refund of a cancelled bank transfer order sends no `refund-sent` email. The `order-cancelled`
+  email already gives the refund amount, and the owner moves the money by hand.
+
 ## Session data
 
 - Do not put a secret in the session data or in the payment data. Examples of a secret: an API key,
