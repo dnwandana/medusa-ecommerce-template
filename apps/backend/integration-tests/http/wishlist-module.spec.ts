@@ -72,6 +72,34 @@ medusaIntegrationTestRunner({
         expect(again.id).not.toBe(item.id)
         expect(await service.listWishlistItems({})).toHaveLength(1)
       })
+
+      it("stores the price, the availability, and the alert time", async () => {
+        const wishlist = await service.createWishlists({ customer_id: "cus_1" })
+        const item = await service.createWishlistItems({
+          wishlist_id: wishlist.id,
+          product_variant_id: "var_1",
+          saved_unit_price: 150000,
+          available: false,
+          alerted_at: new Date("2026-10-20T00:00:00Z"),
+        })
+
+        expect([item.saved_unit_price, item.available, item.alerted_at?.toISOString()]).toEqual([
+          150000,
+          false,
+          "2026-10-20T00:00:00.000Z",
+        ])
+
+        const plain = await service.createWishlistItems({
+          wishlist_id: wishlist.id,
+          product_variant_id: "var_2",
+        })
+
+        expect([plain.saved_unit_price, plain.available, plain.alerted_at]).toEqual([
+          null,
+          true,
+          null,
+        ])
+      })
     })
   },
 })

@@ -1,5 +1,5 @@
-import type { InferTypeOf } from "@medusajs/framework/types"
-import { MedusaError, Modules } from "@medusajs/framework/utils"
+import type { IProductModuleService, InferTypeOf, MedusaContainer } from "@medusajs/framework/types"
+import { ContainerRegistrationKeys, MedusaError, Modules } from "@medusajs/framework/utils"
 import {
   createStep,
   createWorkflow,
@@ -10,6 +10,8 @@ import { WISHLIST_MODULE } from "../modules/wishlist"
 import type Wishlist from "../modules/wishlist/models/wishlist"
 import type WishlistItem from "../modules/wishlist/models/wishlist-item"
 import type WishlistModuleService from "../modules/wishlist/service"
+import { readVariantPrices } from "../lib/variant-prices"
+import { isInStock, readAvailable } from "../lib/variant-stock"
 
 export type AddWishlistItemInput = { customer_id: string; variant_id: string }
 export type WishlistItemResult = { id: string; wishlist_id: string; product_variant_id: string }
@@ -42,11 +44,43 @@ async function findOrCreateWishlist(
   }
 }
 
+type VariantSnapshot = { saved_unit_price: number | null; available: boolean }
+
+type CheckedVariant = { id: string; manage_inventory: boolean; allow_backorder: boolean }
+
+// The price and the availability at add time. The alerts compare the later values with them.
+async function readVariantSnapshot(
+  scope: MedusaContainer,
+  variant: CheckedVariant
+): Promise<VariantSnapshot> {
+  try {
+    const prices = await readVariantPrices(scope, [variant.id])
+    return {
+      saved_unit_price: prices.get(variant.id) ?? null,
+      available: isInStock({
+        manage_inventory: variant.manage_inventory,
+        allow_backorder: variant.allow_backorder,
+        available: await readAvailable(scope, variant.id),
+      }),
+    }
+  } catch (error) {
+    // A failed read must not stop the add. The price drop job fills the price on its next run.
+    scope
+      .resolve(ContainerRegistrationKeys.LOGGER)
+      .warn(
+        `Wishlist add: could not read the price or the stock of variant ${variant.id}. ` +
+          `The item has no saved price. Cause: ${(error as Error)?.message ?? String(error)}`
+      )
+    return { saved_unit_price: null, available: true }
+  }
+}
+
 // Returns the item of the variant in the wishlist. Creates the item if there is none.
 async function findOrCreateItem(
   service: WishlistModuleService,
   wishlistId: string,
-  variantId: string
+  variantId: string,
+  readSnapshot: () => Promise<VariantSnapshot>
 ): Promise<{ item: InferTypeOf<typeof WishlistItem>; created: boolean }> {
   const filters = { wishlist_id: wishlistId, product_variant_id: variantId }
   const [existing] = await service.listWishlistItems(filters)
@@ -57,6 +91,7 @@ async function findOrCreateItem(
     const item: InferTypeOf<typeof WishlistItem> = await service.createWishlistItems({
       wishlist_id: wishlistId,
       product_variant_id: variantId,
+      ...(await readSnapshot()),
     })
     return { item, created: true }
   } catch (error) {
@@ -73,10 +108,13 @@ async function findOrCreateItem(
 export const addWishlistItemStep = createStep(
   "add-wishlist-item",
   async (input: AddWishlistItemInput, { container }) => {
-    const variants = await container
-      .resolve(Modules.PRODUCT)
-      .listProductVariants({ id: input.variant_id }, { select: ["id"] })
-    if (variants.length === 0) {
+    const [variant] = await container
+      .resolve<IProductModuleService>(Modules.PRODUCT)
+      .listProductVariants(
+        { id: input.variant_id },
+        { select: ["id", "manage_inventory", "allow_backorder"] }
+      )
+    if (!variant) {
       throw new MedusaError(MedusaError.Types.NOT_FOUND, "The product variant was not found.")
     }
 
@@ -94,7 +132,13 @@ export const addWishlistItemStep = createStep(
     const { item, created: itemCreated } = await findOrCreateItem(
       service,
       wishlist.id,
-      input.variant_id
+      input.variant_id,
+      () =>
+        readVariantSnapshot(container, {
+          id: variant.id,
+          manage_inventory: !!variant.manage_inventory,
+          allow_backorder: !!variant.allow_backorder,
+        })
     )
     if (itemCreated) {
       created.item_id = item.id

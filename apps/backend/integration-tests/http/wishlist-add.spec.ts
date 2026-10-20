@@ -1,5 +1,5 @@
 import { medusaIntegrationTestRunner } from "@medusajs/test-utils"
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { WISHLIST_MODULE } from "../../src/modules/wishlist"
 import WishlistModuleService from "../../src/modules/wishlist/service"
 import { runSeed } from "../../src/seed"
@@ -121,6 +121,80 @@ medusaIntegrationTestRunner({
 
         expect(response.status).toBe(400)
         expect(response.data.type).toBe("invalid_data")
+      })
+
+      // The seed gives TOTE-DEFAULT the price 85000 and 100 in stock.
+      it("saves the price and the availability of the variant", async () => {
+        const response = await post({ variant_id: toteId })
+
+        expect(response.status).toBe(200)
+        const [item] = await service().listWishlistItems({ id: response.data.wishlist_item.id })
+        expect(item.saved_unit_price).toBe(85000)
+        expect(item.available).toBe(true)
+        expect(item.alerted_at).toBeNull()
+      })
+
+      it("saves available false for a variant with no stock", async () => {
+        const container = getContainer()
+        const {
+          data: [variant],
+        } = await container.resolve(ContainerRegistrationKeys.QUERY).graph({
+          entity: "variant",
+          fields: [
+            "inventory_items.inventory_item_id",
+            "inventory_items.inventory.location_levels.location_id",
+          ],
+          filters: { id: toteId },
+        })
+        const link = (variant as any).inventory_items[0]
+        await container.resolve(Modules.INVENTORY).updateInventoryLevels(
+          link.inventory.location_levels.map((level: any) => ({
+            inventory_item_id: link.inventory_item_id,
+            location_id: level.location_id,
+            stocked_quantity: 0,
+          }))
+        )
+
+        const response = await post({ variant_id: toteId })
+
+        expect(response.status).toBe(200)
+        const [item] = await service().listWishlistItems({ id: response.data.wishlist_item.id })
+        expect(item.available).toBe(false)
+        expect(item.saved_unit_price).toBe(85000)
+      })
+
+      it("creates the item with no price and available true when the price read fails", async () => {
+        const regions = getContainer().resolve(Modules.REGION)
+        const spy = jest
+          .spyOn(regions, "listRegions")
+          .mockRejectedValueOnce(new Error("The region read failed"))
+
+        try {
+          const response = await post({ variant_id: toteId })
+
+          expect(response.status).toBe(200)
+          const [item] = await service().listWishlistItems({ id: response.data.wishlist_item.id })
+          expect(item.saved_unit_price).toBeNull()
+          expect(item.available).toBe(true)
+        } finally {
+          spy.mockRestore()
+        }
+      })
+
+      it("does not change an existing item on a duplicate add", async () => {
+        const first = await post({ variant_id: toteId })
+        await service().updateWishlistItems({
+          id: first.data.wishlist_item.id,
+          saved_unit_price: 90000,
+          available: false,
+        })
+
+        const second = await post({ variant_id: toteId })
+
+        expect(second.status).toBe(200)
+        const [item] = await service().listWishlistItems({ id: first.data.wishlist_item.id })
+        expect(item.saved_unit_price).toBe(90000)
+        expect(item.available).toBe(false)
       })
 
       it("answers 401 with no customer token", async () => {
