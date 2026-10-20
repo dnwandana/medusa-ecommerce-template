@@ -2,6 +2,7 @@ import type { MedusaContainer } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { cancelOrderWorkflow } from "@medusajs/medusa/core-flows"
 import { ORDER_PAYMENT_FIELDS, receiptLockKey } from "../api/store/orders/[id]/receipts/route"
+import { ORDER_CANCEL_REASON } from "../lib/storefront-metadata"
 import { PAYMENT_RECEIPT_MODULE } from "../modules/payment-receipt"
 import type PaymentReceiptModuleService from "../modules/payment-receipt/service"
 import { selectExpiredOrders, timeoutWindow, type TimeoutOrder } from "./select-expired"
@@ -74,11 +75,18 @@ export async function runPaymentTimeout(
           return false
         }
 
-        await cancelOrderWorkflow(container).run({ input: { order_id: orderId } })
-        // The reason goes in after the cancellation, so a failed cancellation leaves no reason.
+        // The reason goes in before the cancellation, so the order.canceled subscriber can read it.
         await orderModule.updateOrders(orderId, {
-          metadata: { ...(current.metadata ?? {}), cancel_reason: PAYMENT_TIMEOUT_REASON },
+          metadata: { ...(current.metadata ?? {}), [ORDER_CANCEL_REASON]: PAYMENT_TIMEOUT_REASON },
         })
+        try {
+          await cancelOrderWorkflow(container).run({ input: { order_id: orderId } })
+        } catch (error) {
+          // A failed cancellation must leave no reason. Medusa merges the metadata on an update and
+          // removes a key only when its value is "". The catch below logs the error.
+          await orderModule.updateOrders(orderId, { metadata: { [ORDER_CANCEL_REASON]: "" } })
+          throw error
+        }
         return true
       })
       if (done) {
