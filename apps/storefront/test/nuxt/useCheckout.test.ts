@@ -1,6 +1,6 @@
 import { mockNuxtImport } from "@nuxt/test-utils/runtime"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { useCheckout } from "#imports"
+import { useCheckout, useNuxtApp } from "#imports"
 import source from "~/composables/useCheckout.ts?raw"
 import type { PaymentCustomer } from "~/utils/checkoutForm"
 
@@ -22,6 +22,8 @@ const { sdk, cartState, cartId } = await vi.hoisted(async () => {
 mockNuxtImport("useMedusa", () => () => sdk)
 mockNuxtImport("useCart", () => () => cartState)
 mockNuxtImport("useCartId", () => () => cartId)
+// No mock for the locale: the tests call useCheckout outside a component and set the locale on
+// the real Nuxt i18n instance.
 
 const address = {
   first_name: "Sari",
@@ -44,6 +46,7 @@ const sessionWith = (providerId: string, data: Record<string, unknown>) => ({
 })
 
 beforeEach(() => {
+  useNuxtApp().$i18n.locale.value = "en"
   cartId.value = "cart_1"
   cartState.cart.value = { id: "cart_1", region_id: "reg_1", items: [{ id: "item_1" }] }
   // The real clear() of useCart removes the cookie and the cart state.
@@ -69,8 +72,21 @@ describe("useCheckout", () => {
       email: "buyer@example.com",
       shipping_address: address,
       billing_address: address,
+      locale: "en-US",
     })
     expect(cartState.cart.value.email).toBe("buyer@example.com")
+  })
+
+  it("saves the contact with the storefront locale", async () => {
+    useNuxtApp().$i18n.locale.value = "id"
+    sdk.store.cart.update.mockResolvedValue({ cart: { id: "cart_1" } })
+
+    await useCheckout().saveContact("dewi@example.com", address)
+
+    expect(sdk.store.cart.update).toHaveBeenCalledWith(
+      "cart_1",
+      expect.objectContaining({ email: "dewi@example.com", locale: "id-ID" })
+    )
   })
 
   it("lists the shipping options with the calculated amount", async () => {

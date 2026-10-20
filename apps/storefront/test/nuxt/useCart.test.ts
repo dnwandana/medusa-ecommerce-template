@@ -1,6 +1,6 @@
 import { mockNuxtImport } from "@nuxt/test-utils/runtime"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { clearNuxtState, useCart } from "#imports"
+import { clearNuxtState, useCart, useNuxtApp } from "#imports"
 
 const { sdk, cartId } = vi.hoisted(() => ({
   cartId: { value: null as string | null },
@@ -21,6 +21,8 @@ const { sdk, cartId } = vi.hoisted(() => ({
 
 mockNuxtImport("useMedusa", () => () => sdk)
 mockNuxtImport("useCartId", () => () => cartId)
+// No mock for the locale: the tests call useCart outside a component, as the auth middleware
+// does, and set the locale on the real Nuxt i18n instance.
 
 const httpError = (status: number) => Object.assign(new Error(`HTTP ${status}`), { status })
 
@@ -34,6 +36,7 @@ const cartWith = (quantities: number[], extra: Record<string, unknown> = {}) => 
 beforeEach(() => {
   clearNuxtState()
   cartId.value = null
+  useNuxtApp().$i18n.locale.value = "en"
   Object.values(sdk.store.cart).forEach((mock) => mock.mockReset())
   sdk.store.region.list.mockReset().mockResolvedValue({ regions: [{ id: "reg_1" }] })
 })
@@ -96,6 +99,16 @@ describe("useCart: load", () => {
 })
 
 describe("useCart: items", () => {
+  it("creates the cart with the storefront locale", async () => {
+    useNuxtApp().$i18n.locale.value = "id"
+    sdk.store.cart.create.mockResolvedValue({ cart: cartWith([]) })
+    sdk.store.cart.createLineItem.mockResolvedValue({ cart: cartWith([1]) })
+
+    await useCart().add("variant_1")
+
+    expect(sdk.store.cart.create).toHaveBeenCalledWith({ region_id: "reg_1", locale: "id-ID" })
+  })
+
   it("creates a cart for the region when the first item is added", async () => {
     sdk.store.cart.create.mockResolvedValue({ cart: cartWith([]) })
     sdk.store.cart.createLineItem.mockResolvedValue({ cart: cartWith([2]) })
@@ -103,7 +116,7 @@ describe("useCart: items", () => {
 
     await add("variant_1", 2)
 
-    expect(sdk.store.cart.create).toHaveBeenCalledWith({ region_id: "reg_1" })
+    expect(sdk.store.cart.create).toHaveBeenCalledWith({ region_id: "reg_1", locale: "en-US" })
     expect(sdk.store.cart.createLineItem).toHaveBeenCalledWith("cart_1", {
       variant_id: "variant_1",
       quantity: 2,

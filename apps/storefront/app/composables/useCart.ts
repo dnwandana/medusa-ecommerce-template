@@ -1,6 +1,7 @@
 import type { HttpTypes } from "@medusajs/types"
 import type { ComputedRef, Ref } from "vue"
 import { errorStatus } from "~/utils/errorStatus"
+import { toMedusaLocale } from "~/utils/medusaClient"
 
 // Returns the cart of the visitor and the functions that change it.
 export function useCart(): {
@@ -17,6 +18,9 @@ export function useCart(): {
   const sdk = useMedusa()
   const cartId = useCartId()
   const { ensureRegion } = useRegion()
+  // useI18n() needs a component setup, but the auth middleware calls this composable. The Nuxt
+  // app gives the locale without a component.
+  const i18n = useNuxtApp().$i18n
   const cart = useState<HttpTypes.StoreCart | null>("cart", () => null)
 
   const itemCount = computed(() =>
@@ -66,7 +70,11 @@ export function useCart(): {
 
     if (!cartId.value) {
       const region = await ensureRegion()
-      const { cart: created } = await sdk.store.cart.create({ region_id: region.id })
+      // The cart locale makes the order and the order emails follow the storefront language.
+      const { cart: created } = await sdk.store.cart.create({
+        region_id: region.id,
+        locale: toMedusaLocale(i18n.locale.value),
+      })
       cartId.value = created.id
       cart.value = created
     }

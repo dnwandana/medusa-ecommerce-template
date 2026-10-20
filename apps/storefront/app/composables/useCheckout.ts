@@ -1,6 +1,7 @@
 import type { HttpTypes } from "@medusajs/types"
 import type { CartAddress } from "~/utils/addressForm"
 import type { PaymentCustomer } from "~/utils/checkoutForm"
+import { toMedusaLocale } from "~/utils/medusaClient"
 
 export type ShippingChoice = { id: string; name: string; amount: number | null }
 
@@ -21,6 +22,8 @@ export function useCheckout(): {
   const sdk = useMedusa()
   const { cart, clear } = useCart()
   const cartId = useCartId()
+  // useI18n() needs a component setup. The Nuxt app gives the locale without a component.
+  const i18n = useNuxtApp().$i18n
 
   function requireCart(): HttpTypes.StoreCart {
     if (!cart.value) {
@@ -30,13 +33,15 @@ export function useCheckout(): {
   }
 
   // Writes the email, the shipping address, and the billing address. The store has no separate
-  // billing address, so both get the same address.
+  // billing address, so both get the same address. The locale makes the order emails follow the
+  // language that the customer uses at checkout.
   async function saveContact(email: string, address: CartAddress): Promise<void> {
     const current = requireCart()
     const { cart: updated } = await sdk.store.cart.update(current.id, {
       email: email.trim(),
       shipping_address: address,
       billing_address: address,
+      locale: toMedusaLocale(i18n.locale.value),
     })
     cart.value = updated
   }
