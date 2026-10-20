@@ -88,11 +88,62 @@ pnpm --filter @store/backend lint                         # ESLint, eslint.confi
     The service adds `getContact()` and `setContact()`, because the module keeps one contact row.
   - `weight-shipping/`: fulfillment provider. `calculate.ts` has the weight rule: grams, rounded up
     to whole kg, minimum 1 kg, and 1000 g for a variant with no weight.
-  - `brevo/`: notification provider. The templates are in `templates/`: `magic-link`, `welcome`,
-    `order-placed`, `order-shipped`, `paid-cart-alert`, and `password-reset`. `html.ts` has the
-    shared parts, for example `layout()`, `emailButton()`, and `greeting()`.
+  - `brevo/`: notification provider. The templates are in `templates/`:
+    - Customer templates: `magic-link`, `welcome`, `order-placed`, `payment-confirmed`,
+      `order-shipped`, `order-delivered`, `review-request`, `order-cancelled`, `refund-sent`,
+      `more-payment-needed`, and `wishlist-alert`.
+    - Owner templates: `new-order-owner`, `receipt-uploaded`, `paid-cart-alert`, and
+      `low-stock-owner`.
+    - Admin template: `password-reset`.
+    - Each template is a pure function `render(data): { subject, html }` in the map of
+      `templates/index.ts`.
+    - `order-cancelled` has three wordings. `metadata.cancel_reason === "payment_timeout"` gives
+      the timeout text. Each other value gives the staff text, with the quote of
+      `metadata.cancel_note` when the note is not empty.
+    - The refund line of `order-cancelled` comes from the first captured payment. A bank
+      transfer payment gives the refund amount and two working days. A gateway payment says that
+      a separate email comes. No captured payment gives no line.
+    - `wishlist-alert` has two optional groups, `back_in_stock` and `price_drops`. A group with
+      no items gets no part. The template throws when both groups are empty.
+      - The subject names the first product: "Back in stock: …" when the stock group has items,
+        else "Price drop: …". The button "Open your wishlist" goes to `/account/wishlist`.
+      - The "Price drop" part strikes through the old price. The new price is not bold, because
+        `productRows` escapes the price text.
+      - The locale comes from `customer.metadata.locale` (`CUSTOMER_LOCALE`), not from an order.
+    - `low-stock-owner` has the subject "Low stock: {product}, {variant} ({n} left)". The button
+      "Open the product" goes to the admin product page.
+    - `templates/shell.ts`: `renderShell` renders the shell of every email (dark header bar with
+      the store name, footer, preheader, and one media query). It also exports the block helpers,
+      for example `heading`, `paragraph`, `keyValues`, `callout`, `quote`, `button`, `orderLines`,
+      `productRows`, and `address`. The types `EmailStore`, `EmailLineItem`, and `EmailAddress`
+      are here.
+      - Use `list(items)` for a bullet list and `paragraphHtml(html)` for a paragraph that holds a
+        text link. Do not copy the font stack or the colours into a template.
+      - `paragraphHtml` does not escape its HTML. The caller escapes each value in it.
+      - `isHttpsUrl` is the one check for a URL that goes into an `href` or an `src`.
+    - `templates/i18n/`: the dictionaries `en.ts` and `id.ts`, and `index.ts` with `EmailLocale`
+      (`en-US` or `id-ID`), `toEmailLocale`, `langOf`, and `t(locale, key, values)`. A missing
+      key in the Indonesian dictionary falls back to the English text.
+    - `templates/html.ts`: only `escapeHtml`, `formatRupiah`, `formatWibTime`, `formatWibDate`,
+      and `RenderedEmail`. The two time functions take a locale. `layout`, `emailButton`, and
+      `greeting` do not exist.
+    - Every customer template takes `locale` and `store` (an `EmailStore`: `name`,
+      `contact_email`, `whatsapp`) in its data. The subscribers and the routes must send both.
+      The store name goes into the wordmark and the footer.
+    - The owner templates (`new-order-owner`, `paid-cart-alert`, `receipt-uploaded`,
+      `low-stock-owner`) and `password-reset` stay in English. They need no `locale`.
+    - Every template needs `store`, also the owner templates and `password-reset`. The shell
+      reads `store.name`. `templates/index.ts` types `data` as `any`, so a missing `store` gives
+      no compile error. The send then throws a `TypeError`.
+    - `service.ts` sets the Brevo `replyTo` to `data.store.contact_email` when the value is not
+      empty. Else Brevo uses the sender address.
   - `product-review/`: data module `productReview` with the model `review`.
   - `wishlist/`: data module `wishlist` with the models `wishlist` and `wishlist_item`.
+    - `wishlist_item` has three columns for the alerts. `saved_unit_price` (null: not read yet)
+      is the price that the price drop job compares. `available` (default `true`) is the last
+      known stock state. `alerted_at` is the time of the last back in stock email.
+    - The `add-wishlist-item` step saves the price and the availability of the variant at add
+      time.
   - `storefront/`: data module `storefront` (`STOREFRONT_MODULE`) with the models
     `storefront_setting`, `store_colour`, and `home_campaign`. The module keeps one settings row.
     A unique partial index allows one `live` campaign. `settings-rules.ts` and
@@ -122,8 +173,52 @@ pnpm --filter @store/backend lint                         # ESLint, eslint.confi
   - `option-names.ts`: the option names of a colour (`colour`, `color`, `warna`) and of a size
     (`size`, `ukuran`), and the fabric tag prefix `Fabric:`.
   - `storefront-metadata.ts`: the metadata keys `show_on_home`, `tile_image_url`,
-    `product_details`, `colour_hex`, and `welcome_sent_at`, and their safe readers. The storefront
-    uses the same keys.
+    `product_details`, `colour_hex`, `welcome_sent_at`, and `locale` (`CUSTOMER_LOCALE`), and
+    their safe readers. The storefront reads `product_details`, `colour_hex`, and
+    `welcome_sent_at`. The backend writes `locale` on the customer. The storefront does not read
+    it.
+    - The order keys `cancel_reason` (`ORDER_CANCEL_REASON`), `cancel_note`
+      (`ORDER_CANCEL_NOTE`), and `review_request_sent_at` (`ORDER_REVIEW_REQUEST_SENT_AT`). The
+      backend writes and reads them. The storefront does not read them.
+    - The inventory item key `low_stock_alerted_at` (`INVENTORY_LOW_STOCK_ALERTED_AT`). Only the
+      low stock subscriber writes and reads it. `low-stock/rules.ts` exports the same constant
+      again.
+    - Medusa merges the order metadata and the inventory item metadata on an update. A key goes
+      away only when the update gives it the value `""`.
+  - Stock and price helpers:
+    - `variant-stock.ts`: `STOCK_EVENTS` (the four stock events), `readVariantStock`,
+      `readAvailable`, `isInStock`, and `inventoryItemIdsOfEvent`.
+      - `readVariantStock` gives the variant, the product, and the available stock of an
+        inventory item. It gives `null` when the item or its variant does not exist.
+      - `readAvailable` uses `getVariantAvailability` with the first sales channel of the store,
+        as the catalog route does. A store with no sales channel gives 0.
+      - `isInStock` is true for `manage_inventory: false`, for `allow_backorder: true`, or for
+        stock above 0.
+      - `inventoryItemIdsOfEvent` takes a payload of `{ id }` or a list of `{ id }`. It gives
+        the inventory item ids with no duplicates.
+      - The `reservation-item.*` events also read soft-deleted reservations (`withDeleted`),
+        because a cancelled order soft-deletes its reservations.
+    - `variant-prices.ts`: `readVariantPrices(scope, variantIds)` gives the calculated price of
+      each variant in the first region, in whole rupiah. A variant with no price gives `null`.
+  - Email helpers:
+    - `storefront-url.ts`: `readStorefrontUrl(scope)` gives the storefront base URL.
+      `storefrontLink(base, locale, path)` adds the prefix `/id` for `id-ID` and no prefix for
+      `en-US`.
+    - `store-for-email.ts`: `readStoreForEmail(scope)` gives the `EmailStore` (store name, store
+      contact email, and WhatsApp number). A missing store row gives a default name.
+    - `owner-email.ts`: `readOwnerEmail(scope, env)` gives the store contact email, else
+      `STORE_OWNER_EMAIL`, else an empty string. The caller skips the email on an empty string.
+    - `bank-accounts.ts`: `listActiveBankAccounts(scope)` gives the active bank accounts in
+      display order, with only the public fields.
+    - `admin-url.ts`: `adminLink(scope, path)` gives `<admin.backendUrl><admin.path><path>`. When
+      `backendUrl` is empty or `/`, the link starts with `http://localhost:9000`, as in
+      `password-reset`.
+    - `payment-order.ts`: `readPaymentWithOrder(scope, paymentId)` reads a payment, its refunds,
+      and its order through `payment_collection.order`. It gives `null` when the payment has no
+      order, for example the payment of a cart that never completed.
+    - `payment-confirmed-providers.ts`: `PAYMENT_CONFIRMED_PROVIDERS` (only
+      `BANK_TRANSFER_PROVIDER_ID`) and `confirmsPaymentLater(providerId)`. See
+      `docs/payments/README.md`.
   - `catalog-filters.ts`, `catalog-price.ts`, and `home-categories.ts`: the logic of the catalog
     routes and the home categories route.
   - `bank-transfer-order.ts`: the payment rules of an order: `isBankTransferOrder`,
@@ -135,6 +230,9 @@ pnpm --filter @store/backend lint                         # ESLint, eslint.confi
 - `src/workflows/`: `create-review`, `update-review-status`, `add-wishlist-item`,
   `remove-wishlist-item`, `publish-home-campaign`, `resolve-customer-account`, and
   `upload-payment-receipt`. Shared steps are in `src/workflows/steps/`.
+  - `add-wishlist-item` reads the price (`readVariantPrices`) and the stock state (`isInStock`)
+    of the variant for a new item. A failed read does not stop the add. The item then gets
+    `saved_unit_price: null` and `available: true`, and the next price drop run fills the price.
   - `publish-home-campaign` ends the old live campaign first, then makes the new campaign live.
   - `resolve-customer-account` finds or makes the account customer and the `magic-link` auth
     identity for an email. A guest customer with the email becomes the account.
@@ -146,21 +244,76 @@ pnpm --filter @store/backend lint                         # ESLint, eslint.confi
     workflow. The count and the workflow run inside the `Modules.LOCKING` key
     `payment-receipt:<order_id>`, so two uploads at the same time cannot make a fourth receipt.
 - `src/subscribers/`:
+  - Each customer subscriber of an order reads `order.locale` and converts it with
+    `toEmailLocale`. It builds
+    the storefront link with `storefrontLink`, so an `id-ID` order gets the prefix `/id`. It
+    sends `locale` and `store` (from `readStoreForEmail`) to the template.
+  - Each customer subscriber sends nothing and logs a warning when `STOREFRONT_URL` is empty.
   - `order.placed`: `order-placed` sends the order email. For an unpaid bank transfer order, the
-    email has the amount, the active bank accounts, and the deadline in WIB.
-    `customer-name-from-order` copies the name of the delivery address into a customer with no
-    name.
+    email has the amount, the active bank accounts (`listActiveBankAccounts`), and the deadline
+    in WIB.
+    - The same subscriber sends the `new-order-owner` email to the address from
+      `readOwnerEmail`. The owner send has its own `try` and `catch`. Thus it also sends when the
+      customer email fails or is skipped (no order email or no `STOREFRONT_URL`).
+    - The owner payment label is "Bank transfer, waiting for the receipt" (unpaid bank transfer),
+      "Bank transfer" (captured bank transfer), or "Online payment". Only the first label adds
+      "waiting for the receipt" to the subject.
+    - `customer-name-from-order` copies the name of the delivery address into a customer with no
+      name.
   - `shipment.created`: `shipment-created` sends the `order-shipped` email, except when the
     event has `no_notification: true`.
+  - `delivery.created` `{ id, no_notification }`: `delivery-created` sends the `order-delivered`
+    email. `id` is the fulfillment id. The email has the items of that fulfillment. The
+    subscriber sends nothing when `no_notification` is `true`.
+  - `payment.captured` `{ id }`: `payment-captured` sends the `payment-confirmed` email. It
+    sends only for a provider in `PAYMENT_CONFIRMED_PROVIDERS`. A payment with no order gives a
+    warning and no email.
+  - `payment.refunded` `{ id }`: `payment-refunded` sends the `refund-sent` email for the newest
+    refund of the payment. `id` is the payment id, not the refund id.
+    - It sends nothing for a bank transfer refund of a cancelled order. The `order-cancelled`
+      email already gives the refund amount.
+    - It sends for a refund of a cancelled gateway order.
+  - `order.canceled` `{ id }`: `order-cancelled` sends the `order-cancelled` email. It reads
+    `metadata.cancel_reason` and `metadata.cancel_note`, so each cancel path writes these keys
+    before the cancellation.
   - `auth.password_reset`: `password-reset` sends the reset link only to an admin user
     (`actor_type` `user`).
   - `payment_receipt.uploaded`: `payment-receipt-uploaded` sends the `receipt-uploaded` email to
-    `STORE_OWNER_EMAIL`. If `STORE_OWNER_EMAIL` is empty, it sends nothing and logs a warning. The
-    link is `<admin.backendUrl><admin.path>/orders/<order_id>`. When `backendUrl` is empty or `/`,
-    the link starts with `http://localhost:9000`, as in `password-reset`.
+    the address from `readOwnerEmail`. If that address is empty, it sends nothing and logs a
+    warning. The email is in English. The link to the order comes from `adminLink`.
   - `payment_receipt.more_requested` `{ order_id, note_id }`: `payment-more-requested` sends the
-    `more-payment-needed` email with the note to the order email. The link is
-    `<STOREFRONT_URL>/orders/<order_id>`.
+    `more-payment-needed` email with the note to the order email, in the
+    language of `order.locale`. The link is `<STOREFRONT_URL>[/id]/orders/<order_id>`.
+  - `wishlist-back-in-stock.ts` and `low-stock.ts` listen to the four `STOCK_EVENTS`:
+    `inventory-level.updated`, `reservation-item.created`, `reservation-item.updated`, and
+    `reservation-item.deleted`. A bulk event with a list payload gives each inventory item once.
+    An inventory item with no variant gives no email and no error. Each subscriber checks one
+    inventory item inside a `Modules.LOCKING` lock (`wishlist-back-in-stock:<id>` and
+    `low-stock:<id>`). One order gives several stock events at the same time, and without the
+    lock two handlers can send the same alert.
+  - `wishlist-back-in-stock.ts` sends the `wishlist-alert` email with the `back_in_stock` group.
+    The pure rule is `transitionStockItems` in `src/wishlist-alerts/back-in-stock.ts`.
+    - An item goes into the alert when the variant is in stock now and `available` is `false`.
+      Then `available` becomes `true`. A variant that is not in stock sets `available: false`.
+    - The 24-hour cooldown (`ALERT_COOLDOWN_MS`): an item with `alerted_at` less than 24 hours
+      ago gets no alert. It keeps `available: false`, so a later event can alert it.
+    - The subscriber sends one email per customer per event. A bulk event can thus put several
+      variants into one email. The locale comes from `customer.metadata.locale`.
+    - A variant with no price, or an empty `STOREFRONT_URL`, sends no alert. The item keeps
+      `available: false`, so a later event alerts it.
+    - The `available` updates go in before the send, so a failed send does not repeat the alert.
+      `alerted_at` goes in only after a send.
+    - A customer with no email gets no email and a warning. The `available` updates stay.
+  - `low-stock.ts` sends the `low-stock-owner` email to the address from `readOwnerEmail`. The
+    pure rule is `lowStockTransition` in `src/low-stock/rules.ts`.
+    - The threshold is `low_stock_threshold` from `StorefrontModuleService.getSettings()`. The
+      value 0 turns the email off, and the subscriber then reads no stock.
+    - One email per crossing: stock at or below the threshold with no `low_stock_alerted_at`
+      sends the email, then writes the mark. Stock above the threshold with the mark removes it.
+    - The reset writes `low_stock_alerted_at: ""`, because Medusa merges the metadata and only
+      an empty string removes a key. An empty metadata object would clear every key.
+    - A variant with `manage_inventory: false` never sends. A failed send writes no mark, so the
+      next stock event tries again.
 - `src/jobs/check-paid-carts.ts` is the job definition (`*/15 * * * *`).
   - Medusa calls a job as `(container, { scheduledFor })`. Thus the default export takes only the
     container. The named export `runCheckPaidCarts(container, adapters)` has the logic, and the
@@ -168,6 +321,7 @@ pnpm --filter @store/backend lint                         # ESLint, eslint.confi
   - The check is in `src/recovery/check-paid-carts.ts`.
   - The wiring to Query, Notification, and Cart is in `src/recovery/dependencies.ts`. The
     adapters are in `src/recovery/adapters.ts`.
+  - The `paid-cart-alert` email goes to the address from `readOwnerEmail`.
   - `RECOVERY_ADAPTERS` is empty, so the job returns at once and writes no log line.
 - `src/jobs/cancel-unpaid-orders.ts` is the job definition (`*/15 * * * *`). The logic is in
   `src/payment-timeout/`.
@@ -176,9 +330,45 @@ pnpm --filter @store/backend lint                         # ESLint, eslint.confi
     `PAYMENT_DEADLINE_MS` ago. It gives at most `MAX_CANCELS_PER_RUN` (50) ids, oldest first.
   - `run.ts` (`runPaymentTimeout`) reads the orders of the last 7 days that are older than the
     deadline. It cancels each selected order with `cancelOrderWorkflow`, which releases the stock.
-    Then it writes `metadata.cancel_reason = "payment_timeout"`. The tracking route returns this
-    reason.
+  - The job writes `metadata.cancel_reason = "payment_timeout"` before the cancellation, so the
+    `order.canceled` subscriber can read it. When the workflow fails, the job writes
+    `cancel_reason: ""` to remove the key. The tracking route returns only this reason.
   - A failed order does not stop the run. The job catches and logs all errors itself.
+- `src/jobs/review-requests.ts` is the job definition (`0 20 * * *`, 03:00 WIB). The logic is in
+  `src/review-request/`.
+  - `select.ts` is pure. `selectDueOrders` keeps the orders that are not cancelled, have no
+    `metadata.review_request_sent_at`, and have a fulfillment with `delivered_at` at or before
+    now minus 7 days. It gives at most `REVIEW_REQUEST_BATCH` (100) ids, oldest delivery first.
+  - `reviewWindow` limits the query to the deliveries between now minus 37 days and now minus 7
+    days (`REVIEW_REQUEST_LOOKBACK_MS` is 30 days). An order with a delivery more than 37 days
+    before a run never gets a request, for example after a month with no job runs.
+  - `run.ts` (`runReviewRequests`) takes the lock `review-request:<order_id>` for each order.
+    Inside the lock, it reads the order again. A line item has a review when a review of any
+    status has its `order_line_item_id`.
+  - The job writes `review_request_sent_at` before the send. It also writes the mark when nothing
+    is left to review or the order has no email. Thus no later run selects the order again.
+  - When the send fails, the job writes `review_request_sent_at: ""` to remove the mark. The next
+    run tries again.
+  - The send has no `idempotency_key`. Medusa 2.21.2 sends a key with a failed notification row
+    again, but then throws on the update of that row. With a key, the job would thus send the
+    email again each day.
+  - With no `STOREFRONT_URL`, the job sends nothing, writes no mark, and logs a warning.
+- `src/jobs/wishlist-price-drops.ts` is the job definition (`0 21 * * *`, 04:00 WIB). The logic
+  is in `src/wishlist-alerts/`.
+  - `price-drop.ts` is pure. `selectPriceDrops` gives the drops and the saved price updates. A
+    drop is `saved_unit_price !== null` and a current price below it.
+  - The saved price moves only on a drop, or from `null` to the current price with no alert. A
+    rise followed by a smaller drop thus gives no alert. A variant with no price keeps its
+    saved price.
+  - `run.ts` (`runPriceDrops`) reads at most `PRICE_DROP_BATCH` (500) items in id order.
+    `batchOffset` moves the start of the batch one batch forward each day. Thus a store with more
+    than 500 items gets a check of every item over some days.
+  - The job sends one `wishlist-alert` email per customer with the `price_drops` group. The
+    locale comes from `customer.metadata.locale`.
+  - The new saved prices of a customer go in after the send. A failed send keeps the old saved
+    prices, so the next run sends the drop again.
+  - A customer with no email gets no email and a warning. The saved prices of that customer
+    stay. With no `STOREFRONT_URL`, the job sends nothing and keeps the saved prices.
 - `src/seed/`: idempotent seed steps for the region, the bank account, fulfillment, products, the
   storefront settings, and the API key. `bank-account.ts` adds the "Sample Bank" account and the
   sample contact only when the owner has no data. `storefront.ts` saves the price limits only
@@ -197,6 +387,9 @@ pnpm --filter @store/backend lint                         # ESLint, eslint.confi
     order**. The buttons go away after the cancellation or the capture. **Ask for more** opens
     `components/ask-for-more-drawer.tsx`. The helpers are in `lib/payment-receipts.ts`. They copy
     the limits and the provider id, because the admin bundle must not import server code.
+  - **Cancel order** opens `components/cancel-order-drawer.tsx`. The drawer has an optional note
+    (at most 500 characters, `validateOptionalNote`) and the buttons **Cancel the order** and
+    **Keep the order**. It calls `POST /admin/orders/:id/receipts/cancel`.
   - The pure helpers are in `lib/` and have unit tests in `lib/__tests__/`. Shared forms are in
     `components/`.
   - The admin code has its own `tsconfig.json`. The root `tsconfig.json` excludes `src/admin`.
@@ -254,13 +447,25 @@ src/admin/tsconfig.json`.
   captured payment, and has fewer than 3 receipts.
 - An order is "payment submitted" when it has a receipt and no note is newer than the newest
   receipt. Else it waits for payment.
-- **Accept** captures the open bank transfer payment with `capturePaymentWorkflow`. It sends no
-  email. It does not need a receipt.
+- **Accept** captures the open bank transfer payment with `capturePaymentWorkflow`. It does not
+  need a receipt. The `payment.captured` subscriber then sends the `payment-confirmed` email.
 - **Ask for more** saves a `payment_note` and emits the event. The note is required, and has at
   most 500 characters after `trim()`. The schema uses `refine()`, because the Medusa validator
   replaces the messages of `min()` and `max()`. Medusa adds `Invalid request: ` before each
   message, for example `Invalid request: Write a note for the customer.`
-- **Cancel order** in the widget calls the Medusa order cancellation, which releases the stock.
+- **Cancel order** in the widget calls `POST /admin/orders/:id/receipts/cancel` with the body
+  `{ note?: string }`. The route sits next to `accept` and `ask-for-more`, because it has the same
+  guards. `receipts/middlewares.ts` registers its validator.
+  - The route gives 400 with the `RECEIPT_BLOCK_MESSAGES` text for a gateway order, a cancelled
+    order, or an order with a captured payment. The native Medusa cancel stays for these orders.
+  - The route writes `cancel_reason = "staff"` and `cancel_note` before the cancellation. It
+    always sends `cancel_note`, with `""` for an empty note, so an old note goes away.
+  - Then it runs `cancelOrderWorkflow` with `canceled_by` (the admin user). The workflow
+    releases the stock.
+  - When the workflow fails, the route writes `""` to the two keys to remove them, and throws.
+- In Medusa 2.21.2, `cancelOrderWorkflow` refunds each captured payment of the order. Thus each
+  cancel of a captured order also emits `payment.refunded`. The bank transfer refund on a cancel
+  sends no `refund-sent` email, because the `order-cancelled` email gives the refund amount.
 
 ## Docker
 
