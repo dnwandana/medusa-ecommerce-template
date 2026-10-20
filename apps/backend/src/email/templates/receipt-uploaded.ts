@@ -1,4 +1,4 @@
-import { MAX_RECEIPTS } from "../../payment-receipt/constants"
+import { MAX_RECEIPTS } from "../../modules/payment-receipt/constants"
 import { formatRupiah, RenderedEmail } from "./html"
 import { button, heading, keyValues, paragraph, renderShell, type EmailStore } from "./shell"
 

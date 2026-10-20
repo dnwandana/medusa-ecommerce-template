@@ -84,11 +84,11 @@ function fulfillmentModule(env: Env): ModuleEntry {
 const LOCAL_NOTIFICATION_NAME = "Local Notification Provider"
 
 // Puts one provider on the email channel, because Medusa permits only one
-// provider for each channel. Brevo gets the channel when BREVO_API_KEY has a
-// value. Otherwise the local provider writes each email to the log.
+// provider for each channel. The smtp provider gets the channel when SMTP_HOST
+// has a value. Otherwise the local provider writes each email to the log.
 function notificationModule(env: Env): ModuleEntry {
-  const apiKey = env.BREVO_API_KEY
-  if (!apiKey) {
+  const host = env.SMTP_HOST
+  if (!host) {
     return {
       resolve: "@medusajs/medusa/notification",
       options: {
@@ -103,8 +103,8 @@ function notificationModule(env: Env): ModuleEntry {
     }
   }
 
-  if (!env.BREVO_SENDER_EMAIL) {
-    throw new Error("BREVO_SENDER_EMAIL is required when BREVO_API_KEY has a value.")
+  if (!env.EMAIL_FROM) {
+    throw new Error("EMAIL_FROM is required when SMTP_HOST has a value.")
   }
 
   return {
@@ -117,13 +117,18 @@ function notificationModule(env: Env): ModuleEntry {
           options: { name: LOCAL_NOTIFICATION_NAME, channels: ["feed"] },
         },
         {
-          resolve: "./src/modules/brevo",
-          id: "brevo",
+          resolve: "./src/modules/smtp",
+          id: "smtp",
           options: {
             channels: ["email"],
-            apiKey,
-            senderEmail: env.BREVO_SENDER_EMAIL,
-            senderName: env.BREVO_SENDER_NAME || undefined,
+            host,
+            // An empty or bad SMTP_PORT gives 0 or NaN. validateSmtpOptions then stops the start.
+            port: Number(env.SMTP_PORT),
+            secure: env.SMTP_SECURE === "true",
+            user: env.SMTP_USER || undefined,
+            password: env.SMTP_PASSWORD || undefined,
+            from: env.EMAIL_FROM,
+            fromName: env.EMAIL_FROM_NAME || undefined,
           },
         },
       ],

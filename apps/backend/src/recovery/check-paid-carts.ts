@@ -1,4 +1,4 @@
-import type { PaidCartAlertData } from "../modules/brevo/templates/paid-cart-alert"
+import type { PaidCartAlertData } from "../email/templates/paid-cart-alert"
 import type { RecoveryAdapter } from "./adapters"
 
 export const MAX_SESSION_AGE_MS = 48 * 60 * 60 * 1000

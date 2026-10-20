@@ -2,8 +2,8 @@ import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { readStoreForEmail } from "../lib/store-for-email"
 import { readStorefrontUrl, storefrontLink } from "../lib/storefront-url"
-import { toEmailLocale } from "../modules/brevo/templates/i18n"
-import type { OrderDeliveredData } from "../modules/brevo/templates/order-delivered"
+import { toEmailLocale } from "../email/templates/i18n"
+import type { OrderDeliveredData } from "../email/templates/order-delivered"
 import { FULFILLMENT_FIELDS, shipmentItems } from "./shipment-created"
 
 // markOrderFulfillmentAsDeliveredWorkflow emits the fulfillment id and the no_notification flag

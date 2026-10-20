@@ -256,13 +256,13 @@ describe("low-stock subscriber", () => {
 
   it("writes no mark and does not throw when the send fails", async () => {
     const { container, createNotifications, inventory, logger } = makeContainer()
-    createNotifications.mockRejectedValue(new Error("Brevo is down"))
+    createNotifications.mockRejectedValue(new Error("SMTP is down"))
 
     await expect(run(container)).resolves.toBeUndefined()
 
     expect(inventory.updateInventoryItems).not.toHaveBeenCalled()
     expect(logger.error).toHaveBeenCalledWith(
-      "The low stock check for inventory item iitem_1 failed. Cause: Brevo is down"
+      "The low stock check for inventory item iitem_1 failed. Cause: SMTP is down"
     )
   })
 

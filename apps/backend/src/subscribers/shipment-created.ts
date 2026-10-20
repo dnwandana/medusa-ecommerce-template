@@ -2,9 +2,9 @@ import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { readStoreForEmail } from "../lib/store-for-email"
 import { readStorefrontUrl, storefrontLink } from "../lib/storefront-url"
-import { toEmailLocale } from "../modules/brevo/templates/i18n"
-import type { OrderShippedData, OrderShippedLabel } from "../modules/brevo/templates/order-shipped"
-import type { EmailLineItem } from "../modules/brevo/templates/shell"
+import { toEmailLocale } from "../email/templates/i18n"
+import type { OrderShippedData, OrderShippedLabel } from "../email/templates/order-shipped"
+import type { EmailLineItem } from "../email/templates/shell"
 
 type ShipmentCreatedEvent = { id: string; no_notification?: boolean }
 

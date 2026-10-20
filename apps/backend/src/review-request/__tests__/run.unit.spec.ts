@@ -206,7 +206,7 @@ describe("runReviewRequests", () => {
       makeOrder("order_1"),
       makeOrder("order_2", { fulfillments: [{ delivered_at: "2026-10-20T01:00:00Z" }] }),
     ])
-    createNotifications.mockRejectedValueOnce(new Error("Brevo is down"))
+    createNotifications.mockRejectedValueOnce(new Error("SMTP is down"))
 
     const result = await runReviewRequests(container, NOW)
 
@@ -218,7 +218,7 @@ describe("runReviewRequests", () => {
       ["order_2", MARK],
     ])
     expect(logger.error).toHaveBeenCalledWith(
-      "The review request for order order_1 failed. Cause: Brevo is down"
+      "The review request for order order_1 failed. Cause: SMTP is down"
     )
   })
 

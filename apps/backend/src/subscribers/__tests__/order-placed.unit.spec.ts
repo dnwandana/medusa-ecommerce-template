@@ -274,11 +274,11 @@ describe("order-placed subscriber", () => {
 
   it("logs the error and does not throw when the send fails", async () => {
     const { container, createNotifications, logger } = makeContainer([order])
-    createNotifications.mockRejectedValue(new Error("Brevo is down"))
+    createNotifications.mockRejectedValue(new Error("SMTP is down"))
 
     await expect(run(container)).resolves.toBeUndefined()
     expect(logger.error).toHaveBeenCalledWith(
-      "The order-placed email for order order_123 failed. Cause: Brevo is down"
+      "The order-placed email for order order_123 failed. Cause: SMTP is down"
     )
   })
 
@@ -402,14 +402,14 @@ describe("order-placed subscriber", () => {
 
     it("sends the owner alert when the customer send fails", async () => {
       const { container, createNotifications, logger } = makeContainer([order])
-      createNotifications.mockRejectedValueOnce(new Error("Brevo is down"))
+      createNotifications.mockRejectedValueOnce(new Error("SMTP is down"))
 
       await run(container)
 
       expect(sentTemplates(createNotifications)).toEqual(["order-placed", "new-order-owner"])
       expect(logger.error).toHaveBeenCalledTimes(1)
       expect(logger.error).toHaveBeenCalledWith(
-        "The order-placed email for order order_123 failed. Cause: Brevo is down"
+        "The order-placed email for order order_123 failed. Cause: SMTP is down"
       )
     })
 

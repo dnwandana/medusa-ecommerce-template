@@ -7,11 +7,11 @@ import { readOwnerEmail } from "../lib/owner-email"
 import { readStoreForEmail } from "../lib/store-for-email"
 import { readStorefrontUrl, storefrontLink } from "../lib/storefront-url"
 import { BANK_TRANSFER_PROVIDER_ID, PAYMENT_DEADLINE_MS } from "../modules/bank-transfer/constants"
-import { formatWibTime } from "../modules/brevo/templates/html"
-import { toEmailLocale } from "../modules/brevo/templates/i18n"
-import type { NewOrderOwnerData } from "../modules/brevo/templates/new-order-owner"
-import type { OrderPlacedData } from "../modules/brevo/templates/order-placed"
-import type { EmailAddress, EmailLineItem } from "../modules/brevo/templates/shell"
+import { formatWibTime } from "../email/templates/html"
+import { toEmailLocale } from "../email/templates/i18n"
+import type { NewOrderOwnerData } from "../email/templates/new-order-owner"
+import type { OrderPlacedData } from "../email/templates/order-placed"
+import type { EmailAddress, EmailLineItem } from "../email/templates/shell"
 
 const ORDER_FIELDS = [
   "id",

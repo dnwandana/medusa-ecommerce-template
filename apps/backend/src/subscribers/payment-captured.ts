@@ -5,8 +5,8 @@ import { readPaymentWithOrder } from "../lib/payment-order"
 import { readStoreForEmail } from "../lib/store-for-email"
 import { readStorefrontUrl, storefrontLink } from "../lib/storefront-url"
 import { BANK_TRANSFER_PROVIDER_ID } from "../modules/bank-transfer/constants"
-import { toEmailLocale } from "../modules/brevo/templates/i18n"
-import type { PaymentConfirmedData } from "../modules/brevo/templates/payment-confirmed"
+import { toEmailLocale } from "../email/templates/i18n"
+import type { PaymentConfirmedData } from "../email/templates/payment-confirmed"
 
 // capturePaymentWorkflow emits the event with the id of the payment.
 type PaymentCapturedEvent = { id: string }

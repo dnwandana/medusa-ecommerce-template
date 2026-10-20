@@ -4,12 +4,9 @@ import { readStoreForEmail } from "../lib/store-for-email"
 import { CUSTOMER_LOCALE } from "../lib/storefront-metadata"
 import { readStorefrontUrl, storefrontLink } from "../lib/storefront-url"
 import { readVariantPrices } from "../lib/variant-prices"
-import { toEmailLocale } from "../modules/brevo/templates/i18n"
-import type { EmailStore } from "../modules/brevo/templates/shell"
-import type {
-  WishlistAlertData,
-  WishlistAlertItem,
-} from "../modules/brevo/templates/wishlist-alert"
+import { toEmailLocale } from "../email/templates/i18n"
+import type { EmailStore } from "../email/templates/shell"
+import type { WishlistAlertData, WishlistAlertItem } from "../email/templates/wishlist-alert"
 import { WISHLIST_MODULE } from "../modules/wishlist"
 import type WishlistModuleService from "../modules/wishlist/service"
 import { batchOffset, PRICE_DROP_BATCH, type PriceItem, selectPriceDrops } from "./price-drop"

@@ -348,7 +348,7 @@ describe("wishlist-back-in-stock subscriber", () => {
 
   it("writes an error for a failed send, does not write alerted_at, and sends the others", async () => {
     const { container, createNotifications, updateWishlistItems, logger } = makeContainer()
-    createNotifications.mockRejectedValueOnce(new Error("Brevo is down"))
+    createNotifications.mockRejectedValueOnce(new Error("SMTP is down"))
     await expect(run(container)).resolves.toBeUndefined()
 
     expect(createNotifications).toHaveBeenCalledTimes(2)
@@ -356,7 +356,7 @@ describe("wishlist-back-in-stock subscriber", () => {
       [[{ id: "wi_2", alerted_at: expect.any(Date) }]],
     ])
     expect(logger.error).toHaveBeenCalledWith(
-      "The wishlist-alert email for customer cust_1 failed. Cause: Brevo is down"
+      "The wishlist-alert email for customer cust_1 failed. Cause: SMTP is down"
     )
   })
 

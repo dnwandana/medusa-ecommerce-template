@@ -1,6 +1,6 @@
 import type { MedusaContainer } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import type { EmailLocale } from "../modules/brevo/templates/i18n"
+import type { EmailLocale } from "../email/templates/i18n"
 
 // Returns the storefront base URL without trailing slashes, or null when the config has no value.
 export function readStorefrontUrl(scope: MedusaContainer): string | null {

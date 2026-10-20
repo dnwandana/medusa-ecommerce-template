@@ -3,9 +3,9 @@ import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { readStoreForEmail } from "../lib/store-for-email"
 import { ORDER_REVIEW_REQUEST_SENT_AT } from "../lib/storefront-metadata"
 import { readStorefrontUrl, storefrontLink } from "../lib/storefront-url"
-import { toEmailLocale } from "../modules/brevo/templates/i18n"
-import type { ReviewRequestData } from "../modules/brevo/templates/review-request"
-import type { EmailStore } from "../modules/brevo/templates/shell"
+import { toEmailLocale } from "../email/templates/i18n"
+import type { ReviewRequestData } from "../email/templates/review-request"
+import type { EmailStore } from "../email/templates/shell"
 import { PRODUCT_REVIEW_MODULE } from "../modules/product-review"
 import {
   listReviewableItems,

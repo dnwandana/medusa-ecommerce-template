@@ -4,8 +4,8 @@ import { type PaymentForEmail, readPaymentWithOrder } from "../lib/payment-order
 import { readStoreForEmail } from "../lib/store-for-email"
 import { readStorefrontUrl, storefrontLink } from "../lib/storefront-url"
 import { BANK_TRANSFER_PROVIDER_ID } from "../modules/bank-transfer/constants"
-import { toEmailLocale } from "../modules/brevo/templates/i18n"
-import type { RefundSentData } from "../modules/brevo/templates/refund-sent"
+import { toEmailLocale } from "../email/templates/i18n"
+import type { RefundSentData } from "../email/templates/refund-sent"
 
 // refundPaymentWorkflow emits the event with the id of the payment, not of the refund.
 type PaymentRefundedEvent = { id: string }

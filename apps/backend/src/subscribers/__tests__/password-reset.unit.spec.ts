@@ -74,13 +74,13 @@ describe("password-reset subscriber", () => {
 
   it("logs the error and does not throw when the send fails", async () => {
     const { container, createNotifications, logger } = makeContainer(admin)
-    createNotifications.mockRejectedValue(new Error("Brevo is down"))
+    createNotifications.mockRejectedValue(new Error("SMTP is down"))
 
     await expect(
       run(container, { entity_id: "owner@example.com", actor_type: "user", token: "tok_1" })
     ).resolves.toBeUndefined()
     expect(logger.error).toHaveBeenCalledWith(
-      "The password-reset email failed. Cause: Brevo is down"
+      "The password-reset email failed. Cause: SMTP is down"
     )
   })
 })

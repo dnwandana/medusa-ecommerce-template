@@ -11,11 +11,8 @@ import {
   readVariantStock,
   STOCK_EVENTS,
 } from "../lib/variant-stock"
-import { toEmailLocale } from "../modules/brevo/templates/i18n"
-import type {
-  WishlistAlertData,
-  WishlistAlertItem,
-} from "../modules/brevo/templates/wishlist-alert"
+import { toEmailLocale } from "../email/templates/i18n"
+import type { WishlistAlertData, WishlistAlertItem } from "../email/templates/wishlist-alert"
 import { WISHLIST_MODULE } from "../modules/wishlist"
 import type WishlistModuleService from "../modules/wishlist/service"
 import { type StockItem, transitionStockItems } from "../wishlist-alerts/back-in-stock"

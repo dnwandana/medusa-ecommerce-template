@@ -1,7 +1,7 @@
 import type { MedusaContainer } from "@medusajs/framework/types"
 import { BANK_ACCOUNT_MODULE } from "../modules/bank-account"
 import type BankAccountModuleService from "../modules/bank-account/service"
-import type { OrderPlacedBankAccount } from "../modules/brevo/templates/order-placed"
+import type { OrderPlacedBankAccount } from "../email/templates/order-placed"
 
 // Returns the active bank accounts in display order. An email shows only the public fields.
 export async function listActiveBankAccounts(

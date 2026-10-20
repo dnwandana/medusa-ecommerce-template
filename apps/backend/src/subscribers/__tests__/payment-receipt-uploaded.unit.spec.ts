@@ -133,11 +133,11 @@ describe("payment-receipt-uploaded subscriber", () => {
 
   it("logs the error and does not throw when the send fails", async () => {
     const { container, createNotifications, logger } = makeContainer()
-    createNotifications.mockRejectedValue(new Error("Brevo is down"))
+    createNotifications.mockRejectedValue(new Error("SMTP is down"))
 
     await expect(run(container)).resolves.toBeUndefined()
     expect(logger.error).toHaveBeenCalledWith(
-      "The receipt-uploaded email for order order_1 failed. Cause: Brevo is down"
+      "The receipt-uploaded email for order order_1 failed. Cause: SMTP is down"
     )
   })
 })

@@ -156,10 +156,10 @@ describe("delivery-created subscriber", () => {
 
   it("writes an error and does not throw when the email fails", async () => {
     const { container, createNotifications, logger } = makeContainer([fulfillment])
-    createNotifications.mockRejectedValue(new Error("Brevo is down"))
+    createNotifications.mockRejectedValue(new Error("SMTP is down"))
     await expect(run(container)).resolves.toBeUndefined()
     expect(logger.error).toHaveBeenCalledWith(
-      "The order-delivered email for fulfillment ful_1 failed. Cause: Brevo is down"
+      "The order-delivered email for fulfillment ful_1 failed. Cause: SMTP is down"
     )
   })
 })

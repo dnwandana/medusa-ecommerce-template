@@ -4,7 +4,7 @@ import { ContainerRegistrationKeys, MedusaError, Modules } from "@medusajs/frame
 import { z } from "@medusajs/framework/zod"
 import { generateJwtTokenForAuthIdentity } from "@medusajs/medusa/api/auth/utils/generate-jwt-token"
 import { CUSTOMER_LOCALE } from "../../../../lib/storefront-metadata"
-import { toEmailLocale } from "../../../../modules/brevo/templates/i18n"
+import { toEmailLocale } from "../../../../email/templates/i18n"
 import { MAGIC_LINK_MODULE } from "../../../../modules/magic-link"
 import type MagicLinkModuleService from "../../../../modules/magic-link/service"
 import { resolveCustomerAccountWorkflow } from "../../../../workflows/resolve-customer-account"

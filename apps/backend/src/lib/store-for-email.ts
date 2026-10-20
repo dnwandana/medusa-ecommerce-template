@@ -2,7 +2,7 @@ import type { MedusaContainer } from "@medusajs/framework/types"
 import { Modules } from "@medusajs/framework/utils"
 import { BANK_ACCOUNT_MODULE } from "../modules/bank-account"
 import type BankAccountModuleService from "../modules/bank-account/service"
-import type { EmailStore } from "../modules/brevo/templates/shell"
+import type { EmailStore } from "../email/templates/shell"
 
 const DEFAULT_STORE_NAME = "our store"
 

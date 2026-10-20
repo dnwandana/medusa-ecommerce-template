@@ -221,7 +221,7 @@ describe("runPriceDrops", () => {
       ],
       { prices: PRICES }
     )
-    createNotifications.mockRejectedValueOnce(new Error("Brevo is down"))
+    createNotifications.mockRejectedValueOnce(new Error("SMTP is down"))
 
     const result = await runPriceDrops(container, NOW)
 
@@ -232,7 +232,7 @@ describe("runPriceDrops", () => {
       [[{ id: "wi_4", saved_unit_price: 100 }]],
     ])
     expect(logger.error).toHaveBeenCalledWith(
-      "The price drop email for customer cus_1 failed. Cause: Brevo is down"
+      "The price drop email for customer cus_1 failed. Cause: SMTP is down"
     )
   })
 

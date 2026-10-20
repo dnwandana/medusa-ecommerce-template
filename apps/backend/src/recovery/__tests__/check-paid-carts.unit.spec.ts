@@ -216,7 +216,7 @@ describe("checkPaidCarts", () => {
       { pp_test_test: [session()] },
       {
         completeCart: failedCompletion(),
-        sendAlert: jest.fn().mockRejectedValue(new Error("Brevo is down.")),
+        sendAlert: jest.fn().mockRejectedValue(new Error("SMTP is down.")),
       }
     )
 
@@ -224,7 +224,7 @@ describe("checkPaidCarts", () => {
 
     expect(deps.markAlertSent).not.toHaveBeenCalled()
     expect(deps.logger.error).toHaveBeenCalledWith(
-      "The check-paid-carts job did not send the alert for the cart cart_1. Cause: Brevo is down."
+      "The check-paid-carts job did not send the alert for the cart cart_1. Cause: SMTP is down."
     )
     expect(result).toEqual({ checked: 1, completed: 0, alerted: 0 })
   })

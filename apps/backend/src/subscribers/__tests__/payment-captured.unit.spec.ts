@@ -179,10 +179,10 @@ describe("payment-captured subscriber", () => {
   it("logs a send error and does not throw", async () => {
     readPayment.mockResolvedValue({ payment, order })
     const { container, createNotifications, logger } = makeContainer()
-    createNotifications.mockRejectedValue(new Error("Brevo is down"))
+    createNotifications.mockRejectedValue(new Error("SMTP is down"))
     await expect(run(container)).resolves.toBeUndefined()
     expect(logger.error).toHaveBeenCalledWith(
-      "The payment-confirmed email for payment pay_1 failed. Cause: Brevo is down"
+      "The payment-confirmed email for payment pay_1 failed. Cause: SMTP is down"
     )
   })
 

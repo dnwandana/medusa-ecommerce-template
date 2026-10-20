@@ -90,7 +90,7 @@ describe("buildModules: notification module", () => {
     return (entry?.options as any)?.providers
   }
 
-  it("uses the local provider for feed and email when BREVO_API_KEY is absent", () => {
+  it("uses the local provider for feed and email when SMTP_HOST is absent", () => {
     expect(providers({})).toEqual([
       {
         resolve: "@medusajs/medusa/notification-local",
@@ -100,16 +100,20 @@ describe("buildModules: notification module", () => {
     ])
   })
 
-  it("uses the local provider for email when BREVO_API_KEY is empty", () => {
-    expect(providers({ BREVO_API_KEY: "" })).toHaveLength(1)
+  it("uses the local provider for email when SMTP_HOST is empty", () => {
+    expect(providers({ SMTP_HOST: "" })).toHaveLength(1)
   })
 
-  it("uses Brevo for email when BREVO_API_KEY has a value", () => {
+  it("uses smtp for email when SMTP_HOST has a value", () => {
     expect(
       providers({
-        BREVO_API_KEY: "xkeysib-test",
-        BREVO_SENDER_EMAIL: "store@example.com",
-        BREVO_SENDER_NAME: "My Store",
+        SMTP_HOST: "smtp.resend.com",
+        SMTP_PORT: "587",
+        SMTP_SECURE: "false",
+        SMTP_USER: "resend",
+        SMTP_PASSWORD: "re_secret",
+        EMAIL_FROM: "orders@shop.example.com",
+        EMAIL_FROM_NAME: "Everyday",
       })
     ).toEqual([
       {
@@ -118,21 +122,41 @@ describe("buildModules: notification module", () => {
         options: { name: "Local Notification Provider", channels: ["feed"] },
       },
       {
-        resolve: "./src/modules/brevo",
-        id: "brevo",
+        resolve: "./src/modules/smtp",
+        id: "smtp",
         options: {
           channels: ["email"],
-          apiKey: "xkeysib-test",
-          senderEmail: "store@example.com",
-          senderName: "My Store",
+          host: "smtp.resend.com",
+          port: 587,
+          secure: false,
+          user: "resend",
+          password: "re_secret",
+          from: "orders@shop.example.com",
+          fromName: "Everyday",
         },
       },
     ])
   })
 
-  it("stops the start when the key has a value and the sender email is absent", () => {
-    expect(() => buildModules({ BREVO_API_KEY: "xkeysib-test" })).toThrow(
-      "BREVO_SENDER_EMAIL is required when BREVO_API_KEY has a value."
+  it("reads SMTP_SECURE=true and leaves the empty optional keys undefined", () => {
+    const smtp = providers({
+      SMTP_HOST: "localhost",
+      SMTP_PORT: "1025",
+      SMTP_SECURE: "true",
+      SMTP_USER: "",
+      SMTP_PASSWORD: "",
+      EMAIL_FROM: "orders@everyday.test",
+      EMAIL_FROM_NAME: "",
+    })[1].options
+    expect(smtp).toMatchObject({ port: 1025, secure: true })
+    expect(smtp.user).toBeUndefined()
+    expect(smtp.password).toBeUndefined()
+    expect(smtp.fromName).toBeUndefined()
+  })
+
+  it("stops the start when SMTP_HOST has a value and EMAIL_FROM is absent", () => {
+    expect(() => buildModules({ SMTP_HOST: "localhost", SMTP_PORT: "1025" })).toThrow(
+      "EMAIL_FROM is required when SMTP_HOST has a value."
     )
   })
 })

@@ -5,8 +5,8 @@ import { updateCustomersWorkflow } from "@medusajs/medusa/core-flows"
 import { readStoreForEmail } from "../../../../../lib/store-for-email"
 import { readStorefrontUrl, storefrontLink } from "../../../../../lib/storefront-url"
 import { CUSTOMER_LOCALE, CUSTOMER_WELCOME_SENT_AT } from "../../../../../lib/storefront-metadata"
-import { toEmailLocale } from "../../../../../modules/brevo/templates/i18n"
-import type { WelcomeEmailData } from "../../../../../modules/brevo/templates/welcome"
+import { toEmailLocale } from "../../../../../email/templates/i18n"
+import type { WelcomeEmailData } from "../../../../../email/templates/welcome"
 
 export const PostStoreWelcomeSchema = z
   .object({

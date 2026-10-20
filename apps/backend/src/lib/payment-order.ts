@@ -1,6 +1,6 @@
 import type { MedusaContainer } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import type { EmailAddress } from "../modules/brevo/templates/shell"
+import type { EmailAddress } from "../email/templates/shell"
 
 export type PaymentForEmail = {
   id: string

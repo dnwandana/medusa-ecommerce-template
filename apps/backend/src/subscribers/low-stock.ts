@@ -6,7 +6,7 @@ import { readOwnerEmail } from "../lib/owner-email"
 import { readStoreForEmail } from "../lib/store-for-email"
 import { inventoryItemIdsOfEvent, readVariantStock, STOCK_EVENTS } from "../lib/variant-stock"
 import { INVENTORY_LOW_STOCK_ALERTED_AT, lowStockTransition } from "../low-stock/rules"
-import type { LowStockOwnerData } from "../modules/brevo/templates/low-stock-owner"
+import type { LowStockOwnerData } from "../email/templates/low-stock-owner"
 import { STOREFRONT_MODULE } from "../modules/storefront"
 import type StorefrontModuleService from "../modules/storefront/service"
 

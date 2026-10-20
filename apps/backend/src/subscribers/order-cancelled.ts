@@ -4,8 +4,8 @@ import { readStoreForEmail } from "../lib/store-for-email"
 import { ORDER_CANCEL_NOTE, ORDER_CANCEL_REASON } from "../lib/storefront-metadata"
 import { readStorefrontUrl, storefrontLink } from "../lib/storefront-url"
 import { BANK_TRANSFER_PROVIDER_ID } from "../modules/bank-transfer/constants"
-import { toEmailLocale } from "../modules/brevo/templates/i18n"
-import type { OrderCancelledData } from "../modules/brevo/templates/order-cancelled"
+import { toEmailLocale } from "../email/templates/i18n"
+import type { OrderCancelledData } from "../email/templates/order-cancelled"
 
 const ORDER_FIELDS = [
   "id",
