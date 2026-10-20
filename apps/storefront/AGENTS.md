@@ -74,6 +74,14 @@ pnpm --filter @store/storefront lint                       # ESLint, eslint.conf
     settings with `useStorefront().ensureSettings()`. The product cards read them.
 - The cart id is in the cookie `cart_id` (`useCartId.ts`): 30 days, `sameSite: "lax"`. The `lax`
   value keeps the cookie on the top-level return from a payment page.
+- The cart carries the storefront locale. `useCart.add` sends `locale` on `cart.create`.
+  `useCheckout.saveContact` sends `locale` on `cart.update`. Thus the order has the storefront
+  locale, and the order emails follow it.
+  - The two composables read the locale from `useNuxtApp().$i18n`, not from `useI18n()`. The auth
+    middleware calls `useCart` through `useCustomer`, and `useI18n()` throws outside a component
+    setup.
+  - The Medusa translation module translates the cart items for the cart locale. After a language
+    switch, the cart items keep the old language until `saveContact` updates the cart.
 - `useRegion().ensureRegion()` uses the first region from the backend. There is no region or
   currency selector.
 
