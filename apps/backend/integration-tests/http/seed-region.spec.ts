@@ -39,12 +39,14 @@ medusaIntegrationTestRunner({
 
         const stores = await graph("store", [
           "id",
+          "name",
           "default_sales_channel_id",
           "supported_currencies.currency_code",
           "supported_currencies.is_default",
         ])
         expect(stores).toHaveLength(1)
         expect(stores[0].id).toBe(result.storeId)
+        expect(stores[0].name).toBe("Everyday")
         expect(stores[0].default_sales_channel_id).toBe(result.salesChannelId)
         expect(stores[0].supported_currencies).toEqual([
           expect.objectContaining({ currency_code: "idr", is_default: true }),

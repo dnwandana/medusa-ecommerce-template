@@ -12,7 +12,7 @@ import { BANK_TRANSFER_PROVIDER_ID } from "../modules/bank-transfer/constants"
 export type SeedRegionResult = { salesChannelId: string; storeId: string; regionId: string }
 
 const SALES_CHANNEL_NAME = "Default Sales Channel"
-const STORE_NAME = "My Store"
+const STORE_NAME = "Everyday"
 const REGION_NAME = "Indonesia"
 const CURRENCY = "idr"
 const COUNTRY = "id"
@@ -51,10 +51,13 @@ async function findOrCreateSalesChannel(container: MedusaContainer): Promise<str
 }
 
 // A database can have a default store or no store. The function updates the store if it exists.
+// Medusa creates the default store "Medusa Store" at each boot, so the update also sets the name.
+// The emails show the store name in the wordmark.
 async function upsertStore(container: MedusaContainer, salesChannelId: string): Promise<string> {
   const storeService = container.resolve(Modules.STORE)
   const [store] = await storeService.listStores()
   const storeData = {
+    name: STORE_NAME,
     supported_currencies: [{ currency_code: CURRENCY, is_default: true }],
     default_sales_channel_id: salesChannelId,
   }
@@ -67,7 +70,7 @@ async function upsertStore(container: MedusaContainer, salesChannelId: string): 
   }
 
   const { result } = await createStoresWorkflow(container).run({
-    input: { stores: [{ name: STORE_NAME, ...storeData }] },
+    input: { stores: [storeData] },
   })
   return result[0].id
 }
