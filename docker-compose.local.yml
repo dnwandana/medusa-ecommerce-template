@@ -1,4 +1,4 @@
-# Development services: PostgreSQL, Redis, and Garage.
+# Development services: PostgreSQL, Redis, Garage, and Mailpit.
 # Use this file with -f: docker compose -f docker-compose.local.yml up -d --wait
 # docker-compose.yml is the production file.
 services:
@@ -47,6 +47,19 @@ services:
     # The image has no shell, so the healthcheck runs the binary directly.
     healthcheck:
       test: ["CMD", "/garage", "status"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  # Mailpit catches every email of the backend. No email leaves the machine.
+  # Read the emails at http://localhost:8025.
+  mailpit:
+    image: axllent/mailpit:v1.31.3
+    ports:
+      - "127.0.0.1:1025:1025"
+      - "127.0.0.1:8025:8025"
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
       interval: 2s
       timeout: 5s
       retries: 30
