@@ -1,52 +1,43 @@
-import { renderPaidCartAlert } from "../templates/paid-cart-alert"
 import { renderTemplate } from "../templates"
+import { renderPaidCartAlert } from "../templates/paid-cart-alert"
+
+const store = { name: "Everyday", contact_email: "hello@everyday.id", whatsapp: null }
 
 const data = {
-  cart_id: "cart_01",
-  provider_id: "pp_test_test",
-  payment_reference: "ref-1",
-  customer_email: "buyer@example.com",
-  amount: 95000,
+  store,
+  cart_id: "cart_1",
+  provider_id: "pp_x_x",
+  payment_reference: "REF",
+  amount: 645000,
 }
 
 describe("renderPaidCartAlert", () => {
-  it("uses the cart id in the subject", () => {
-    expect(renderPaidCartAlert(data).subject).toBe("Paid cart with no order: cart_01")
-  })
-
-  it("shows the cart id, the email address, and the amount", () => {
-    const { html } = renderPaidCartAlert(data)
-
-    expect(html).toContain("cart_01")
-    expect(html).toContain("buyer@example.com")
-    expect(html).toContain("Rp 95.000")
+  it("renders the alert", () => {
+    const { subject, html } = renderPaidCartAlert(data)
+    expect(subject).toBe("Paid cart with no order: cart_1")
+    expect(html).toContain("No email address on the cart")
+    expect(html).toContain("<strong>Rp 645.000</strong>")
+    expect(html).toContain("This is an alert for the store owner")
   })
 
   it("shows the provider id and the payment reference and names no gateway", () => {
     const { html } = renderPaidCartAlert(data)
-    expect(html).toContain("pp_test_test")
-    expect(html).toContain("ref-1")
+    expect(html).toContain("pp_x_x")
+    expect(html).toContain("REF")
     expect(html).not.toMatch(/mayar|invoice/i)
   })
 
-  it("throws when a required value is missing", () => {
-    expect(() => renderPaidCartAlert({ ...data, payment_reference: "" })).toThrow(
-      'The "paid-cart-alert" template needs cart_id, provider_id, payment_reference, and amount.'
-    )
-  })
-
-  it("renders an alert with no customer email address", () => {
-    const { html } = renderPaidCartAlert({ ...data, customer_email: undefined })
-
-    expect(html).toContain("No email address on the cart")
-    expect(html).not.toContain("undefined")
-  })
-
-  it("escapes HTML characters in the values", () => {
+  it("shows and escapes the customer email address", () => {
     const { html } = renderPaidCartAlert({ ...data, customer_email: "<b>@example.com" })
-
     expect(html).toContain("&lt;b&gt;@example.com")
     expect(html).not.toContain("<b>@example.com")
+    expect(html).not.toContain("No email address on the cart")
+  })
+
+  it("throws without the fields", () => {
+    expect(() => renderPaidCartAlert({ store, cart_id: "c" } as any)).toThrow(
+      "needs cart_id, provider_id, payment_reference, and amount"
+    )
   })
 
   it.each([
@@ -60,10 +51,8 @@ describe("renderPaidCartAlert", () => {
       'The "paid-cart-alert" template needs cart_id, provider_id, payment_reference, and amount.'
     )
   })
-})
 
-describe("renderTemplate", () => {
-  it("renders the paid-cart-alert template", () => {
-    expect(renderTemplate("paid-cart-alert", data).subject).toBe("Paid cart with no order: cart_01")
+  it("is a known template", () => {
+    expect(renderTemplate("paid-cart-alert", data).subject).toBe("Paid cart with no order: cart_1")
   })
 })

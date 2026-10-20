@@ -1,3 +1,5 @@
+import type { EmailLocale } from "./i18n"
+
 export type RenderedEmail = { subject: string; html: string }
 
 // Makes a value safe for HTML text and for an attribute in double quotation marks.
@@ -21,53 +23,56 @@ export function formatRupiah(amount: unknown): string {
   return `Rp ${String(whole).replace(/\B(?=(\d{3})+(?!\d))/g, ".")}`
 }
 
-const WIB_FORMAT = new Intl.DateTimeFormat("en-GB", {
+const DATE_OPTIONS: Intl.DateTimeFormatOptions = {
   timeZone: "Asia/Jakarta",
   day: "numeric",
   month: "long",
   year: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-  hourCycle: "h23",
-})
+}
 
-// Formats a time in WIB (Asia/Jakarta), for example "18 October 2026, 14:30 WIB". It builds the
-// text from the parts, because the words that join the parts differ between ICU versions.
-export function formatWibTime(date: Date): string {
+// en-GB gives the day before the month, as in "21 October 2026". The formats are made one time,
+// because each new Intl.DateTimeFormat is slow.
+const WIB_FORMATS: Record<EmailLocale, { date: Intl.DateTimeFormat; time: Intl.DateTimeFormat }> = {
+  "en-US": {
+    date: new Intl.DateTimeFormat("en-GB", DATE_OPTIONS),
+    time: new Intl.DateTimeFormat("en-GB", {
+      ...DATE_OPTIONS,
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    }),
+  },
+  "id-ID": {
+    date: new Intl.DateTimeFormat("id-ID", DATE_OPTIONS),
+    time: new Intl.DateTimeFormat("id-ID", {
+      ...DATE_OPTIONS,
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    }),
+  },
+}
+
+// Returns the parts of a date by type. The callers build the text from the parts, because the
+// words and the marks that join the parts differ between ICU versions.
+function partsOf(format: Intl.DateTimeFormat, date: Date): Record<string, string> {
   const parts: Record<string, string> = {}
-  for (const part of WIB_FORMAT.formatToParts(date)) {
+  for (const part of format.formatToParts(date)) {
     parts[part.type] = part.value
   }
-  return `${parts.day} ${parts.month} ${parts.year}, ${parts.hour}:${parts.minute} WIB`
+  return parts
 }
 
-// Returns a full HTML document with the title in an <h1> element.
-export function layout(title: string, bodyHtml: string): string {
-  const safeTitle = escapeHtml(title)
-  return `<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${safeTitle}</title>
-</head>
-<body style="margin:0;padding:24px;background:#f6f6f6;font-family:Arial,Helvetica,sans-serif;color:#222;">
-<div style="max-width:560px;margin:0 auto;padding:24px;background:#ffffff;border-radius:8px;">
-<h1>${safeTitle}</h1>
-${bodyHtml}
-</div>
-</body>
-</html>`
+// Formats a date in WIB (Asia/Jakarta), for example "21 October 2026" or "21 Oktober 2026".
+export function formatWibDate(date: Date, locale: EmailLocale = "en-US"): string {
+  const parts = partsOf(WIB_FORMATS[locale].date, date)
+  return `${parts.day} ${parts.month} ${parts.year}`
 }
 
-// Returns a dark link button in a paragraph. It escapes the link and the label.
-export function emailButton(href: string, label: string): string {
-  return `<p><a href="${escapeHtml(href)}" style="display:inline-block;padding:12px 24px;background:#1d1b18;color:#ffffff;text-decoration:none;font-weight:bold;">${escapeHtml(label)}</a></p>`
-}
-
-// Returns the escaped greeting line text. A first name that is empty after trim gives
-// "Hi there,".
-export function greeting(firstName: string | null | undefined): string {
-  const name = typeof firstName === "string" ? firstName.trim() : ""
-  return name ? `Hi ${escapeHtml(name)},` : "Hi there,"
+// Formats a time in WIB with a 24-hour clock, for example "21 October 2026, 14:30 WIB". Indonesian
+// uses a dot between the hour and the minute: "21 Oktober 2026, 14.30 WIB".
+export function formatWibTime(date: Date, locale: EmailLocale = "en-US"): string {
+  const parts = partsOf(WIB_FORMATS[locale].time, date)
+  const separator = locale === "id-ID" ? "." : ":"
+  return `${parts.day} ${parts.month} ${parts.year}, ${parts.hour}${separator}${parts.minute} WIB`
 }

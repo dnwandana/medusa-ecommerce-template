@@ -1,14 +1,22 @@
 import BrevoNotificationProviderService from "../service"
 
 const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() } as any
-const options = { apiKey: "test-key", senderEmail: "store@example.com", senderName: "My Store" }
+const options = { apiKey: "test-key", senderEmail: "store@example.com", senderName: "Everyday" }
 const makeService = () => new BrevoNotificationProviderService({ logger }, options)
+
+const store = { name: "Everyday", contact_email: null, whatsapp: null }
+const welcomeData = {
+  locale: "en-US",
+  store,
+  first_name: "Ana",
+  shop_url: "https://shop.example.com",
+}
 
 const notification = {
   to: "buyer@example.com",
   channel: "email",
   template: "password-reset",
-  data: { reset_url: "https://shop.example.com/account/reset-password?token=t" },
+  data: { store, reset_url: "https://shop.example.com/account/reset-password?token=t" },
 }
 
 const jsonResponse = (status: number, body: unknown) =>
@@ -48,7 +56,7 @@ describe("BrevoNotificationProviderService", () => {
     })
     expect(init.signal).toBeDefined()
     const body = JSON.parse(init.body)
-    expect(body.sender).toEqual({ name: "My Store", email: "store@example.com" })
+    expect(body.sender).toEqual({ name: "Everyday", email: "store@example.com" })
     expect(body.to).toEqual([{ email: "buyer@example.com" }])
     expect(body.subject).toBe("Reset your password")
     expect(body.htmlContent).toContain("https://shop.example.com/account/reset-password?token=t")
@@ -64,6 +72,36 @@ describe("BrevoNotificationProviderService", () => {
     expect(JSON.parse(fetchMock.mock.calls[0][1].body).sender).toEqual({
       email: "store@example.com",
     })
+  })
+
+  it("sets Reply-To to the store contact email", async () => {
+    fetchMock.mockResolvedValue(jsonResponse(201, { messageId: "<x>" }))
+    await makeService().send({
+      to: "a@b.id",
+      channel: "email",
+      template: "welcome",
+      data: {
+        ...welcomeData,
+        store: { name: "Everyday", contact_email: "hello@everyday.id", whatsapp: null },
+      },
+    })
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body)
+    expect(body.replyTo).toEqual({ email: "hello@everyday.id" })
+  })
+
+  it("sends no Reply-To without a contact email", async () => {
+    fetchMock.mockResolvedValue(jsonResponse(201, { messageId: "<x>" }))
+    await makeService().send({
+      to: "a@b.id",
+      channel: "email",
+      template: "welcome",
+      data: {
+        ...welcomeData,
+        store: { name: "Everyday", contact_email: null, whatsapp: null },
+      },
+    })
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body)
+    expect(body).not.toHaveProperty("replyTo")
   })
 
   it("logs and throws an error with the template name and the Brevo response", async () => {

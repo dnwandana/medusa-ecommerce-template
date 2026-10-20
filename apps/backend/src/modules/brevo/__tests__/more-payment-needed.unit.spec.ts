@@ -1,48 +1,46 @@
-import { renderTemplate } from "../templates"
 import { renderMorePaymentNeeded } from "../templates/more-payment-needed"
 
+const store = { name: "Everyday", contact_email: "hello@everyday.id", whatsapp: null }
+
 const data = {
-  order: { display_id: 12, first_name: "Sari" },
-  note: "Rp 50.000 is missing.\nSend it today.",
-  order_url: "https://shop.example.com/orders/order_1",
+  locale: "en-US" as const,
+  store,
+  order: { display_id: 1042, first_name: "Dewi" },
+  note: "Rp 600.000 came in.\nSend Rp 45.000 more.",
+  order_url: "https://shop.example.com/orders/o_1",
+  accounts: [
+    { bank_name: "Sample Bank", account_number: "123 456 7890", account_holder: "PT Toko Contoh" },
+  ],
 }
 
 describe("renderMorePaymentNeeded", () => {
-  it("renders the subject, the note and the order link", () => {
-    const email = renderMorePaymentNeeded(data)
-    expect(email.subject).toBe("More payment is needed for order #12")
-    expect(email.html).toContain("Hi Sari,")
-    expect(email.html).toContain(
-      "We checked your receipt for order #12. The store needs more payment."
-    )
-    expect(email.html).toContain("Rp 50.000 is missing.<br>Send it today.")
-    expect(email.html).toContain(
-      "Transfer the difference, then upload one more receipt on the order page."
-    )
-    expect(email.html).toContain('href="https://shop.example.com/orders/order_1"')
-    expect(email.html).toContain("Open your order")
+  it("renders the note, the accounts and the button", () => {
+    const { subject, html } = renderMorePaymentNeeded(data)
+    expect(subject).toBe("More payment is needed for order #1042")
+    expect(html).toContain("Hi Dewi,")
+    expect(html).toContain("Rp 600.000 came in.<br>Send Rp 45.000 more.")
+    expect(html).toContain("<strong>123 456 7890</strong>")
+    expect(html).toContain("Upload the receipt")
   })
-
-  it("escapes the note", () => {
-    expect(renderMorePaymentNeeded({ ...data, note: "<script>x</script>" }).html).toContain(
-      "&lt;script&gt;x&lt;/script&gt;"
+  it("escapes the note and greets without a name", () => {
+    const { html } = renderMorePaymentNeeded({
+      ...data,
+      note: "<img>",
+      order: { display_id: 1, first_name: null },
+      accounts: [],
+    })
+    expect(html).toContain("&lt;img&gt;")
+    expect(html).toContain("Hi there,")
+    expect(html).not.toContain("Sample Bank")
+  })
+  it("renders Indonesian", () => {
+    expect(renderMorePaymentNeeded({ ...data, locale: "id-ID" }).subject).toBe(
+      "Pesanan #1042 butuh pembayaran tambahan"
     )
   })
-
-  it("greets a customer with no first name", () => {
-    const email = renderMorePaymentNeeded({ ...data, order: { display_id: 12, first_name: null } })
-    expect(email.html).toContain("Hi there,")
-  })
-
-  it("throws when the order is missing", () => {
-    expect(() => renderMorePaymentNeeded({ ...data, order: undefined } as any)).toThrow(
+  it("throws without the fields", () => {
+    expect(() => renderMorePaymentNeeded({ order: {} } as any)).toThrow(
       'The "more-payment-needed" template needs an order, a note and an order_url.'
-    )
-  })
-
-  it("is a known template", () => {
-    expect(renderTemplate("more-payment-needed", data).subject).toBe(
-      "More payment is needed for order #12"
     )
   })
 })

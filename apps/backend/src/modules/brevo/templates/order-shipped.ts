@@ -1,65 +1,37 @@
-import { emailButton, escapeHtml, layout, RenderedEmail } from "./html"
-import { OrderPlacedAddress, renderAddress } from "./order-placed"
-
-export type OrderShippedItem = { title: string; variant_title?: string | null; quantity: number }
+import { formatWibDate, RenderedEmail } from "./html"
+import { type EmailLocale, t } from "./i18n"
+import {
+  address,
+  button,
+  type EmailAddress,
+  type EmailLineItem,
+  type EmailStore,
+  eyebrow,
+  heading,
+  isHttpsUrl,
+  keyValues,
+  orderLines,
+  paragraph,
+  paragraphHtml,
+  part,
+  renderShell,
+  textLink,
+} from "./shell"
 
 export type OrderShippedLabel = { tracking_number: string; tracking_url?: string | null }
 
 export type OrderShippedData = {
+  locale: EmailLocale
+  store: EmailStore
   order_url: string
-  order: { display_id: number; shipping_address?: OrderPlacedAddress | null }
+  order: { display_id: number; shipping_address?: EmailAddress | null }
   shipment: {
     // ISO time of the shipment.
     shipped_at: string
     option_name?: string | null
-    items: OrderShippedItem[]
+    items: EmailLineItem[]
     labels: OrderShippedLabel[]
   }
-}
-
-const WIB_DATE_FORMAT = new Intl.DateTimeFormat("en-GB", {
-  timeZone: "Asia/Jakarta",
-  day: "numeric",
-  month: "long",
-  year: "numeric",
-})
-
-// Formats a date in WIB, for example "20 October 2026". It builds the text from the parts, as
-// formatWibTime does, because the words that join the parts differ between ICU versions.
-function formatWibDate(date: Date): string {
-  const parts: Record<string, string> = {}
-  for (const part of WIB_DATE_FORMAT.formatToParts(date)) {
-    parts[part.type] = part.value
-  }
-  return `${parts.day} ${parts.month} ${parts.year}`
-}
-
-// Staff type the tracking URL. Only an https URL goes into a link, so a "javascript:" or an
-// "http:" URL never reaches an href.
-function isHttpsUrl(value: string | null | undefined): value is string {
-  if (!value) return false
-  try {
-    return new URL(value).protocol === "https:"
-  } catch {
-    return false
-  }
-}
-
-function renderTracking(labels: OrderShippedLabel[]): string {
-  const parts = (labels ?? [])
-    .filter((label) => label?.tracking_number?.trim())
-    .map((label) => {
-      const number = `<p>${escapeHtml(`Tracking number: ${label.tracking_number.trim()}`)}</p>`
-      return isHttpsUrl(label.tracking_url)
-        ? `${number}\n${emailButton(label.tracking_url, "Track your parcel")}`
-        : number
-    })
-  return parts.length ? ["<h2>Tracking</h2>", ...parts].join("\n") : ""
-}
-
-function renderItem(item: OrderShippedItem): string {
-  const variant = item.variant_title ? ` (${escapeHtml(item.variant_title)})` : ""
-  return `${escapeHtml(item.quantity)} × ${escapeHtml(item.title)}${variant}`
 }
 
 // Returns the email that tells the customer that a shipment of the order is on its way. It lists
@@ -74,23 +46,68 @@ export function renderOrderShipped(data: OrderShippedData): RenderedEmail {
     throw new Error('The "order-shipped" template needs a shipment.')
   }
 
-  const title = `Your order #${order.display_id} is on its way`
-  const date = formatWibDate(new Date(shipment.shipped_at))
-  const firstLine = shipment.option_name
-    ? `We shipped your order on ${date} with ${shipment.option_name}.`
-    : `We shipped your order on ${date}.`
-  const items = (shipment.items ?? []).map(renderItem).join("<br>")
+  const { locale, store } = data
+  const n = order.display_id
+  const subject = t(locale, "orderShipped.subject", { n })
+  const date = formatWibDate(new Date(shipment.shipped_at), locale)
+  const method = shipment.option_name?.trim()
+  const intro = method
+    ? t(locale, "orderShipped.shippedWith", { date, method })
+    : t(locale, "orderShipped.shipped", { date })
+
+  const labels = (shipment.labels ?? []).filter(Boolean)
+  const trackingRows = labels
+    .map((label) => label.tracking_number?.trim())
+    .filter((number): number is string => !!number)
+    .map((number) => ({
+      label: t(locale, "orderShipped.trackingNumber"),
+      value: number,
+      strong: true,
+    }))
+  // The courier row only adds to a box with a tracking number. Alone, it repeats the intro.
+  const rows = trackingRows.length
+    ? [
+        ...trackingRows,
+        ...(method ? [{ label: t(locale, "orderShipped.courier"), value: method }] : []),
+      ]
+    : []
+  // Staff type the tracking URL. Only an https URL goes into a link.
+  const trackUrl = labels.map((label) => label.tracking_url).find(isHttpsUrl)
+
+  // The items carry no unit_price, so orderLines renders no amount column.
+  const items = (shipment.items ?? []).map((item) => ({
+    title: item.title,
+    variant_title: item.variant_title,
+    quantity: item.quantity,
+  }))
 
   const body = [
-    `<p>${escapeHtml(firstLine)}</p>`,
-    renderTracking(shipment.labels),
-    "<h2>In this shipment</h2>",
-    `<p>${items}</p>`,
-    order.shipping_address ? renderAddress(order.shipping_address) : "",
-    `<p><a href="${escapeHtml(data.order_url)}">View your order</a></p>`,
+    eyebrow(t(locale, "orderShipped.eyebrow", { n, date })),
+    heading(t(locale, "orderShipped.heading")),
+    paragraph(intro),
+    rows.length ? keyValues(rows) : "",
+    // One primary button: the parcel tracker when there is a safe URL, else the order page.
+    trackUrl
+      ? button(trackUrl, t(locale, "orderShipped.track"))
+      : button(data.order_url, t(locale, "common.viewOrder")),
+    part(t(locale, "orderShipped.inShipment")),
+    orderLines({ locale, items }),
+    // textLink escapes the URL and the label.
+    trackUrl ? paragraphHtml(textLink(data.order_url, t(locale, "common.viewOrder"))) : "",
+    order.shipping_address ? address(locale, order.shipping_address) : "",
   ]
     .filter(Boolean)
     .join("\n")
 
-  return { subject: title, html: layout(title, body) }
+  return {
+    subject,
+    html: renderShell({
+      locale,
+      store,
+      title: subject,
+      preheader: intro,
+      body,
+      audience: "customer",
+    }),
+  }
 }

@@ -1,7 +1,10 @@
-import { emailButton, escapeHtml, formatWibTime, greeting, layout, RenderedEmail } from "./html"
+import { formatWibTime, RenderedEmail } from "./html"
+import { type EmailLocale, t } from "./i18n"
+import { button, type EmailStore, heading, keyValues, paragraph, renderShell } from "./shell"
 
 export type MagicLinkEmailData = {
-  store_name: string
+  locale: EmailLocale
+  store: EmailStore
   first_name?: string | null
   sign_in_url: string
   browser: string
@@ -15,20 +18,38 @@ export function renderMagicLink(data: MagicLinkEmailData): RenderedEmail {
   if (!data?.sign_in_url) {
     throw new Error('The "magic-link" template needs a sign_in_url.')
   }
-  if (!data.store_name) {
-    throw new Error('The "magic-link" template needs a store_name.')
-  }
 
-  const title = `Sign in to ${data.store_name}`
+  const { locale, store } = data
+  const subject = t(locale, "magicLink.subject", { store: store.name })
+  const name = data.first_name?.trim()
+  const intro = name
+    ? t(locale, "magicLink.intro", { name, store: store.name })
+    : t(locale, "magicLink.introNoName", { store: store.name })
 
   const body = [
-    `<p>${greeting(data.first_name)}</p>`,
-    `<p>Click the button to sign in to ${escapeHtml(data.store_name)}.</p>`,
-    emailButton(data.sign_in_url, "Sign in"),
-    "<p>The link works one time. It expires in 15 minutes.</p>",
-    `<p>Request: ${escapeHtml(data.browser)}, ${escapeHtml(formatWibTime(new Date(data.requested_at)))}.</p>`,
-    "<p>If you did not ask to sign in, ignore this email. Nobody can sign in without this link.</p>",
+    heading(t(locale, "magicLink.heading")),
+    paragraph(intro),
+    button(data.sign_in_url, t(locale, "magicLink.button")),
+    // The request facts let the customer see a sign-in that they did not ask for.
+    keyValues([
+      { label: t(locale, "magicLink.request"), value: data.browser },
+      {
+        label: t(locale, "magicLink.time"),
+        value: formatWibTime(new Date(data.requested_at), locale),
+      },
+    ]),
+    paragraph(t(locale, "magicLink.ignore"), true),
   ].join("\n")
 
-  return { subject: title, html: layout(title, body) }
+  return {
+    subject,
+    html: renderShell({
+      locale,
+      store,
+      title: subject,
+      preheader: intro,
+      body,
+      audience: "customer",
+    }),
+  }
 }

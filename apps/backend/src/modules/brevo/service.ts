@@ -76,6 +76,13 @@ class BrevoNotificationProviderService extends AbstractNotificationProviderServi
       sender.name = this.options_.senderName
     }
 
+    // A reply goes to the store contact. Without a contact email, Brevo uses the sender.
+    const contactEmail = (notification.data as any)?.store?.contact_email
+    const replyTo =
+      typeof contactEmail === "string" && contactEmail.trim()
+        ? { email: contactEmail.trim() }
+        : undefined
+
     let status: number
     let ok: boolean
     let text: string
@@ -92,6 +99,7 @@ class BrevoNotificationProviderService extends AbstractNotificationProviderServi
           to: [{ email: notification.to }],
           subject,
           htmlContent: html,
+          ...(replyTo && { replyTo }),
         }),
         signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       })

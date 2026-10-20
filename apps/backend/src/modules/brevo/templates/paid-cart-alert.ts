@@ -1,6 +1,8 @@
-import { escapeHtml, formatRupiah, layout, RenderedEmail } from "./html"
+import { formatRupiah, RenderedEmail } from "./html"
+import { heading, keyValues, paragraph, renderShell, type EmailStore } from "./shell"
 
 export type PaidCartAlertData = {
+  store: EmailStore
   cart_id: string
   provider_id: string
   payment_reference: string
@@ -8,17 +10,12 @@ export type PaidCartAlertData = {
   amount: number
 }
 
-const cell = "padding:8px 0;border-bottom:1px solid #eee;"
-
-function renderRow(label: string, value: string): string {
-  return `<tr><th style="${cell}text-align:left;">${escapeHtml(label)}</th><td style="${cell}">${escapeHtml(value)}</td></tr>`
-}
-
 function hasValue(value: unknown): value is string {
   return typeof value === "string" && value.length > 0
 }
 
-// Renders the email that tells the store owner about a paid cart with no order.
+// Renders the email that tells the store owner about a paid cart with no order. The data has no
+// admin URL, so the email has no button. The text tells the owner what to do.
 export function renderPaidCartAlert(data: PaidCartAlertData): RenderedEmail {
   if (
     !hasValue(data?.cart_id) ||
@@ -32,21 +29,31 @@ export function renderPaidCartAlert(data: PaidCartAlertData): RenderedEmail {
   }
 
   const subject = `Paid cart with no order: ${data.cart_id}`
-  const customer = data.customer_email || "No email address on the cart"
-
-  const rows = [
-    renderRow("Cart", data.cart_id),
-    renderRow("Payment provider", data.provider_id),
-    renderRow("Payment reference", data.payment_reference),
-    renderRow("Customer", customer),
-    renderRow("Amount", formatRupiah(data.amount)),
-  ].join("\n")
-
+  const intro = "A customer paid for a cart, but the store did not create the order."
   const body = [
-    "<p>A customer paid for a cart, but the store did not create the order.</p>",
-    `<table style="width:100%;border-collapse:collapse;">\n${rows}\n</table>`,
-    "<p>Find the payment reference in the dashboard of the payment provider. Then create the order in the Medusa Admin, or return the money to the customer.</p>",
+    heading("A paid cart has no order."),
+    paragraph(intro),
+    keyValues([
+      { label: "Cart", value: data.cart_id },
+      { label: "Provider", value: data.provider_id },
+      { label: "Reference", value: data.payment_reference },
+      { label: "Customer", value: data.customer_email || "No email address on the cart" },
+      { label: "Amount", value: formatRupiah(data.amount), strong: true },
+    ]),
+    paragraph(
+      "Find the payment reference in the dashboard of the payment provider. Then create the order in the Medusa Admin, or return the money to the customer."
+    ),
   ].join("\n")
 
-  return { subject, html: layout(subject, body) }
+  return {
+    subject,
+    html: renderShell({
+      locale: "en-US",
+      store: data.store,
+      title: subject,
+      preheader: intro,
+      body,
+      audience: "owner",
+    }),
+  }
 }
