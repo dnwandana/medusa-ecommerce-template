@@ -3,6 +3,25 @@ import type { ReceiptStorageOptions } from "../modules/payment-receipt/storage/t
 export type ModuleEntry = { resolve: string; options?: Record<string, unknown> }
 export type Env = Record<string, string | undefined>
 
+const PRODUCTION_REQUIRED_KEYS = ["REDIS_URL", "S3_BUCKET"] as const
+
+// Stops a production start that has no Redis or no S3 store. Production runs the server and the
+// worker as two processes. The in-memory event bus, locks, and sessions do not work across
+// processes. Production must not store files on a container disk, because the disk is temporary.
+// The message names the keys only, because a REDIS_URL can hold a password.
+function checkProductionServices(env: Env): void {
+  if (env.NODE_ENV !== "production") {
+    return
+  }
+
+  const missing = PRODUCTION_REQUIRED_KEYS.filter((key) => !env[key])
+  if (missing.length > 0) {
+    throw new Error(
+      `Production needs Redis and an S3 store. Set these keys: ${missing.join(", ")}.`
+    )
+  }
+}
+
 // Returns the Redis modules. Returns an empty list when REDIS_URL has no value,
 // so that the tests can run without Redis.
 function redisModules(env: Env): ModuleEntry[] {
@@ -150,7 +169,9 @@ function paymentModule(): ModuleEntry {
 const DEFAULT_RECEIPTS_DIR = "uploads/receipts"
 
 // Returns the storage of the payment receipts. The receipts are private, so they never go to
-// S3_BUCKET, which assets.<domain> serves. Without S3 they go to a directory outside static/.
+// S3_BUCKET, which has a public URL (S3_FILE_URL). Without S3 they go to a directory outside
+// static/.
+// Only development and the tests use this directory, because production requires S3_BUCKET.
 // The messages name the keys only, because a value can be a secret.
 function receiptStorage(env: Env): ReceiptStorageOptions {
   if (!env.S3_BUCKET) {
@@ -202,8 +223,9 @@ const S3_REQUIRED_KEYS = [
   "S3_ENDPOINT",
 ] as const
 
-// Returns the File Module with the S3 provider for Garage. It returns an empty list when
-// S3_BUCKET has no value, so that Medusa keeps its local file storage.
+// Returns the File Module with the S3 provider. It returns an empty list when S3_BUCKET has no
+// value, so that Medusa keeps its local file storage. This occurs only outside production,
+// because checkProductionServices() stops a production start with no S3_BUCKET.
 function fileModule(env: Env): ModuleEntry[] {
   const bucket = env.S3_BUCKET
   if (!bucket) {
@@ -253,6 +275,8 @@ function fileModule(env: Env): ModuleEntry[] {
 
 // Returns the module list for medusa-config.ts. It reads only the given env object.
 export function buildModules(env: Env): ModuleEntry[] {
+  checkProductionServices(env)
+
   return [
     ...redisModules(env),
     fulfillmentModule(env),

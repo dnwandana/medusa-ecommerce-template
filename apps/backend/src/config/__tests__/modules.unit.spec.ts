@@ -376,3 +376,66 @@ describe("buildModules: payment receipt module", () => {
     expect(list.filter((m) => m.resolve === "./src/modules/payment-receipt")).toHaveLength(1)
   })
 })
+
+describe("buildModules: production services", () => {
+  const prodS3Env = {
+    S3_FILE_URL: "https://assets.example.com",
+    S3_ACCESS_KEY_ID: "GK3515373e4c851ebaad366558",
+    S3_SECRET_ACCESS_KEY: "secret-value",
+    S3_REGION: "auto",
+    S3_BUCKET: "store-assets",
+    S3_ENDPOINT: "https://s3.example.com",
+    S3_RECEIPTS_BUCKET: "store-receipts",
+  }
+  const prod = { NODE_ENV: "production", REDIS_URL: "redis://redis:6379", ...prodS3Env }
+
+  it("stops a production start with no Redis and no S3 store", () => {
+    expect(() => buildModules({ NODE_ENV: "production" })).toThrow(
+      "Production needs Redis and an S3 store. Set these keys: REDIS_URL, S3_BUCKET."
+    )
+  })
+
+  it("stops a production start with no REDIS_URL", () => {
+    expect(() => buildModules({ ...prod, REDIS_URL: undefined })).toThrow(
+      "Production needs Redis and an S3 store. Set these keys: REDIS_URL."
+    )
+  })
+
+  // Review Focus: compose passes an empty S3_BUCKET as an empty string.
+  it("treats an empty S3_BUCKET as missing in production", () => {
+    expect(() => buildModules({ ...prod, S3_BUCKET: "" })).toThrow(
+      "Production needs Redis and an S3 store. Set these keys: S3_BUCKET."
+    )
+  })
+
+  // Review Focus: a REDIS_URL can hold a password.
+  it("does not put the REDIS_URL value in the error message", () => {
+    expect.assertions(1)
+    try {
+      buildModules({ ...prod, REDIS_URL: "redis://:hunter2@redis:6379", S3_BUCKET: "" })
+    } catch (error) {
+      expect((error as Error).message).not.toContain("hunter2")
+    }
+  })
+
+  it("builds the Redis and S3 modules in production with all keys", () => {
+    const list = resolves(prod)
+    expect(list).toContain("@medusajs/medusa/event-bus-redis")
+    expect(list).toContain("@medusajs/medusa/file")
+  })
+
+  // Review Focus: the existing receipt rule still applies in production.
+  it("keeps the receipt bucket error in production", () => {
+    expect(() => buildModules({ ...prod, S3_RECEIPTS_BUCKET: "" })).toThrow(
+      "S3_RECEIPTS_BUCKET is missing. Set it when S3_BUCKET has a value."
+    )
+  })
+
+  // Review Focus: development, the tests, and medusa build keep local storage and no Redis.
+  it.each([undefined, "development", "test"])(
+    "allows no Redis and no S3 store when NODE_ENV is %s",
+    (nodeEnv) => {
+      expect(() => buildModules({ NODE_ENV: nodeEnv })).not.toThrow()
+    }
+  )
+})
