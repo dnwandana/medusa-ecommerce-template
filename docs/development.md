@@ -5,7 +5,7 @@ command, so you can see what each step does. Run all commands from the repositor
 
 ## Requirements
 
-- Node 24.21.0 or higher. The file `.nvmrc` names the major version, 24. If you use nvm, run
+- Node 24 or higher. The file `.nvmrc` names the major version, 24. If you use nvm, run
   `nvm install` and then `nvm use` in the repository root.
 - pnpm 10.11.1. Run `corepack enable` to get the version from `package.json`.
 - PostgreSQL 16 or higher.

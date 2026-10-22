@@ -6,7 +6,7 @@ This file gives guidance to AI coding agents that work with code in this reposit
 
 - pnpm workspace with two packages: `@store/backend` (`apps/backend`, Medusa 2.21.2) and
   `@store/storefront` (`apps/storefront`, Nuxt 4).
-- Node `>=24.21.0` and `pnpm@10.11.1` (root `package.json`). `.nvmrc` and the two Dockerfiles
+- Node `>=24` and `pnpm@10.11.1` (root `package.json`). `.nvmrc` and the two Dockerfiles
   (`node:24-alpine`) name Node 24. Change all of them together.
 - Each app has its own `AGENTS.md` and `README.md`.
 - `docs/development.md` is the local setup procedure. `docs/deployment.md` is the production

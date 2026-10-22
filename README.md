@@ -56,7 +56,7 @@ Browser ──> Nuxt storefront (:3000) ──> Medusa server (:9000) ──> Po
 
 ## Requirements
 
-- Node 24.21.0 or higher (`nvm use` reads `.nvmrc`)
+- Node 24 or higher (`nvm use` reads `.nvmrc`)
 - pnpm 10.11.1 (`corepack enable`)
 - PostgreSQL 16 or higher
 - Redis 7 or higher (optional in development)
