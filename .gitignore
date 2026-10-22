@@ -30,3 +30,7 @@ skills-lock.json
 
 # Local copies of the backups. See docs/deployment.md.
 backups/
+
+# local only
+/claude-design/
+/seed/
