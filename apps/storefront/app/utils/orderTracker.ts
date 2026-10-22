@@ -28,7 +28,7 @@ export type TrackerOrder = {
 
 // An order that left the store is confirmed, also when the owner did not capture the payment.
 const SENT_STATUSES: CustomerStatus[] = ["shipped", "delivered"]
-const GATEWAY_PAID_COLLECTIONS = ["authorized", "completed"]
+const GATEWAY_PAID_COLLECTIONS = ["completed"]
 const ON_ITS_WAY_FULFILLMENT = ["shipped", "partially_delivered", "delivered"]
 const PARTLY_SHIPPED_FULFILLMENT = ["partially_shipped", "partially_delivered"]
 
@@ -56,7 +56,8 @@ export function trackerSteps(order: TrackerOrder, status: CustomerStatus): Track
   const fulfillmentStatus = order.fulfillment_status ?? ""
   // A canceled fulfillment never gives a date.
   const fulfillments = (order.fulfillments ?? []).filter((fulfillment) => !fulfillment.canceled_at)
-  // A captured payment gives the date of Confirmed. An authorized gateway payment has no date.
+  // A captured payment gives the date of Confirmed. A captured gateway collection completes
+  // Confirmed with no date.
   const capturedAt = order.payment_state?.captured_at ?? null
   const isBankTransfer = order.payment_state?.provider_id === BANK_TRANSFER_PROVIDER_ID
   const gatewayPaid =

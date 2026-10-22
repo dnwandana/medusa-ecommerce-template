@@ -45,8 +45,8 @@ export function receiptPhase(state: OrderPaymentState): ReceiptPhase {
   return state.receipts.length === 0 ? "none" : "submitted"
 }
 
-// Returns the status that the customer sees. The rules apply in this order. A gateway order and
-// an authorized gateway payment give "processing".
+// Returns the status that the customer sees. The rules apply in this order. A gateway order gives
+// "processing".
 export function customerStatus(order: StatusOrder): CustomerStatus {
   if (order.status === "canceled") return "cancelled"
   if (order.payment_status === "refunded") return "refunded"

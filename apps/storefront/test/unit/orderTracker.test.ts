@@ -59,11 +59,24 @@ describe("trackerSteps", () => {
     })
   })
 
-  it("completes Confirmed for an authorized gateway payment, with no date", () => {
+  it("keeps Confirmed open for an authorized gateway payment", () => {
     const steps = trackerSteps(
       {
         created_at: "2026-10-17T07:30:00Z",
         payment_collections: [{ status: "authorized" }],
+        payment_state: bankState({ provider_id: "pp_x_x" }),
+      },
+      "processing"
+    )
+    expect(steps[0]).toMatchObject({ id: "confirmed", complete: false, current: true, date: null })
+  })
+
+  // Review Focus: a captured gateway payment still confirms the order.
+  it("completes Confirmed for a captured gateway payment, with no date", () => {
+    const steps = trackerSteps(
+      {
+        created_at: "2026-10-17T07:30:00Z",
+        payment_collections: [{ status: "completed" }],
         payment_state: bankState({ provider_id: "pp_x_x" }),
       },
       "processing"
@@ -79,7 +92,7 @@ describe("trackerSteps", () => {
     expect(steps[0]).toMatchObject({ complete: false, current: true, date: null })
   })
 
-  it("keeps Confirmed open for a gateway payment that is not authorized", () => {
+  it("keeps Confirmed open for a gateway payment that is not paid", () => {
     const steps = trackerSteps(
       {
         created_at: "2026-10-17T07:30:00Z",

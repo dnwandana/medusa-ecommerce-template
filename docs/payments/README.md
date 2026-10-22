@@ -25,6 +25,8 @@ gateway doc gives the reason for each difference. A gateway doc cannot change th
 - The return URL is `${STOREFRONT_URL}/checkout/return`, with no locale prefix.
 - `authorizePayment` asks the gateway API. It returns only `captured`, and else it throws
   `PAYMENT_AUTHORIZATION_ERROR`.
+- The template does not support a separate capture step, for example a card hold. The storefront
+  shows a gateway order as paid only after the capture.
 - The session data and the payment data have no secret.
 - The storefront gets no change other than the two locale keys of [Checkout label](#checkout-label).
 - No code divides a Medusa amount by 100.
