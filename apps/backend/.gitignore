@@ -24,5 +24,5 @@ build
 !.yarn/versions
 
 .medusa
-# Files that the local file storage keeps. Production uses Garage.
+# Files that the local file storage keeps in development and the tests. Production uses an S3 store.
 /static

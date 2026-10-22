@@ -28,8 +28,8 @@ services:
       timeout: 5s
       retries: 30
 
-  # Garage stores the product images, as in production. Do the Garage step in
-  # docs/development.md one time after the first start.
+  # Garage is the S3 store of development. It stores the product images and the receipts.
+  # Do the Garage step in docs/development.md one time after the first start.
   garage:
     image: dxflrs/garage:v2.4.1
     environment:

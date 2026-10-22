@@ -12,7 +12,7 @@ x-medusa-environment: &medusa-environment
   NODE_ENV: production
   DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/medusa-store
   DATABASE_SSL: "false"
-  REDIS_URL: redis://redis:6379
+  REDIS_URL: ${REDIS_URL:-redis://redis:6379}
   STORE_CORS: https://${DOMAIN}
   ADMIN_CORS: https://api.${DOMAIN}
   AUTH_CORS: https://${DOMAIN},https://api.${DOMAIN}
@@ -29,21 +29,20 @@ x-medusa-environment: &medusa-environment
   EMAIL_FROM: ${EMAIL_FROM}
   EMAIL_FROM_NAME: ${EMAIL_FROM_NAME}
   STORE_OWNER_EMAIL: ${STORE_OWNER_EMAIL}
-  S3_FILE_URL: https://assets.${DOMAIN}
+  # The S3 store of your provider. The template runs no S3 service in production.
+  S3_BUCKET: ${S3_BUCKET}
+  S3_RECEIPTS_BUCKET: ${S3_RECEIPTS_BUCKET}
+  S3_ENDPOINT: ${S3_ENDPOINT}
+  S3_REGION: ${S3_REGION}
+  S3_FILE_URL: ${S3_FILE_URL}
   S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
   S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
-  S3_REGION: garage
-  S3_BUCKET: store-assets
-  S3_RECEIPTS_BUCKET: store-receipts
-  S3_ENDPOINT: http://garage:3900
 
 x-medusa-depends-on: &medusa-depends-on
   postgres:
     condition: service_healthy
   redis:
     condition: service_healthy
-  garage:
-    condition: service_started
 
 services:
   postgres:
@@ -73,19 +72,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    logging: *logging
-
-  garage:
-    image: dxflrs/garage:v2.4.1
-    restart: unless-stopped
-    environment:
-      GARAGE_RPC_SECRET: ${GARAGE_RPC_SECRET}
-      GARAGE_ADMIN_TOKEN: ${GARAGE_ADMIN_TOKEN}
-      GARAGE_METRICS_TOKEN: ${GARAGE_METRICS_TOKEN}
-    volumes:
-      - ./garage.toml:/etc/garage.toml:ro
-      - garage-meta:/var/lib/garage/meta
-      - garage-data:/var/lib/garage/data
     logging: *logging
 
   medusa-server:
@@ -153,13 +139,10 @@ services:
     depends_on:
       - storefront
       - medusa-server
-      - garage
     logging: *logging
 
 volumes:
   postgres-data:
   redis-data:
-  garage-meta:
-  garage-data:
   caddy-data:
   caddy-config:
