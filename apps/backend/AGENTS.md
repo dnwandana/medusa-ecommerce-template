@@ -40,20 +40,23 @@ pnpm --filter @store/backend lint                         # ESLint, eslint.confi
 - The admin path is the Medusa default `/app`.
 - Conditional modules:
   - `REDIS_URL` set: the Redis event bus, workflow engine, caching, and locking modules load.
-    Otherwise Medusa uses its in-memory modules.
+    Otherwise Medusa uses its in-memory modules. The in-memory modules are for development and
+    the tests only. `NODE_ENV=production` requires `REDIS_URL`.
   - `SMTP_HOST` set: the `smtp` provider sends email. Otherwise `notification-local` writes the
     email to the log. `.env.test` sets `SMTP_HOST=` empty.
   - `S3_BUCKET` set: the S3 file provider loads (Garage options: `forcePathStyle`, `acl: false`).
     Development sets it to the Garage of `docker-compose.local.yml`. The key comes from step 3
     of `docs/development.md`. `.env.test` sets `S3_BUCKET=` empty, so the tests store the files
-    in `static/`.
+    in `static/`. Local file storage is for development and the tests only.
+    `NODE_ENV=production` requires `S3_BUCKET`.
   - `S3_BUCKET` set: the `paymentReceipt` module keeps the receipts in the private bucket
     `S3_RECEIPTS_BUCKET`, with the endpoint, the region, and the key of the File Module.
-    `docker-compose.yml` sets `S3_RECEIPTS_BUCKET=store-receipts` in production. `S3_BUCKET`
-    empty: the module keeps the receipts in `RECEIPTS_DIR` (default `uploads/receipts`, relative
-    to the backend directory). `.gitignore` ignores `/uploads`.
+    Production sets `S3_RECEIPTS_BUCKET` in `.env`. `S3_BUCKET` empty: the module keeps the
+    receipts in `RECEIPTS_DIR` (default `uploads/receipts`, relative to the backend directory).
+    `RECEIPTS_DIR` is for development and the tests only. `.gitignore` ignores `/uploads`.
 - The bank transfer payment provider is always registered. It needs no env key.
 - These conditions stop startup with an error:
+  - `NODE_ENV=production` and `REDIS_URL` or `S3_BUCKET` is empty.
   - `SHIPPING_RATE_PER_KG` is not a positive integer.
   - `SMTP_HOST` has a value and `EMAIL_FROM` is empty.
   - `SMTP_PORT` is not an integer from 1 to 65535, or is 465 with `SMTP_SECURE=false`.
@@ -446,8 +449,9 @@ src/admin/tsconfig.json`.
 ## Payment receipt facts
 
 - Never serve a receipt from a public path. A receipt goes only to `S3_RECEIPTS_BUCKET` or
-  `RECEIPTS_DIR`, never to `S3_BUCKET`, `static/`, or a bucket with a web endpoint. Only
-  `GET /admin/payment-receipts/:id/file` sends the bytes, with `Cache-Control: private, no-store`.
+  `RECEIPTS_DIR`, never to `S3_BUCKET`, `static/`, or a bucket with a web endpoint.
+  `RECEIPTS_DIR` is for development and the tests only. Only `GET /admin/payment-receipts/:id/file`
+  sends the bytes, with `Cache-Control: private, no-store`.
 - The Store routes `POST /store/orders/:id/receipts` and `GET /store/payment-states` need only
   the publishable key, because a guest uses the order id. Their answers have no `file_key`, no
   URL, and no file bytes.

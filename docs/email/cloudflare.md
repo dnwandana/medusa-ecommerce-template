@@ -115,9 +115,8 @@ store. The page "Set up a primary zone" says that the quick scan can miss record
 4. Select **Continue**.
 5. Select a plan. The Free plan of the zone is enough. The Workers Paid plan is a separate plan.
 6. Compare the records that Cloudflare found with the records at the current DNS host.
-7. Add each missing record. Look at the A records `<domain>`, `api.<domain>` and
-   `assets.<domain>` of the section "DNS records" in `docs/deployment.md`. Also look at the MX
-   records and the TXT records.
+7. Add each missing record. Look at the A records `<domain>` and `api.<domain>` of the section
+   "DNS records" in `docs/deployment.md`. Also look at the MX records and the TXT records.
 8. Set the proxy status of each A record to **DNS only** (gray cloud).
 9. At the registrar of the domain, replace the nameservers with the two Cloudflare nameservers. The
    zone **Overview** page shows them.

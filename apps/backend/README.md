@@ -8,16 +8,16 @@ this document from the repository root.
 
 ## Commands
 
-| Command                                                                  | Function                                                                  |
-| ------------------------------------------------------------------------ | ------------------------------------------------------------------------- |
-| `pnpm --filter @store/backend dev`                                       | Starts the backend in development mode (`medusa develop`).                |
-| `pnpm --filter @store/backend build`                                     | Builds the server and the admin into `.medusa/server`.                    |
-| `pnpm --filter @store/backend start`                                     | Starts the built server.                                                  |
-| `pnpm --filter @store/backend exec medusa db:migrate`                    | Runs the database migrations. Run it again after you pull new migrations. |
-| `pnpm --filter @store/backend seed`                                      | Creates the store data. The last output line is `PUBLISHABLE_KEY=pk_...`. |
-| `pnpm --filter @store/backend exec medusa user -e <email> -p <password>` | Creates an admin user.                                                    |
-| `pnpm --filter @store/backend test:unit`                                 | Runs the unit tests.                                                      |
-| `pnpm --filter @store/backend test:integration:http`                     | Runs the HTTP integration tests. They need PostgreSQL.                    |
+| Command                                                                  | Function                                                                                                                                            |
+| ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm --filter @store/backend dev`                                       | Starts the backend in development mode (`medusa develop`).                                                                                          |
+| `pnpm --filter @store/backend build`                                     | Builds the server and the admin into `.medusa/server`.                                                                                              |
+| `pnpm --filter @store/backend start`                                     | Starts the built server. `medusa start` sets `NODE_ENV=production` when `NODE_ENV` is empty, so the built server needs `REDIS_URL` and `S3_BUCKET`. |
+| `pnpm --filter @store/backend exec medusa db:migrate`                    | Runs the database migrations. Run it again after you pull new migrations.                                                                           |
+| `pnpm --filter @store/backend seed`                                      | Creates the store data. The last output line is `PUBLISHABLE_KEY=pk_...`.                                                                           |
+| `pnpm --filter @store/backend exec medusa user -e <email> -p <password>` | Creates an admin user.                                                                                                                              |
+| `pnpm --filter @store/backend test:unit`                                 | Runs the unit tests.                                                                                                                                |
+| `pnpm --filter @store/backend test:integration:http`                     | Runs the HTTP integration tests. They need PostgreSQL.                                                                                              |
 
 ## Addresses
 
@@ -36,7 +36,7 @@ The file is `apps/backend/.env`. Copy it from `.env.example`.
 | ------------------------------------------ | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `DATABASE_URL`                             | `postgres://postgres:postgres@localhost:5432/medusa-store` | PostgreSQL connection                                                                                                                                                                                                |
 | `DATABASE_SSL`                             | empty                                                      | Set `false` only when PostgreSQL has no TLS. The production Compose file sets it.                                                                                                                                    |
-| `REDIS_URL`                                | `redis://localhost:6379`                                   | Redis connection. If it is empty, Medusa uses its in-memory modules.                                                                                                                                                 |
+| `REDIS_URL`                                | `redis://localhost:6379`                                   | Redis connection. If it is empty, Medusa uses its in-memory modules. An empty `REDIS_URL` is for development and the tests only.                                                                                     |
 | `STORE_CORS`, `ADMIN_CORS`, `AUTH_CORS`    | local addresses                                            | Origins that can call the API                                                                                                                                                                                        |
 | `JWT_SECRET`, `COOKIE_SECRET`              | `supersecret`                                              | Secrets. Set new values in production.                                                                                                                                                                               |
 | `STOREFRONT_URL`                           | `http://localhost:3000`                                    | Base URL for the email links and for the return URL of a payment gateway                                                                                                                                             |
@@ -52,16 +52,17 @@ The file is `apps/backend/.env`. Copy it from `.env.example`.
 | `EMAIL_FROM`                               | `orders@everyday.test`                                     | Sender address. Required when `SMTP_HOST` has a value.                                                                                                                                                               |
 | `EMAIL_FROM_NAME`                          | `Everyday`                                                 | Sender name                                                                                                                                                                                                          |
 | `STORE_OWNER_EMAIL`                        | empty                                                      | The fallback address for the owner emails (`new-order-owner`, `paid-cart-alert`, `receipt-uploaded`, and `low-stock-owner`) when the store contact email is empty. If both are empty, the backend writes a log line. |
-| `S3_BUCKET`                                | `store-assets`                                             | Garage bucket for the product images. If it is empty, Medusa keeps the images in `static/`. Only `.env.test` sets it empty.                                                                                          |
+| `S3_BUCKET`                                | `store-assets`                                             | Garage bucket for the product images. If it is empty, Medusa keeps the images in `static/`. An empty `S3_BUCKET` is for development and the tests only.                                                              |
 | `S3_FILE_URL`                              | `http://assets.localhost:3902`                             | Public address of the product images                                                                                                                                                                                 |
 | `S3_REGION`                                | `garage`                                                   | S3 region of Garage                                                                                                                                                                                                  |
 | `S3_ENDPOINT`                              | `http://localhost:3900`                                    | S3 API of Garage                                                                                                                                                                                                     |
 | `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | empty                                                      | The Garage key from [step 3 of `docs/development.md`](../../docs/development.md). Required when `S3_BUCKET` has a value.                                                                                             |
 | `S3_RECEIPTS_BUCKET`                       | `store-receipts`                                           | Private Garage bucket for the payment receipts. Required when `S3_BUCKET` has a value. It must not be `S3_BUCKET`.                                                                                                   |
-| `RECEIPTS_DIR`                             | `uploads/receipts`                                         | Private directory for the payment receipts when `S3_BUCKET` is empty. The path is relative to the backend directory.                                                                                                 |
+| `RECEIPTS_DIR`                             | `uploads/receipts`                                         | Private directory for the payment receipts when `S3_BUCKET` is empty. The path is relative to the backend directory. An empty `S3_BUCKET` is for development and the tests only.                                     |
 
 The backend does not start in these conditions:
 
+- `NODE_ENV=production` and `REDIS_URL` or `S3_BUCKET` is empty.
 - `SHIPPING_RATE_PER_KG` is not a positive whole number.
 - `SMTP_HOST` has a value and `EMAIL_FROM` is empty.
 - `SMTP_PORT` is not an integer from 1 to 65535, or is 465 with `SMTP_SECURE=false`.
@@ -253,8 +254,9 @@ The section shows only on a bank transfer order. The actions go away after the c
 cancellation.
 
 The receipts are private. With `S3_BUCKET` set, they go to the bucket `S3_RECEIPTS_BUCKET`, which
-has no web endpoint. With `S3_BUCKET` empty, they go to `RECEIPTS_DIR`. Only an admin user can read
-a receipt file.
+has no web endpoint. With `S3_BUCKET` empty, they go to `RECEIPTS_DIR`. An empty `S3_BUCKET` is
+for development and the tests only, because `NODE_ENV=production` requires `S3_BUCKET`. Only an
+admin user can read a receipt file.
 
 The job `cancel-unpaid-orders` runs each 15 minutes. It cancels a bank transfer order that is
 not cancelled, has no captured payment, has no receipt, and is older than 24 hours. After the

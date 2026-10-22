@@ -19,7 +19,8 @@ of your store.
 - Storefront in English and Indonesian.
 - Emails in English and Indonesian over SMTP, with any email provider. Mailpit catches the emails
   in development.
-- Production setup for one server with Docker Compose, Caddy, and Garage.
+- Production setup for one server with Docker Compose and Caddy. The product images and the
+  receipts go to an S3 store of the client's choice.
 
 ## Repository layout
 
@@ -32,7 +33,7 @@ of your store.
 | `docker-compose.yml`       | Production services.                                                             |
 | `docker-compose.local.yml` | Development services: PostgreSQL, Redis, and Garage.                             |
 | `Caddyfile`                | Reverse proxy and TLS for production.                                            |
-| `garage.toml`              | Garage (S3 storage) configuration for development and production.                |
+| `garage.toml`              | Garage (S3 storage) configuration for development.                               |
 
 The repository is a pnpm workspace. The package names are `@store/backend` and
 `@store/storefront`.
@@ -124,15 +125,14 @@ The store runs on one server with Docker Compose. You build the images on the se
 migrations, and start the services with `docker compose` commands. Caddy is the only service that
 publishes ports.
 
-| Service         | Function                                                                    |
-| --------------- | --------------------------------------------------------------------------- |
-| `caddy`         | TLS and reverse proxy for `<domain>`, `api.<domain>`, and `assets.<domain>` |
-| `storefront`    | Nuxt server                                                                 |
-| `medusa-server` | Medusa HTTP API and admin dashboard                                         |
-| `medusa-worker` | Medusa scheduled jobs and event subscribers                                 |
-| `postgres`      | Database                                                                    |
-| `redis`         | Event bus, workflow engine, cache, and locks                                |
-| `garage`        | S3 storage for the product images                                           |
+| Service         | Function                                                |
+| --------------- | ------------------------------------------------------- |
+| `caddy`         | TLS and reverse proxy for `<domain>` and `api.<domain>` |
+| `storefront`    | Nuxt server                                             |
+| `medusa-server` | Medusa HTTP API and admin dashboard                     |
+| `medusa-worker` | Medusa scheduled jobs and event subscribers             |
+| `postgres`      | Database                                                |
+| `redis`         | Event bus, workflow engine, cache, and locks            |
 
 See [docs/deployment.md](docs/deployment.md) for the full procedure: the server, the DNS records,
 the environment file, the first deploy, the payments, and the backups.

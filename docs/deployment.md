@@ -11,21 +11,22 @@ for the first deploy. In this document, `<domain>` is the domain of the store, f
 - Open ports: 22, 80, and 443 (TCP), and 443 (UDP).
 - A second server or a storage service that accepts `rsync` through SSH, for the backups.
 
-The commands in this document run as a user in the `docker` group. Only the swap file and the
-removal of old backups need `sudo`.
+The commands in this document run as a user in the `docker` group. Only the swap file needs `sudo`.
 
 ## DNS records
 
-Make an A record for each of the three names. Each record points to the server address.
+Make an A record for each of the two names. Each record points to the server address.
 
-| Name              | Service                      |
-| ----------------- | ---------------------------- |
-| `<domain>`        | Storefront                   |
-| `api.<domain>`    | Medusa API and the dashboard |
-| `assets.<domain>` | Product images               |
+| Name           | Service                      |
+| -------------- | ---------------------------- |
+| `<domain>`     | Storefront                   |
+| `api.<domain>` | Medusa API and the dashboard |
 
 Make the records before the first deploy. Caddy gets the HTTPS certificates when it starts, and the
 certificate authority must find the server through these records.
+
+The product images use the public URL of the S3 store. See
+[S3 store: one-time setup](#s3-store-one-time-setup).
 
 ## Swap file
 
@@ -78,16 +79,19 @@ Do not use the characters `$` and `` ` `` in a value. Compose can expand these c
 
 | Key                      | Purpose                                                                                                                                                                                                      | Value                                                                                                                                                                                                         |
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DOMAIN`                 | The storefront host. The Compose file makes `api.<domain>` and `assets.<domain>` from it.                                                                                                                    | The host name only, for example `example.com`. Do not add `https://` or a path.                                                                                                                               |
+| `DOMAIN`                 | The storefront host. The Compose file makes `api.<domain>` from it.                                                                                                                                          | The host name only, for example `example.com`. Do not add `https://` or a path.                                                                                                                               |
 | `ACME_EMAIL`             | Caddy gives this address to the certificate authority.                                                                                                                                                       | Your email address.                                                                                                                                                                                           |
 | `POSTGRES_PASSWORD`      | The password of the database user `postgres`.                                                                                                                                                                | `openssl rand -hex 32`. Use only letters, digits, `-`, and `_`.                                                                                                                                               |
 | `JWT_SECRET`             | Medusa signs the authentication tokens with this secret.                                                                                                                                                     | `openssl rand -hex 32`. Use 32 characters or more.                                                                                                                                                            |
 | `COOKIE_SECRET`          | Medusa signs the session cookie with this secret.                                                                                                                                                            | `openssl rand -hex 32`. Use 32 characters or more.                                                                                                                                                            |
-| `GARAGE_RPC_SECRET`      | The RPC secret of Garage.                                                                                                                                                                                    | `openssl rand -hex 32`.                                                                                                                                                                                       |
-| `GARAGE_ADMIN_TOKEN`     | The token of the Garage admin API.                                                                                                                                                                           | `openssl rand -hex 32`.                                                                                                                                                                                       |
-| `GARAGE_METRICS_TOKEN`   | The token of the Garage metrics endpoint.                                                                                                                                                                    | `openssl rand -hex 32`.                                                                                                                                                                                       |
-| `S3_ACCESS_KEY_ID`       | Medusa uses this Garage key to write the product images.                                                                                                                                                     | The `Key ID` from `key create`. See [Garage: one-time commands](#garage-one-time-commands).                                                                                                                   |
-| `S3_SECRET_ACCESS_KEY`   | The secret of the Garage key.                                                                                                                                                                                | The `Secret key` from `key create`. See [Garage: one-time commands](#garage-one-time-commands).                                                                                                               |
+| `REDIS_URL`              | Medusa keeps the events, the workflows, the cache, and the locks in Redis. The backend stops at startup when this key is empty.                                                                              | `redis://redis:6379`, the `redis` service of `docker-compose.yml`. Change it only for a managed Redis. It starts with `redis://` or `rediss://`.                                                              |
+| `S3_BUCKET`              | The public bucket for the product images. The backend stops at startup when this key is empty.                                                                                                               | The bucket name. See [S3 store: one-time setup](#s3-store-one-time-setup).                                                                                                                                    |
+| `S3_RECEIPTS_BUCKET`     | The private bucket for the payment receipts. The receipts hold customer data.                                                                                                                                | The bucket name. It is not the same as `S3_BUCKET`, and the bucket has no public access.                                                                                                                      |
+| `S3_ENDPOINT`            | Medusa sends the S3 API requests to this URL.                                                                                                                                                                | The S3 API endpoint of the provider, with `https://`.                                                                                                                                                         |
+| `S3_REGION`              | The region of the two buckets.                                                                                                                                                                               | The region from the provider.                                                                                                                                                                                 |
+| `S3_FILE_URL`            | The public URL of `S3_BUCKET`. The image URLs start with this value.                                                                                                                                         | The URL from the provider, or your custom domain. It starts with `https://`.                                                                                                                                  |
+| `S3_ACCESS_KEY_ID`       | Medusa uses this access key to read and write the two buckets.                                                                                                                                               | The key ID from the provider.                                                                                                                                                                                 |
+| `S3_SECRET_ACCESS_KEY`   | The secret of the access key.                                                                                                                                                                                | The secret from the provider.                                                                                                                                                                                 |
 | `MEDUSA_PUBLISHABLE_KEY` | The storefront reads the store API with this key.                                                                                                                                                            | The `PUBLISHABLE_KEY` line of the seed. Keep it empty until the [first deploy](#first-deploy).                                                                                                                |
 | `SHIPPING_RATE_PER_KG`   | The shipping price in IDR for each kilogram.                                                                                                                                                                 | `10000`, or your price.                                                                                                                                                                                       |
 | `SMTP_HOST`              | The SMTP server of the email provider. If it is empty, the store sends no email. The exception is a project with an [HTTP API provider](email/README.md#write-an-http-api-provider) that has its key set.    | The SMTP host from the provider doc. [docs/email/README.md](email/README.md) lists the provider docs.                                                                                                         |
@@ -102,83 +106,28 @@ Do not use the characters `$` and `` ` `` in a value. Compose can expand these c
 The Medusa store name (Settings → Store) and `brand.name` in `apps/storefront/app/app.config.ts`
 must be the same text. The email wordmark uses the store name.
 
-Set all values now, but keep the example values of `S3_ACCESS_KEY_ID` and `S3_SECRET_ACCESS_KEY`.
-The next section gives these two values.
+The next section gives the values of the S3 keys.
 
-`docker-compose.yml` sets the two bucket keys. You do not set them in `.env`.
+## S3 store: one-time setup
 
-| Key                  | Purpose                                                                         | Value            |
-| -------------------- | ------------------------------------------------------------------------------- | ---------------- |
-| `S3_BUCKET`          | The public bucket for the product images.                                       | `store-assets`   |
-| `S3_RECEIPTS_BUCKET` | Private bucket for the payment receipts. Required when `S3_BUCKET` has a value. | `store-receipts` |
+The template runs no S3 service in production. An S3-compatible provider stores the product images
+and the payment receipts. Examples are Cloudflare R2, Amazon S3, Backblaze B2, and DigitalOcean
+Spaces. Do these steps one time, before the first deploy.
 
-## Garage: one-time commands
+1. Make the public bucket for the product images. Let the internet read its objects through a
+   public URL.
+2. If the provider gives a custom domain, make the DNS record that the provider asks for.
+3. Put the bucket name into `S3_BUCKET`. Put the public URL into `S3_FILE_URL`.
+4. Make the private bucket for the payment receipts. Do not give it public access, because the
+   receipts hold customer data.
+5. Put the name of the private bucket into `S3_RECEIPTS_BUCKET`.
+6. Make one access key with read and write access to the two buckets.
+7. Put the key ID into `S3_ACCESS_KEY_ID`. Put the secret into `S3_SECRET_ACCESS_KEY`.
+8. Put the S3 API endpoint of the provider into `S3_ENDPOINT`. Put its region into `S3_REGION`.
+   The backend sends path-style requests, so use an endpoint that accepts them.
 
-Garage stores the product images and the payment receipts. Do these steps one time, before the
-first deploy.
-
-1. Set the Compose command, and start Garage. Compose reads `docker-compose.yml` and `.env` from the
-   directory, so `$C` needs no options. The later sections also use `$C`, so set it again in each
-   new shell.
-
-```bash
-cd /srv/store
-C="docker compose"
-$C up -d garage
-```
-
-2. Set the Garage command, and show the status. Wait some seconds after the start of Garage.
-
-```bash
-G="$C exec -T garage /garage"
-$G status
-```
-
-The `$G` commands write Garage `INFO` log lines to the standard error. Add `2>/dev/null` to a
-command to get a clean output.
-
-3. Find the node ID in the status output. The node has the text `NO ROLE ASSIGNED`.
-
-```bash
-NODE=$($G status 2>/dev/null | awk '/NO ROLE ASSIGNED/ {print $1}')
-echo "$NODE"
-```
-
-4. Give the node a role, and apply the layout. The capacity `1G` is a weight for the layout, not a
-   limit.
-
-```bash
-$G layout assign -z dc1 -c 1G "$NODE"
-$G layout apply --version 1
-```
-
-5. Make the bucket, and let the web endpoint serve it. The alias lets Garage find the bucket from
-   the host `assets.<domain>`.
-
-```bash
-$G bucket create store-assets
-$G bucket website --allow store-assets
-$G bucket alias store-assets assets.<domain>
-```
-
-6. Make the key of the application, and give it access to the bucket.
-
-```bash
-$G key create medusa-app-key
-$G bucket allow --read --write --owner store-assets --key medusa-app-key
-```
-
-7. Make the private bucket for the payment receipts, and give the key access to it. Do not run
-   `bucket website` for this bucket. The receipts must stay private.
-
-```bash
-$G bucket create store-receipts
-$G bucket allow --read --write --owner store-receipts --key medusa-app-key
-```
-
-8. Put the values that `key create` printed into `.env`:
-   - Put the `Key ID` into `S3_ACCESS_KEY_ID`.
-   - Put the `Secret key` into `S3_SECRET_ACCESS_KEY`.
+Set `REDIS_URL` and `S3_BUCKET` before the first deploy. The backend stops at startup when one of
+them is empty.
 
 ## Check the environment file
 
@@ -212,13 +161,26 @@ docker compose config --quiet
      the password without URL encoding.
    - `JWT_SECRET` and `COOKIE_SECRET` have 32 characters or more. They are not `supersecret`, the
      development value.
+   - `REDIS_URL` starts with `redis://` or `rediss://`.
+   - `S3_FILE_URL` starts with `https://`.
+   - `S3_RECEIPTS_BUCKET` is not the same as `S3_BUCKET`.
+   - `S3_RECEIPTS_BUCKET` names a bucket with no public access.
    - `SMTP_SECURE` is `true` or `false`. Port 465 needs `true`.
    - `SMTP_HOST` is not `localhost`. Mailpit is only for development.
 
 ## First deploy
 
-Run the commands one at a time in `/srv/store`. If a command fails, stop and do not run the next
-commands. Set `C` as in step 1 of [Garage: one-time commands](#garage-one-time-commands).
+Run the commands one at a time. If a command fails, stop and do not run the next commands.
+
+Go to the directory of the repository, and set the Compose command. Compose reads
+`docker-compose.yml` and `.env` from the directory, so `$C` needs no options.
+
+```bash
+cd /srv/store
+C="docker compose"
+```
+
+The later sections also use `$C`. Set it again in each new shell.
 
 1. Do the check in [Check the environment file](#check-the-environment-file).
 2. Build the backend image. The first build can take many minutes.
@@ -233,7 +195,7 @@ $C build medusa-server
 $C build storefront
 ```
 
-4. Run the migrations. Compose starts PostgreSQL, Redis, and Garage first.
+4. Run the migrations. Compose starts PostgreSQL and Redis first.
 
 ```bash
 $C run --rm -T medusa-server npx medusa db:migrate --execute-safe-links
@@ -315,12 +277,12 @@ $C build storefront
 $C run --rm -T medusa-server npx medusa db:migrate --execute-safe-links
 ```
 
-6. Start the services with the new images. The second command makes the `caddy` and `garage`
-   containers again, so that they read the new `Caddyfile` and `garage.toml`.
+6. Start the services with the new images. The second command makes the `caddy` container again,
+   so that it reads the new `Caddyfile`.
 
 ```bash
 $C up -d --remove-orphans
-$C up -d --no-deps --force-recreate caddy garage
+$C up -d --no-deps --force-recreate caddy
 ```
 
 7. Remove the old images. This step frees disk space. A failure here does not affect the store.
@@ -463,15 +425,12 @@ connection.
 
 ## Backups
 
-A backup is a directory `backups/<time>` with two files:
+A backup is a directory `backups/<time>` with one file, `database.sql.gz`. This file is a dump of
+the database. The database holds customer data. Keep each copy of the backup private, and do not
+put it in a place that the internet can read.
 
-- `database.sql.gz` is a dump of the database.
-- `garage.tar.gz` is an archive of the Garage directories `meta/` and `data/`. Garage keeps small
-  objects in its metadata database, so the archive must have the two directories.
-
-The archive has all the buckets. Thus the same procedure backs up `store-assets` and
-`store-receipts`. The `store-receipts` bucket holds customer data. Keep each copy of the backup
-private, and do not put it in a place that the internet can read.
+The S3 provider keeps the product images and the payment receipts. This procedure does not copy
+them. Turn on the versioning or the backup feature of the provider for the two buckets.
 
 Keep a copy of each backup on a different server. A backup only on the store server is lost with
 the server. In this section, `<backup target>` is the `rsync` target on that server, for example
@@ -522,32 +481,17 @@ ls -lh "backups/$STAMP/database.sql"
 gzip "backups/$STAMP/database.sql"
 ```
 
-4. Stop Garage, and make the archive. Garage must stop, because a copy of a database file that
-   changes can be unusable. The product images are not available for some seconds.
-
-```bash
-$C stop garage
-docker run --rm -v store_garage-meta:/meta:ro -v store_garage-data:/data:ro \
-  -v "$PWD/backups/$STAMP:/backup" alpine:3 tar czf /backup/garage.tar.gz -C / meta data
-```
-
-5. Start Garage again. Do this step also when the archive command fails.
-
-```bash
-$C start garage
-```
-
-6. Copy the backup to the backup server.
+4. Copy the backup to the backup server.
 
 ```bash
 rsync -a "backups/$STAMP" <backup target>/
 ```
 
-7. Remove the local copies that are older than 7 days. Do this step only after a complete copy in
-   step 6. Use `sudo`, because the `alpine` container makes `garage.tar.gz` as the root user.
+5. Remove the local copies that are older than 7 days. Do this step only after a complete copy in
+   step 4.
 
 ```bash
-sudo find backups -mindepth 1 -maxdepth 1 -type d -mtime +7 -exec rm -rf {} +
+find backups -mindepth 1 -maxdepth 1 -type d -mtime +7 -exec rm -rf {} +
 ```
 
 The operator of the backup server sets the time limit for the copies there.
@@ -555,7 +499,7 @@ The operator of the backup server sets the time limit for the copies there.
 ## Restore
 
 Stop the services that write data before you restore. A write during the restore can mix old data
-and new data. Set `C` as in step 1 of [Garage: one-time commands](#garage-one-time-commands).
+and new data. Set `C` as in [First deploy](#first-deploy).
 
 1. Copy the backup back to the server, if the local copy does not exist. `<time>` is the name of
    the backup directory.
@@ -569,7 +513,7 @@ rsync -a <backup target>/<time> backups/
 2. Stop the services. Then start PostgreSQL, because the restore of the database needs it.
 
 ```bash
-$C stop medusa-server medusa-worker storefront garage
+$C stop medusa-server medusa-worker storefront
 $C up -d --wait postgres
 ```
 
@@ -579,15 +523,7 @@ $C up -d --wait postgres
 gunzip -c backups/<time>/database.sql.gz | $C exec -T postgres psql -U postgres -d medusa-store
 ```
 
-4. Restore the Garage data. The command removes the current Garage data first.
-
-```bash
-docker run --rm -v store_garage-meta:/meta -v store_garage-data:/data \
-  -v "$PWD/backups/<time>:/backup:ro" alpine:3 \
-  sh -c "rm -rf /meta/* /data/* && tar xzf /backup/garage.tar.gz -C /"
-```
-
-5. Start all services.
+4. Start all services.
 
 ```bash
 $C up -d
@@ -612,6 +548,6 @@ A change of `DOMAIN` needs a new build of the backend image, because the dashboa
 address at build time. Do steps 4 to 6 of [Deploy a new version](#deploy-a-new-version). After a
 change of `DOMAIN`, also do these tasks:
 
-- Change the three DNS records.
-- Add the alias of the new asset host with `$G bucket alias store-assets assets.<domain>`. Set `C`
-  and `G` as in steps 1 and 2 of [Garage: one-time commands](#garage-one-time-commands).
+- Change the two DNS records.
+- If the public URL of the image bucket changes, set the new URL in `S3_FILE_URL`. See
+  [S3 store: one-time setup](#s3-store-one-time-setup).

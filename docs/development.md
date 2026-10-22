@@ -9,8 +9,8 @@ command, so you can see what each step does. Run all commands from the repositor
   `nvm install` and then `nvm use` in the repository root.
 - pnpm 10.11.1. Run `corepack enable` to get the version from `package.json`.
 - PostgreSQL 16 or higher.
-- Redis 7 or higher. Redis is optional, but production uses it.
-- Garage v2.4.1. It stores the product images, as in production.
+- Redis 7 or higher. Redis is optional in development. Production requires it.
+- Garage v2.4.1. It is the S3 store of development. Production uses the S3 store of a provider.
 - Mailpit. It catches the emails of the backend.
 
 You can get PostgreSQL, Redis, Garage, and Mailpit from one of these sources:

@@ -159,12 +159,14 @@ pnpm format:check
 ## Production
 
 - `docker-compose.yml` has the services `caddy`, `storefront`, `medusa-server`,
-  `medusa-worker`, `postgres`, `redis`, and `garage`. Only `caddy` publishes ports.
+  `medusa-worker`, `postgres`, and `redis`. Only `caddy` publishes ports.
 - The server env file is `.env`, from `.env.example`. Compose reads `docker-compose.yml` and
   `.env` automatically. Development uses `docker-compose.local.yml` and never a root `.env`.
 - `medusa-server` and `medusa-worker` use one image (`store-backend`). Only `medusa-server` builds it.
-- The Caddy hosts are `<domain>` (storefront), `api.<domain>` (backend), and `assets.<domain>`
-  (Garage web endpoint for the product images).
+- The Caddy hosts are `<domain>` (storefront) and `api.<domain>` (backend). The product images
+  use the public URL of the S3 store (`S3_FILE_URL`).
+- Production requires `REDIS_URL` and the S3 keys. With `NODE_ENV=production`, the backend stops
+  at startup without `REDIS_URL` or `S3_BUCKET`.
 - A deploy has these steps. `docs/deployment.md` gives the commands.
   1. Pull the code.
   2. Check `.env` against the rules in `docs/deployment.md`.
