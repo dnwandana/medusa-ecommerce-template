@@ -163,7 +163,7 @@ v=DMARC1; p=none; rua=mailto:<address>
 and at the end. If the value is empty, the email has no Reply-To, and a reply goes to `EMAIL_FROM`.
 
 `data.store` comes from `readStoreForEmail` in `apps/backend/src/lib/store-for-email.ts`. The
-contact email is the store contact email in Medusa Admin (**Settings → Bank transfer**). Every
+contact email is the store contact email in Medusa Admin (**Settings → Store**). Every
 email uses it, also the owner emails and `password-reset`.
 
 A no-reply `EMAIL_FROM` works only when the store contact email is set. Without the contact email,

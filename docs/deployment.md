@@ -114,9 +114,9 @@ Do not use the characters `$` and `` ` `` in a value. Compose can expand these c
 | `SMTP_SECURE`                  | `true` for implicit TLS (port 465). `false` for STARTTLS.                                                                                                                                                                                                            | `true` or `false`.                                                                                                                                                                                                                                                                    |
 | `SMTP_USER`                    | The SMTP user name.                                                                                                                                                                                                                                                  | The value from the provider doc.                                                                                                                                                                                                                                                      |
 | `SMTP_PASSWORD`                | The SMTP password. For some providers, it is not the API key.                                                                                                                                                                                                        | The SMTP password from the provider doc. [Brevo](email/brevo.md) uses an SMTP key. Its API key gives the error `535`. [Amazon SES](email/amazon-ses.md) uses SMTP credentials, not the IAM secret access key.                                                                         |
-| `EMAIL_FROM`                   | The sender address of the emails. When the store contact email is set, every email uses it as Reply-To, also the owner emails and `password-reset`.                                                                                                                  | An address on a domain that the provider verified. A no-reply address works only when the store contact email is set (Settings → Bank transfer). Replace the example value `no-reply@everyday.com`.                                                                                   |
+| `EMAIL_FROM`                   | The sender address of the emails. When the store contact email is set, every email uses it as Reply-To, also the owner emails and `password-reset`.                                                                                                                  | An address on a domain that the provider verified. A no-reply address works only when the store contact email is set (Settings → Store). Replace the example value `no-reply@everyday.com`.                                                                                           |
 | `EMAIL_FROM_NAME`              | The sender name of the emails.                                                                                                                                                                                                                                       | The store name. Use the same text as the Medusa store name. The example value `Everyday` is the name of the template store.                                                                                                                                                           |
-| `STORE_OWNER_EMAIL`            | The address that gets the owner emails `new-order-owner`, `paid-cart-alert`, `receipt-uploaded`, and `low-stock-owner`. It is the fallback when the store contact email (Settings → Bank transfer) is empty.                                                         | Your email address.                                                                                                                                                                                                                                                                   |
+| `STORE_OWNER_EMAIL`            | The address that gets the owner emails `new-order-owner`, `paid-cart-alert`, `receipt-uploaded`, and `low-stock-owner`. It is the fallback when the store contact email (Settings → Store) is empty.                                                                 | Your email address.                                                                                                                                                                                                                                                                   |
 
 The Medusa store name (Settings → Store) and `brand.name` in `apps/storefront/app/app.config.ts`
 must be the same text. The email wordmark uses the store name.
@@ -304,7 +304,7 @@ $C up -d --remove-orphans
 ```
 
 6. Seed the store. The seed makes the region, the shipping option, three sample products, a sample
-   bank account, the store contact, and the publishable API key.
+   bank account, a sample store contact, and the publishable API key.
 
 ```bash
 $C exec -T medusa-server npx medusa exec ./src/scripts/seed.js | grep PUBLISHABLE_KEY
@@ -398,10 +398,15 @@ $C logs -f --tail 100 medusa-server
 Bank transfer is the payment method of the store. The seed adds a sample bank account and a sample
 store contact. Replace them before you sell.
 
-1. Sign in to the Admin and open **Settings → Bank transfer**.
-2. Replace the seed account "Sample Bank" `1234567890` with a real account, or mark it inactive.
-3. Replace the seed contact "store@example.com" and "+6281234567890" with the real contact.
-4. Make one real order with a small amount. Make sure that the order page shows the real account.
+1. Sign in to the Admin and open **Settings → Store**.
+2. In the **Contact** section, replace the seed contact "store@example.com" and "+6281234567890"
+   with the real contact.
+3. Add the phone and the address, if the store has them. Write each number with `+` and the
+   country code, for example `+62 812 3456 7890`.
+4. In the **Social links** section, add the links of the store, for example Instagram or Shopee.
+5. Open **Settings → Bank transfer**.
+6. Replace the seed account "Sample Bank" `1234567890` with a real account, or mark it inactive.
+7. Make one real order with a small amount. Make sure that the order page shows the real account.
 
 To add a payment gateway, read `docs/payments/`.
 

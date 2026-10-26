@@ -191,8 +191,8 @@ The seed creates these records:
 
 - The sales channel "Default Sales Channel" and the store currency IDR.
 - The region "Indonesia" with the bank transfer payment provider.
-- One sample bank account and the store contact. Change them in the Admin at
-  **Settings → Bank transfer**.
+- One sample bank account. Change it in the Admin at **Settings → Bank transfer**.
+- A sample store contact. Change it in the Admin at **Settings → Store**.
 - The stock location, the shipping profile, and the shipping option for Indonesia.
 - Three sample products.
 - The publishable API key "Storefront", with a link to the sales channel.

@@ -150,7 +150,7 @@ In the sandbox, each recipient must be a verified identity. Do these steps for e
 gets a test email:
 
 - The customer address that you use to sign in to the store.
-- The store contact email (Medusa Admin, **Settings → Bank transfer**). The owner emails go to it.
+- The store contact email (Medusa Admin, **Settings → Store**). The owner emails go to it.
 - `STORE_OWNER_EMAIL`, if it has a value. The owner emails go to it when the contact email is
   empty.
 

@@ -75,11 +75,14 @@ pnpm format:check
 - Custom Store API routes that the storefront uses:
   - `/store/reviews`, `/store/products/:id/reviews`, `/store/customers/me/reviewable-items`.
   - `/store/customers/me/wishlist`, `/store/customers/me/wishlist/items[/:id]`.
-  - `/store/bank-transfer`. It also returns `enabled` (`BANK_TRANSFER_ENABLED`) and
-    `deadline_hours` (`BANK_TRANSFER_DEADLINE_HOURS`). The storefront reads the two values only
-    from this route.
+  - `/store/bank-transfer`. It returns `bank_accounts`, `enabled` (`BANK_TRANSFER_ENABLED`), and
+    `deadline_hours` (`BANK_TRANSFER_DEADLINE_HOURS`). The storefront reads the last two values
+    only from this route.
   - `/store/storefront/settings`, `/store/storefront/home-campaign`,
     `/store/storefront/home-categories`.
+  - `/store/storefront/settings` also returns the store contact as `contact`: `email`, `phone`,
+    `whatsapp`, `address`, and `social_links`. The storefront reads the contact only from this
+    route.
   - `/store/storefront/catalog/filters`, `/store/storefront/catalog/products`. The catalog routes
     take `category_id` as a list. The category page sends the category and all its descendant
     categories.
@@ -93,10 +96,13 @@ pnpm format:check
   `/admin/orders/:id/receipts/cancel`.
 - `apps/storefront/AGENTS.md` gives the composable that calls each route. `apps/backend/AGENTS.md`
   gives the modules, the workflows, and the subscribers behind the routes.
-- The option names and the metadata keys have one copy in each app. Change the two copies
-  together.
+- The option names, the social networks, and the metadata keys have one copy in each app. Change
+  the two copies together.
   - Option names: `apps/backend/src/lib/option-names.ts` and
     `apps/storefront/app/utils/optionNames.ts`.
+  - Social networks: `apps/backend/src/lib/social-networks.ts` (the ids and the allowed hosts)
+    and `apps/storefront/app/utils/socialNetworks.ts` (the ids, the names, and the icons). The ids
+    and their order are the same in the two files.
   - Metadata keys: `apps/backend/src/lib/storefront-metadata.ts`. The storefront reads
     `product_details`, `colour_hex`, and `welcome_sent_at` in `app/utils/productDetails.ts`,
     `app/utils/colourDots.ts`, and `app/composables/useCustomer.ts`.
@@ -140,7 +146,8 @@ pnpm format:check
 4. Bank transfer: the session has no `payment_url`. The storefront completes the cart at once and
    opens `/orders/:id`.
    - The order page shows the bank accounts and the receipt upload until the admin captures the
-     payment. The bank accounts come from `/store/bank-transfer`.
+     payment. The bank accounts come from `/store/bank-transfer`. The store contact in the
+     receipt panel comes from `/store/storefront/settings`.
    - The owner checks the receipts in the order widget. **Accept payment** captures the payment.
      The `payment.captured` subscriber then sends the `payment-confirmed` email.
    - **Cancel order** in the order widget takes an optional note. The note goes into the
