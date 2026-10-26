@@ -1,4 +1,4 @@
-import { moveAccount, toContactPayload, validateBankAccountForm } from "../bank-transfer-form"
+import { moveAccount, validateBankAccountForm } from "../bank-transfer-form"
 
 describe("validateBankAccountForm", () => {
   it("returns no errors for a complete form", () => {
@@ -77,25 +77,5 @@ describe("moveAccount", () => {
       { id: "a", rank: 1 },
       { id: "c", rank: 2 },
     ])
-  })
-})
-
-describe("toContactPayload", () => {
-  it("sends null for an empty value", () => {
-    expect(toContactPayload({ email: " ", whatsapp: "" })).toEqual({ email: null, whatsapp: null })
-  })
-
-  it("writes a local WhatsApp number in the E.164 format", () => {
-    expect(toContactPayload({ email: "store@example.com", whatsapp: "0812-3456-7890" })).toEqual({
-      email: "store@example.com",
-      whatsapp: "+6281234567890",
-    })
-  })
-
-  it("keeps a number that is already in the E.164 format", () => {
-    expect(toContactPayload({ email: "", whatsapp: "+62 812 3456 7890" })).toEqual({
-      email: null,
-      whatsapp: "+6281234567890",
-    })
   })
 })

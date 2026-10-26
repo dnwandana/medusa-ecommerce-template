@@ -6,8 +6,6 @@ export type AdminBankAccount = BankAccountForm & {
   rank: number
 }
 
-export type StoreContact = { email: string | null; whatsapp: string | null }
-
 // The same rule as the account number schema of POST /admin/bank-accounts.
 const ACCOUNT_NUMBER = /^\d{5,20}$/
 
@@ -54,27 +52,4 @@ export function moveAccount(
   return moved
     .map((account, index) => ({ id: account.id, rank: index }))
     .filter((account) => swapped.has(account.id) || oldRank.get(account.id) !== account.rank)
-}
-
-/** Returns the WhatsApp number in the E.164 format. A local number starts with 0. */
-function toE164(value: string): string {
-  const digits = value.replace(/\D/g, "")
-  if (value.startsWith("+")) {
-    return `+${digits}`
-  }
-  if (digits.startsWith("0")) {
-    return `+62${digits.slice(1)}`
-  }
-  if (digits.startsWith("62")) {
-    return `+${digits}`
-  }
-  // POST /admin/store-contact rejects this value, and the page shows the error.
-  return value
-}
-
-/** Returns the body of POST /admin/store-contact. The route accepts null, not an empty string. */
-export function toContactPayload(form: { email: string; whatsapp: string }): StoreContact {
-  const email = form.email.trim()
-  const whatsapp = form.whatsapp.trim()
-  return { email: email || null, whatsapp: whatsapp ? toE164(whatsapp) : null }
 }

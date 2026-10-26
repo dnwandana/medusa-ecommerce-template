@@ -20,14 +20,11 @@ import {
   AdminBankAccount,
   BankAccountForm,
   moveAccount,
-  StoreContact,
-  toContactPayload,
   validateBankAccountForm,
 } from "../../../lib/bank-transfer-form"
 import { sdk } from "../../../lib/sdk"
 
 const ACCOUNTS_KEY = ["bank-accounts"]
-const CONTACT_KEY = ["store-contact"]
 
 const EMPTY_FORM: BankAccountForm = { bank_name: "", account_number: "", account_holder: "" }
 
@@ -269,73 +266,6 @@ const AccountsSection = ({ onEdit }: { onEdit: (account: AdminBankAccount) => vo
   )
 }
 
-// Shows the store contact form. The page sends null for an empty value.
-const ContactSection = () => {
-  const queryClient = useQueryClient()
-  const [form, setForm] = useState({ email: "", whatsapp: "" })
-
-  const { data } = useQuery<{ contact: StoreContact }>({
-    queryKey: CONTACT_KEY,
-    queryFn: () => sdk.client.fetch("/admin/store-contact"),
-  })
-
-  useEffect(() => {
-    if (data) {
-      setForm({ email: data.contact.email ?? "", whatsapp: data.contact.whatsapp ?? "" })
-    }
-  }, [data])
-
-  const save = useMutation({
-    mutationFn: (body: StoreContact) =>
-      sdk.client.fetch("/admin/store-contact", { method: "POST", body }),
-    onSuccess: async () => {
-      toast.success("The store contact is saved.")
-      await queryClient.invalidateQueries({ queryKey: CONTACT_KEY })
-    },
-    onError: () =>
-      toast.error(
-        "The store contact was not saved. Make sure that the email and the WhatsApp number are correct."
-      ),
-  })
-
-  const onSubmit = (event: FormEvent) => {
-    event.preventDefault()
-    save.mutate(toContactPayload(form))
-  }
-
-  return (
-    <Container className="px-6 py-4">
-      <Heading level="h2">Store contact</Heading>
-      <form className="mt-4 flex flex-col gap-y-4" onSubmit={onSubmit} noValidate>
-        <div className="flex flex-col gap-y-2">
-          <Label htmlFor="store-contact-email">Email</Label>
-          <Input
-            id="store-contact-email"
-            type="email"
-            value={form.email}
-            onChange={(event) => setForm({ ...form, email: event.target.value })}
-          />
-        </div>
-        <div className="flex flex-col gap-y-2">
-          <Label htmlFor="store-contact-whatsapp">WhatsApp</Label>
-          <Input
-            id="store-contact-whatsapp"
-            type="tel"
-            placeholder="+6281234567890"
-            value={form.whatsapp}
-            onChange={(event) => setForm({ ...form, whatsapp: event.target.value })}
-          />
-        </div>
-        <div>
-          <Button type="submit" isLoading={save.isPending}>
-            Save
-          </Button>
-        </div>
-      </form>
-    </Container>
-  )
-}
-
 const BankTransferPage = () => {
   const [editing, setEditing] = useState<AdminBankAccount | null>(null)
 
@@ -343,7 +273,6 @@ const BankTransferPage = () => {
     <div className="flex flex-col gap-y-3">
       <AccountsSection onEdit={setEditing} />
       <AccountFormSection editing={editing} onDone={() => setEditing(null)} />
-      <ContactSection />
       <Toaster />
     </div>
   )
