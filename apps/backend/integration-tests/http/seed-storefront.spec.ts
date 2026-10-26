@@ -1,4 +1,5 @@
 import { medusaIntegrationTestRunner } from "@medusajs/test-utils"
+import { EMPTY_CONTACT } from "../../src/lib/store-contact"
 import { runSeed } from "../../src/seed"
 import { STOREFRONT_MODULE } from "../../src/modules/storefront"
 import type StorefrontModuleService from "../../src/modules/storefront/service"
@@ -49,6 +50,28 @@ medusaIntegrationTestRunner({
 
         const names = (await service().listColours()).map(({ name }) => name)
         expect(names.sort()).toEqual(["Sage", "White", "black"])
+      })
+
+      it("adds the sample contact", async () => {
+        await runSeed(getContainer())
+
+        expect(await service().getContact()).toEqual({
+          email: "store@example.com",
+          phone: null,
+          whatsapp: "+6281234567890",
+          address: null,
+          social_links: [],
+        })
+      })
+
+      it("keeps the owner contact on a second run", async () => {
+        await runSeed(getContainer())
+        await service().setContact({ ...EMPTY_CONTACT, email: "owner@shop.id" })
+
+        await runSeed(getContainer())
+
+        expect(await service().listStorefrontContacts({})).toHaveLength(1)
+        expect(await service().getContact()).toEqual({ ...EMPTY_CONTACT, email: "owner@shop.id" })
       })
     })
   },

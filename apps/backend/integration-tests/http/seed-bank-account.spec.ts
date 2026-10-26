@@ -14,7 +14,7 @@ medusaIntegrationTestRunner({
         service = getContainer().resolve(BANK_ACCOUNT_MODULE)
       })
 
-      it("adds one sample account and the sample contact", async () => {
+      it("adds one sample account", async () => {
         await runSeed(getContainer())
 
         expect(await service.listBankAccounts({})).toEqual([
@@ -25,21 +25,14 @@ medusaIntegrationTestRunner({
             is_active: true,
           }),
         ])
-        expect(await service.getContact()).toEqual({
-          email: "store@example.com",
-          whatsapp: "+6281234567890",
-        })
       })
 
-      it("adds no second account and keeps the owner contact on a second run", async () => {
+      it("adds no second account on a second run", async () => {
         await runSeed(getContainer())
-        await service.setContact({ email: "owner@shop.id", whatsapp: null })
 
         await runSeed(getContainer())
 
         expect(await service.listBankAccounts({})).toHaveLength(1)
-        expect(await service.listStoreContacts({})).toHaveLength(1)
-        expect(await service.getContact()).toEqual({ email: "owner@shop.id", whatsapp: null })
       })
 
       it("adds no sample account when the owner already has an account", async () => {
