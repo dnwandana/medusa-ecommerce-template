@@ -1,7 +1,7 @@
 import { renderTemplate } from "../templates"
 import { renderReceiptUploaded } from "../templates/receipt-uploaded"
 
-const store = { name: "Everyday", contact_email: "hello@everyday.id", whatsapp: null }
+const store = { name: "Everyday", contact_email: "hello@everyday.id", whatsapp: null, phone: null }
 
 const data = {
   store,

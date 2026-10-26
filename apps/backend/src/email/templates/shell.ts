@@ -1,7 +1,12 @@
 import { escapeHtml, formatRupiah } from "./html"
 import { type EmailLocale, langOf, t } from "./i18n"
 
-export type EmailStore = { name: string; contact_email: string | null; whatsapp: string | null }
+export type EmailStore = {
+  name: string
+  contact_email: string | null
+  whatsapp: string | null
+  phone: string | null
+}
 
 export type EmailAudience = "customer" | "owner"
 
@@ -89,12 +94,16 @@ const TABLE = 'role="presentation" cellpadding="0" cellspacing="0" border="0"'
 function customerFooter(locale: EmailLocale, store: EmailStore): string {
   const email = store.contact_email?.trim()
   const whatsapp = store.whatsapp?.trim()
+  const phone = store.phone?.trim()
   const extras: string[] = []
   if (email) {
     extras.push(t(locale, "common.footerWrite", { email }))
   }
   if (whatsapp) {
     extras.push(t(locale, "common.footerWhatsapp", { whatsapp }))
+  }
+  if (phone) {
+    extras.push(t(locale, "common.footerPhone", { phone }))
   }
   const questions = t(locale, "common.footerQuestions")
   const last = extras.pop()

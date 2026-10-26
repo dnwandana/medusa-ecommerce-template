@@ -1,7 +1,7 @@
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { inventoryItemIdsOfEvent, readVariantStock } from "../../lib/variant-stock"
 import { readVariantPrices } from "../../lib/variant-prices"
-import { BANK_ACCOUNT_MODULE } from "../../modules/bank-account"
+import { STOREFRONT_MODULE } from "../../modules/storefront"
 import { WISHLIST_MODULE } from "../../modules/wishlist"
 import wishlistBackInStockHandler, { config } from "../wishlist-back-in-stock"
 
@@ -77,8 +77,14 @@ const makeContainer = ({
     [WISHLIST_MODULE]: { listWishlistItems, updateWishlistItems },
     [Modules.CUSTOMER]: { listCustomers },
     [Modules.NOTIFICATION]: { createNotifications },
-    [BANK_ACCOUNT_MODULE]: {
-      getContact: jest.fn().mockResolvedValue({ email: "hello@everyday.id", whatsapp: null }),
+    [STOREFRONT_MODULE]: {
+      getContact: jest.fn().mockResolvedValue({
+        email: "hello@everyday.id",
+        phone: null,
+        whatsapp: null,
+        address: null,
+        social_links: [],
+      }),
     },
     [Modules.STORE]: { listStores: jest.fn().mockResolvedValue([{ name: "Everyday" }]) },
   }
@@ -147,7 +153,12 @@ describe("wishlist-back-in-stock subscriber", () => {
       template: "wishlist-alert",
       data: {
         locale: "en-US",
-        store: { name: "Everyday", contact_email: "hello@everyday.id", whatsapp: null },
+        store: {
+          name: "Everyday",
+          contact_email: "hello@everyday.id",
+          whatsapp: null,
+          phone: null,
+        },
         wishlist_url: "https://shop.example.com/account/wishlist",
         first_name: "Sari",
         back_in_stock: [

@@ -1,7 +1,7 @@
 import { renderOrderPlaced } from "../templates/order-placed"
 import { renderTemplate } from "../templates"
 
-const store = { name: "Everyday", contact_email: "hello@everyday.id", whatsapp: null }
+const store = { name: "Everyday", contact_email: "hello@everyday.id", whatsapp: null, phone: null }
 const order = {
   display_id: 1042,
   email: "dewi@example.com",

@@ -6,6 +6,7 @@ export const en = {
   "common.footerQuestions": "Questions? Reply to this email",
   "common.footerWrite": "write to {email}",
   "common.footerWhatsapp": "WhatsApp us at {whatsapp}",
+  "common.footerPhone": "call us at {phone}",
   "common.viewOrder": "View your order",
   "common.shipTo": "Ship to",
   "common.yourOrder": "Your order",
@@ -14,7 +15,7 @@ export const en = {
   "common.or": "or",
   // The owner emails are English only. The key is here so the shell reads one source.
   "common.ownerFooter":
-    "This is an alert for the store owner from the {store} backend. Change the address at Settings → Bank transfer in Medusa Admin.",
+    "This is an alert for the store owner from the {store} backend. Change the address at Settings → Store in Medusa Admin.",
 
   "orderPlaced.subject": "Order #{n} confirmed",
   "orderPlaced.eyebrow": "Order #{n} · {date}",

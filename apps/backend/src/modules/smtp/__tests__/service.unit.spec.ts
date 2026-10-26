@@ -14,7 +14,7 @@ const options = {
   from: "orders@shop.example.com",
   fromName: "Everyday" as string | undefined,
 }
-const store = { name: "Everyday", contact_email: null as unknown, whatsapp: null }
+const store = { name: "Everyday", contact_email: null as unknown, whatsapp: null, phone: null }
 const notification = {
   to: "buyer@example.com",
   channel: "email",

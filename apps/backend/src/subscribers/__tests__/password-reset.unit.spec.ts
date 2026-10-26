@@ -1,5 +1,5 @@
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
-import { BANK_ACCOUNT_MODULE } from "../../modules/bank-account"
+import { STOREFRONT_MODULE } from "../../modules/storefront"
 import passwordResetHandler, { config } from "../password-reset"
 
 const makeContainer = (admin: Record<string, unknown>) => {
@@ -9,8 +9,14 @@ const makeContainer = (admin: Record<string, unknown>) => {
     [ContainerRegistrationKeys.LOGGER]: logger,
     [ContainerRegistrationKeys.CONFIG_MODULE]: { admin },
     [Modules.NOTIFICATION]: { createNotifications },
-    [BANK_ACCOUNT_MODULE]: {
-      getContact: jest.fn().mockResolvedValue({ email: "hello@everyday.id", whatsapp: null }),
+    [STOREFRONT_MODULE]: {
+      getContact: jest.fn().mockResolvedValue({
+        email: "hello@everyday.id",
+        phone: null,
+        whatsapp: null,
+        address: null,
+        social_links: [],
+      }),
     },
     [Modules.STORE]: { listStores: jest.fn().mockResolvedValue([{ name: "Everyday" }]) },
   }

@@ -1,5 +1,5 @@
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
-import { BANK_ACCOUNT_MODULE } from "../../modules/bank-account"
+import { STOREFRONT_MODULE } from "../../modules/storefront"
 import orderCancelledHandler, { config } from "../order-cancelled"
 
 const order = {
@@ -33,8 +33,14 @@ const makeContainer = (orders: unknown[], storefrontUrl = "https://shop.example.
     [ContainerRegistrationKeys.LOGGER]: logger,
     [ContainerRegistrationKeys.CONFIG_MODULE]: { admin: { storefrontUrl } },
     [Modules.NOTIFICATION]: { createNotifications },
-    [BANK_ACCOUNT_MODULE]: {
-      getContact: jest.fn().mockResolvedValue({ email: "hello@everyday.id", whatsapp: null }),
+    [STOREFRONT_MODULE]: {
+      getContact: jest.fn().mockResolvedValue({
+        email: "hello@everyday.id",
+        phone: null,
+        whatsapp: null,
+        address: null,
+        social_links: [],
+      }),
     },
     [Modules.STORE]: { listStores: jest.fn().mockResolvedValue([{ name: "Everyday" }]) },
   }
@@ -93,7 +99,12 @@ describe("order-cancelled subscriber", () => {
       template: "order-cancelled",
       data: {
         locale: "id-ID",
-        store: { name: "Everyday", contact_email: "hello@everyday.id", whatsapp: null },
+        store: {
+          name: "Everyday",
+          contact_email: "hello@everyday.id",
+          whatsapp: null,
+          phone: null,
+        },
         shop_url: "https://shop.example.com/id",
         reason: "payment_timeout",
         deadline_hours: 24,

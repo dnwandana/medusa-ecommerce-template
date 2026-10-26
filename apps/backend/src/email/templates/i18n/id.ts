@@ -7,6 +7,7 @@ export const id: Record<EmailKey, string> = {
   "common.footerQuestions": "Ada pertanyaan? Balas email ini",
   "common.footerWrite": "tulis ke {email}",
   "common.footerWhatsapp": "WhatsApp kami di {whatsapp}",
+  "common.footerPhone": "telepon kami di {phone}",
   "common.viewOrder": "Lihat pesanan Anda",
   "common.shipTo": "Kirim ke",
   "common.yourOrder": "Pesanan Anda",
@@ -15,7 +16,7 @@ export const id: Record<EmailKey, string> = {
   "common.or": "atau",
   // The owner emails are English only, so this text is the English text.
   "common.ownerFooter":
-    "This is an alert for the store owner from the {store} backend. Change the address at Settings → Bank transfer in Medusa Admin.",
+    "This is an alert for the store owner from the {store} backend. Change the address at Settings → Store in Medusa Admin.",
 
   "orderPlaced.subject": "Pesanan #{n} diterima",
   "orderPlaced.eyebrow": "Pesanan #{n} · {date}",

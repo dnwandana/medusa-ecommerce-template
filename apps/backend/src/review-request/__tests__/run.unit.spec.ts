@@ -1,6 +1,6 @@
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
-import { BANK_ACCOUNT_MODULE } from "../../modules/bank-account"
 import { PRODUCT_REVIEW_MODULE } from "../../modules/product-review"
+import { STOREFRONT_MODULE } from "../../modules/storefront"
 import { runReviewRequests } from "../run"
 
 const NOW = new Date("2026-10-27T20:00:00Z")
@@ -77,8 +77,14 @@ const makeContainer = (
       },
     },
     [Modules.STORE]: { listStores: jest.fn().mockResolvedValue([{ name: "Everyday" }]) },
-    [BANK_ACCOUNT_MODULE]: {
-      getContact: jest.fn().mockResolvedValue({ email: "hello@everyday.id", whatsapp: null }),
+    [STOREFRONT_MODULE]: {
+      getContact: jest.fn().mockResolvedValue({
+        email: "hello@everyday.id",
+        phone: null,
+        whatsapp: null,
+        address: null,
+        social_links: [],
+      }),
     },
     [PRODUCT_REVIEW_MODULE]: { listReviews },
   }
@@ -132,7 +138,12 @@ describe("runReviewRequests", () => {
       template: "review-request",
       data: {
         locale: "en-US",
-        store: { name: "Everyday", contact_email: "hello@everyday.id", whatsapp: null },
+        store: {
+          name: "Everyday",
+          contact_email: "hello@everyday.id",
+          whatsapp: null,
+          phone: null,
+        },
         review_url: "https://shop.example.com/account/orders",
         first_name: "Sari",
         order: { display_id: 1042 },

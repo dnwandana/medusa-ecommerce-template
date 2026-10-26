@@ -1,6 +1,6 @@
 import { renderTemplate } from "../templates"
 
-const store = { name: "Everyday", contact_email: null, whatsapp: null }
+const store = { name: "Everyday", contact_email: null, whatsapp: null, phone: null }
 
 describe("renderTemplate in src/email/templates", () => {
   it("renders the password-reset email", () => {

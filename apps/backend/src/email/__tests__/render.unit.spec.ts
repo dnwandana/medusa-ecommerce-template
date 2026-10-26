@@ -2,7 +2,7 @@ import { renderEmail } from "../render"
 import { renderTemplate } from "../templates"
 import { htmlToText } from "../text"
 
-const store = { name: "Everyday", contact_email: null as unknown, whatsapp: null }
+const store = { name: "Everyday", contact_email: null as unknown, whatsapp: null, phone: null }
 const data = { store, reset_url: "https://shop.example.com/reset?token=t" }
 
 describe("renderEmail", () => {

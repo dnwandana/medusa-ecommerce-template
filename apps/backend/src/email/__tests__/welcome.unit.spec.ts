@@ -1,6 +1,6 @@
 import { renderWelcome } from "../templates/welcome"
 
-const store = { name: "Everyday", contact_email: "hello@everyday.id", whatsapp: null }
+const store = { name: "Everyday", contact_email: "hello@everyday.id", whatsapp: null, phone: null }
 
 describe("renderWelcome", () => {
   it("renders the welcome email", () => {

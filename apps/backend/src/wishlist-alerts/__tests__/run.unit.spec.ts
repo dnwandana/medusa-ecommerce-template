@@ -1,5 +1,5 @@
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
-import { BANK_ACCOUNT_MODULE } from "../../modules/bank-account"
+import { STOREFRONT_MODULE } from "../../modules/storefront"
 import { WISHLIST_MODULE } from "../../modules/wishlist"
 import { batchOffset, PRICE_DROP_BATCH } from "../price-drop"
 import { runPriceDrops } from "../run"
@@ -79,8 +79,14 @@ const makeContainer = (
     [Modules.REGION]: { listRegions: jest.fn().mockResolvedValue([{ id: "reg_id" }]) },
     [Modules.NOTIFICATION]: { createNotifications },
     [Modules.STORE]: { listStores: jest.fn().mockResolvedValue([{ name: "Everyday" }]) },
-    [BANK_ACCOUNT_MODULE]: {
-      getContact: jest.fn().mockResolvedValue({ email: "hello@everyday.id", whatsapp: null }),
+    [STOREFRONT_MODULE]: {
+      getContact: jest.fn().mockResolvedValue({
+        email: "hello@everyday.id",
+        phone: null,
+        whatsapp: null,
+        address: null,
+        social_links: [],
+      }),
     },
   }
   const container = { resolve: (key: string) => registry[key] } as any
@@ -150,7 +156,12 @@ describe("runPriceDrops", () => {
       template: "wishlist-alert",
       data: {
         locale: "en-US",
-        store: { name: "Everyday", contact_email: "hello@everyday.id", whatsapp: null },
+        store: {
+          name: "Everyday",
+          contact_email: "hello@everyday.id",
+          whatsapp: null,
+          phone: null,
+        },
         wishlist_url: "https://shop.example.com/account/wishlist",
         first_name: "Sari",
         back_in_stock: [],

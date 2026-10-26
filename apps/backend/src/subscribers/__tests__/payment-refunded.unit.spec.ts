@@ -1,6 +1,6 @@
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { readPaymentWithOrder } from "../../lib/payment-order"
-import { BANK_ACCOUNT_MODULE } from "../../modules/bank-account"
+import { STOREFRONT_MODULE } from "../../modules/storefront"
 import paymentRefundedHandler, { config } from "../payment-refunded"
 
 jest.mock("../../lib/payment-order", () => ({ readPaymentWithOrder: jest.fn() }))
@@ -44,8 +44,14 @@ const makeContainer = (storefrontUrl = "https://shop.example.com") => {
     [ContainerRegistrationKeys.LOGGER]: logger,
     [ContainerRegistrationKeys.CONFIG_MODULE]: { admin: { storefrontUrl } },
     [Modules.NOTIFICATION]: { createNotifications },
-    [BANK_ACCOUNT_MODULE]: {
-      getContact: jest.fn().mockResolvedValue({ email: "hello@everyday.id", whatsapp: null }),
+    [STOREFRONT_MODULE]: {
+      getContact: jest.fn().mockResolvedValue({
+        email: "hello@everyday.id",
+        phone: null,
+        whatsapp: null,
+        address: null,
+        social_links: [],
+      }),
     },
     [Modules.STORE]: { listStores: jest.fn().mockResolvedValue([{ name: "Everyday" }]) },
   }
@@ -80,7 +86,12 @@ describe("payment-refunded subscriber", () => {
       template: "refund-sent",
       data: {
         locale: "en-US",
-        store: { name: "Everyday", contact_email: "hello@everyday.id", whatsapp: null },
+        store: {
+          name: "Everyday",
+          contact_email: "hello@everyday.id",
+          whatsapp: null,
+          phone: null,
+        },
         order_url: "https://shop.example.com/orders/order_1",
         refund: {
           amount: 645000,

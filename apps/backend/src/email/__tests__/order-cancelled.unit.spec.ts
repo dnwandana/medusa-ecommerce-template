@@ -1,7 +1,7 @@
 import { renderTemplate } from "../templates"
 import { renderOrderCancelled } from "../templates/order-cancelled"
 
-const store = { name: "Everyday", contact_email: "hello@everyday.id", whatsapp: null }
+const store = { name: "Everyday", contact_email: "hello@everyday.id", whatsapp: null, phone: null }
 
 const order = {
   display_id: 1042,

@@ -2,6 +2,7 @@ import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { BANK_ACCOUNT_MODULE } from "../../modules/bank-account"
 import { PAYMENT_RECEIPT_MODULE } from "../../modules/payment-receipt"
 import { PAYMENT_MORE_REQUESTED } from "../../modules/payment-receipt/constants"
+import { STOREFRONT_MODULE } from "../../modules/storefront"
 import paymentMoreRequestedHandler, { config } from "../payment-more-requested"
 
 const order = {
@@ -34,7 +35,15 @@ const makeContainer = (
         is_active: true,
       },
     ]),
-    getContact: jest.fn().mockResolvedValue({ email: "hello@everyday.id", whatsapp: null }),
+  }
+  const storefrontService = {
+    getContact: jest.fn().mockResolvedValue({
+      email: "hello@everyday.id",
+      phone: null,
+      whatsapp: null,
+      address: null,
+      social_links: [],
+    }),
   }
   const registry: Record<string, unknown> = {
     [ContainerRegistrationKeys.QUERY]: { graph },
@@ -43,6 +52,7 @@ const makeContainer = (
     [Modules.NOTIFICATION]: { createNotifications },
     [PAYMENT_RECEIPT_MODULE]: receiptService,
     [BANK_ACCOUNT_MODULE]: bankAccountService,
+    [STOREFRONT_MODULE]: storefrontService,
     [Modules.STORE]: { listStores: jest.fn().mockResolvedValue([{ name: "Everyday" }]) },
   }
   const container = { resolve: (key: string) => registry[key] } as any
@@ -81,7 +91,12 @@ describe("payment-more-requested subscriber", () => {
       template: "more-payment-needed",
       data: {
         locale: "id-ID",
-        store: { name: "Everyday", contact_email: "hello@everyday.id", whatsapp: null },
+        store: {
+          name: "Everyday",
+          contact_email: "hello@everyday.id",
+          whatsapp: null,
+          phone: null,
+        },
         order: { display_id: 12, first_name: "Sari" },
         note: "Rp 50.000 is missing.\nSend it today.",
         order_url: "https://shop.example.com/id/orders/order_1",

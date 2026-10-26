@@ -1,6 +1,5 @@
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { readVariantStock, STOCK_EVENTS, type VariantStock } from "../../lib/variant-stock"
-import { BANK_ACCOUNT_MODULE } from "../../modules/bank-account"
 import { STOREFRONT_MODULE } from "../../modules/storefront"
 import lowStockHandler, { config } from "../low-stock"
 
@@ -58,9 +57,15 @@ const makeContainer = ({
     [Modules.NOTIFICATION]: { createNotifications },
     [Modules.INVENTORY]: inventory,
     [Modules.STORE]: { listStores: jest.fn().mockResolvedValue([{ name: "Everyday" }]) },
-    [STOREFRONT_MODULE]: { getSettings },
-    [BANK_ACCOUNT_MODULE]: {
-      getContact: jest.fn().mockResolvedValue({ email: contactEmail, whatsapp: null }),
+    [STOREFRONT_MODULE]: {
+      getSettings,
+      getContact: jest.fn().mockResolvedValue({
+        email: contactEmail,
+        phone: null,
+        whatsapp: null,
+        address: null,
+        social_links: [],
+      }),
     },
   }
   const container = { resolve: (key: string) => registry[key] } as any
@@ -109,7 +114,7 @@ describe("low-stock subscriber", () => {
     expect(call.channel).toBe("email")
     expect(call.to).toBe("hello@everyday.id")
     expect(call.data).toEqual({
-      store: { name: "Everyday", contact_email: "hello@everyday.id", whatsapp: null },
+      store: { name: "Everyday", contact_email: "hello@everyday.id", whatsapp: null, phone: null },
       threshold: 5,
       product_title: "Medusa T-Shirt",
       variant_title: "M / Black",

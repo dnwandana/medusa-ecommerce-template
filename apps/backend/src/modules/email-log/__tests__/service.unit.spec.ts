@@ -4,7 +4,7 @@ import EmailLogNotificationProviderService from "../service"
 const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() } as any
 const magicLinkData = {
   locale: "en-US",
-  store: { name: "Everyday", contact_email: null, whatsapp: null },
+  store: { name: "Everyday", contact_email: null, whatsapp: null, phone: null },
   first_name: "Ayu",
   sign_in_url: "https://shop.example.com/verify?token=secret-token",
   browser: "Firefox on Linux",

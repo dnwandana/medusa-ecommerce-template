@@ -15,12 +15,14 @@ import {
   quote,
   renderShell,
   textLink,
+  type EmailStore,
 } from "../templates/shell"
 
-const store = {
+const store: EmailStore = {
   name: "Everyday",
   contact_email: "hello@everyday.id",
   whatsapp: "+62 812 0000 0000",
+  phone: null,
 }
 const base = {
   locale: "en-US" as const,
@@ -65,10 +67,48 @@ describe("renderShell", () => {
       "This is an alert for the store owner from the Everyday backend."
     )
   })
+  it("points the owner footer to Settings → Store", () => {
+    for (const locale of ["en-US", "id-ID"] as const) {
+      const html = renderShell({ ...base, locale, audience: "owner" })
+      expect(html).toContain("Settings → Store")
+      expect(html).not.toContain("Bank transfer")
+    }
+  })
   it("escapes the title and the store name", () => {
     expect(renderShell({ ...base, title: "<b>", store: { ...store, name: "A&B" } })).toContain(
       "A&amp;B"
     )
+  })
+})
+describe("customer footer with a phone", () => {
+  const withPhone: EmailStore = {
+    name: "Everyday",
+    contact_email: "hello@store.com",
+    whatsapp: "+6281234567890",
+    phone: "+622155500100",
+  }
+  it("lists the email, WhatsApp, and phone in the customer footer", () => {
+    expect(renderShell({ ...base, store: withPhone })).toContain(
+      "Questions? Reply to this email, write to hello@store.com, WhatsApp us at +6281234567890, or call us at +622155500100."
+    )
+  })
+  it("keeps the same order in Indonesian", () => {
+    expect(renderShell({ ...base, store: withPhone, locale: "id-ID" })).toContain(
+      "Ada pertanyaan? Balas email ini, tulis ke hello@store.com, WhatsApp kami di +6281234567890, atau telepon kami di +622155500100."
+    )
+  })
+  it("uses the phone as the only extra part", () => {
+    const store = { ...withPhone, contact_email: null, whatsapp: null }
+    expect(renderShell({ ...base, store })).toContain(
+      "Questions? Reply to this email, or call us at +622155500100."
+    )
+  })
+  // A store with no contact value at all keeps only the questions sentence.
+  it("has only the questions sentence with no contact value", () => {
+    const store = { ...withPhone, contact_email: null, whatsapp: null, phone: null }
+    const html = renderShell({ ...base, store })
+    expect(html).toContain("Questions? Reply to this email.")
+    expect(html).not.toContain("call us")
   })
 })
 describe("blocks", () => {

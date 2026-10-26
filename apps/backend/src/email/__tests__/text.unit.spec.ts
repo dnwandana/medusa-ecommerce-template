@@ -36,7 +36,7 @@ describe("htmlToText", () => {
     const url = "https://shop.test/account/sign-in/verify?id=req_1&token=tok_2"
     const { html } = renderTemplate("magic-link", {
       locale: "en-US",
-      store: { name: "Everyday", contact_email: null, whatsapp: null },
+      store: { name: "Everyday", contact_email: null, whatsapp: null, phone: null },
       sign_in_url: url,
       // The template type requires these two fields.
       browser: "Firefox on Linux",

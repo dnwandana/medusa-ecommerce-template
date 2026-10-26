@@ -1,5 +1,6 @@
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { BANK_ACCOUNT_MODULE } from "../../modules/bank-account"
+import { STOREFRONT_MODULE } from "../../modules/storefront"
 import orderPlacedHandler, { config } from "../order-placed"
 
 const order = {
@@ -51,7 +52,15 @@ const makeContainer = (orders: unknown[], storefrontUrl = "https://shop.example.
   const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() }
   const bankAccountService = {
     listBankAccounts: jest.fn().mockResolvedValue(accounts),
-    getContact: jest.fn().mockResolvedValue({ email: "hello@everyday.id", whatsapp: null }),
+  }
+  const storefrontService = {
+    getContact: jest.fn().mockResolvedValue({
+      email: "hello@everyday.id",
+      phone: null,
+      whatsapp: null,
+      address: null,
+      social_links: [],
+    }),
   }
   const registry: Record<string, unknown> = {
     [ContainerRegistrationKeys.QUERY]: { graph },
@@ -59,10 +68,11 @@ const makeContainer = (orders: unknown[], storefrontUrl = "https://shop.example.
     [ContainerRegistrationKeys.CONFIG_MODULE]: { admin: { storefrontUrl } },
     [Modules.NOTIFICATION]: { createNotifications },
     [BANK_ACCOUNT_MODULE]: bankAccountService,
+    [STOREFRONT_MODULE]: storefrontService,
     [Modules.STORE]: { listStores: jest.fn().mockResolvedValue([{ name: "Everyday" }]) },
   }
   const container = { resolve: (key: string) => registry[key] } as any
-  return { container, graph, createNotifications, logger, bankAccountService }
+  return { container, graph, createNotifications, logger, bankAccountService, storefrontService }
 }
 
 const sentTemplates = (createNotifications: jest.Mock) =>
@@ -113,7 +123,12 @@ describe("order-placed subscriber", () => {
       template: "order-placed",
       data: {
         locale: "id-ID",
-        store: { name: "Everyday", contact_email: "hello@everyday.id", whatsapp: null },
+        store: {
+          name: "Everyday",
+          contact_email: "hello@everyday.id",
+          whatsapp: null,
+          phone: null,
+        },
         order_url: "https://shop.example.com/id/orders/order_123",
         order: {
           display_id: 42,
@@ -231,6 +246,7 @@ describe("order-placed subscriber", () => {
       name: "Everyday",
       contact_email: "hello@everyday.id",
       whatsapp: null,
+      phone: null,
     })
     expect(call.data.order_url).toBe("https://shop.example.com/id/orders/order_123")
     expect(call.data.order.shipping_method).toBe("JNE Regular")
@@ -325,7 +341,12 @@ describe("order-placed subscriber", () => {
         channel: "email",
         template: "new-order-owner",
         data: {
-          store: { name: "Everyday", contact_email: "hello@everyday.id", whatsapp: null },
+          store: {
+            name: "Everyday",
+            contact_email: "hello@everyday.id",
+            whatsapp: null,
+            phone: null,
+          },
           admin_url: "http://localhost:9000/app/orders/order_123",
           payment: { label: "Bank transfer, waiting for the receipt", waiting_for_receipt: true },
           order: {
@@ -435,8 +456,14 @@ describe("order-placed subscriber", () => {
 
     it("warns and skips the owner alert when the owner address is empty", async () => {
       process.env.STORE_OWNER_EMAIL = ""
-      const { container, createNotifications, logger, bankAccountService } = makeContainer([order])
-      bankAccountService.getContact.mockResolvedValue({ email: null, whatsapp: null })
+      const { container, createNotifications, logger, storefrontService } = makeContainer([order])
+      storefrontService.getContact.mockResolvedValue({
+        email: null,
+        phone: null,
+        whatsapp: null,
+        address: null,
+        social_links: [],
+      })
 
       await run(container)
 

@@ -1,7 +1,7 @@
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
-import { BANK_ACCOUNT_MODULE } from "../../modules/bank-account"
 import { PAYMENT_RECEIPT_MODULE } from "../../modules/payment-receipt"
 import { PAYMENT_RECEIPT_UPLOADED } from "../../modules/payment-receipt/constants"
+import { STOREFRONT_MODULE } from "../../modules/storefront"
 import paymentReceiptUploadedHandler, { config } from "../payment-receipt-uploaded"
 
 type ContainerOptions = {
@@ -28,8 +28,14 @@ const makeContainer = ({
     [ContainerRegistrationKeys.CONFIG_MODULE]: { admin: { backendUrl } },
     [Modules.NOTIFICATION]: { createNotifications },
     [PAYMENT_RECEIPT_MODULE]: receiptService,
-    [BANK_ACCOUNT_MODULE]: {
-      getContact: jest.fn().mockResolvedValue({ email: contactEmail, whatsapp: null }),
+    [STOREFRONT_MODULE]: {
+      getContact: jest.fn().mockResolvedValue({
+        email: contactEmail,
+        phone: null,
+        whatsapp: null,
+        address: null,
+        social_links: [],
+      }),
     },
     [Modules.STORE]: { listStores: jest.fn().mockResolvedValue([{ name: "Everyday" }]) },
   }
@@ -80,7 +86,7 @@ describe("payment-receipt-uploaded subscriber", () => {
       channel: "email",
       template: "receipt-uploaded",
       data: {
-        store: { name: "Everyday", contact_email: null, whatsapp: null },
+        store: { name: "Everyday", contact_email: null, whatsapp: null, phone: null },
         order: { display_id: 12 },
         file_name: "bukti.png",
         receipt_count: 1,

@@ -1,6 +1,6 @@
 import { renderMorePaymentNeeded } from "../templates/more-payment-needed"
 
-const store = { name: "Everyday", contact_email: "hello@everyday.id", whatsapp: null }
+const store = { name: "Everyday", contact_email: "hello@everyday.id", whatsapp: null, phone: null }
 
 const data = {
   locale: "en-US" as const,
