@@ -10,7 +10,7 @@ Each gateway has its own document with the facts of the gateway API. See
 The terms in this document:
 
 - `<slug>`: the name of the provider in lowercase, for example `midtrans`. The provider uses it as
-  its `static identifier` and as its `id` in `paymentModule()`.
+  its `static identifier` and as the `id` of its entry in `GATEWAY_PROVIDERS`.
 - `<provider_id>`: the id that Medusa stores, `pp_<slug>_<slug>`, for example
   `pp_midtrans_midtrans`.
 - `<Name>` and `<name>`: the slug in PascalCase and in camelCase, for example `Midtrans` and
@@ -39,12 +39,12 @@ function name if a line moved.
 A gateway adds a redirect flow. Bank transfer has no redirect: the cart becomes an order at once.
 
 1. On `/checkout`, the customer selects the gateway. `startPayment` in
-   `apps/storefront/app/composables/useCheckout.ts` (lines 84-120) calls `initiatePaymentSession`
+   `apps/storefront/app/composables/useCheckout.ts` (lines 102-138) calls `initiatePaymentSession`
    with the provider id and `data: { customer }`.
 2. Medusa calls `initiatePayment` of the provider. The provider creates a hosted payment and returns
    `payment_url` in the session data.
-3. `startPayment` reads `session.data.payment_url` (lines 102-110). It refuses a value that does not
-   start with `https://`. `apps/storefront/app/pages/checkout/index.vue` (line 299) then sends the
+3. `startPayment` reads `session.data.payment_url` (lines 120-128). It refuses a value that does not
+   start with `https://`. `apps/storefront/app/pages/checkout/index.vue` (line 308) then sends the
    browser to the URL.
 4. The customer pays on the hosted page. The gateway sends the browser to
    `${STOREFRONT_URL}/checkout/return`. This URL has no locale prefix.
@@ -71,6 +71,40 @@ give the gateway about 10 seconds. After that, two paths complete the cart:
 - The webhook. See [Webhook](#webhook).
 - The `check-paid-carts` job, every 15 minutes. See [Recovery adapter](#recovery-adapter).
 
+## Bank transfer next to a gateway
+
+`apps/backend/src/config/payment.ts` reads two keys for bank transfer. A bad value of either key
+stops the backend at startup, and the error names the key.
+
+`BANK_TRANSFER_ENABLED` (`true` or `false`, empty means `true`):
+
+- `false` hides bank transfer from new customers.
+  - The seed does not add bank transfer to the region (`regionPaymentProviderIds`).
+  - `GET /store/bank-transfer` returns `enabled: false`. The checkout then drops the provider.
+- The provider stays registered. `paymentModule(env)` always registers it. Thus the admin can
+  capture and cancel the old bank transfer orders, and the job `cancel-unpaid-orders` cancels them
+  after the deadline.
+- The backend stops at startup when the switch is off and no gateway is configured
+  (`checkPaymentProviders`). The error tells you to set `BANK_TRANSFER_ENABLED=true` or to add a
+  gateway provider.
+- A region that the seed linked to bank transfer before the change keeps the provider. Remove it
+  in the Admin. The steps are in the section "Turn off bank transfer" of `docs/deployment.md`.
+
+`BANK_TRANSFER_DEADLINE_HOURS` (a positive whole number, empty means `24`) sets the time that a
+customer has to pay a bank transfer order. `bankTransferDeadlineHours(env)` and
+`bankTransferDeadlineMs(env)` give the value. These parts use it:
+
+- The job `cancel-unpaid-orders` (`apps/backend/src/payment-timeout/`).
+- The `order-placed` email (the deadline in WIB) and the timeout text of the `order-cancelled`
+  email (`deadline_hours`).
+- `GET /store/payment-states` returns `deadline_at` (an ISO date) for each bank transfer order.
+  `deadline_at` is the order time plus the hours. A gateway order gets `deadline_at: null`.
+- `GET /store/bank-transfer` returns `deadline_hours`. The checkout needs it, because no order
+  exists at that time.
+
+The storefront has no copy of the two values. A gateway order has no deadline from the template.
+The gateway sets the expiry of the hosted payment.
+
 ## The provider contract
 
 ### Module and registration
@@ -88,23 +122,45 @@ give the gateway about 10 seconds. After that, two paths complete the cart:
   list of types.
 - The reference provider is `apps/backend/src/modules/bank-transfer/` (`service.ts` lines 29-83).
   It has the ten methods that `AbstractPaymentProvider` requires.
-- Register the provider in `paymentModule()` in `apps/backend/src/config/modules.ts` (lines
-  134-143). Today the function has no parameter. Change it to `paymentModule(env: Env)`, and change
-  the call in `buildModules` (line 255) to `paymentModule(env)`. `Env` is
-  `Record<string, string | undefined>` (line 2 of the same file). It has no schema, so a new key
-  needs no type change.
-- `paymentModule(env)` is the only place that reads the env keys of the service.
-- Keep bank transfer first in the `providers` list. Add the gateway after it:
+- Register the provider in `GATEWAY_PROVIDERS` in `apps/backend/src/config/payment.ts`. The list
+  is empty in the template. Do not change `paymentModule(env)` in
+  `apps/backend/src/config/modules.ts`. It always puts bank transfer first, and then the `entry` of
+  each configured gateway.
+- An item of `GATEWAY_PROVIDERS` has the type `GatewayProvider`, with three fields:
+
+| Field               | Rule                                                                                         |
+| ------------------- | -------------------------------------------------------------------------------------------- |
+| `entry(env)`        | Returns the provider entry of the Payment Module: `resolve`, `id` (`<slug>`), and `options`. |
+| `providerId`        | `<provider_id>`, from `constants.ts` of the provider.                                        |
+| `isConfigured(env)` | Returns `true` when the gateway key has a value, for example `!!env.<GATEWAY>_SERVER_KEY`.   |
+
+- A gateway loads only when `isConfigured(env)` returns `true`, as Redis, S3, and SMTP load only
+  when their key has a value. `registeredGateways(env)` gives the configured gateways.
+  `paymentModule(env)`, the seed, and the startup check all use it.
+- `entry(env)` reads the env keys of the service only from its `env` argument, not from
+  `process.env`. `medusa-config.ts` imports `payment.ts` before `loadEnv` reads
+  `apps/backend/.env`. `buildModules` calls `entry(env)` after `loadEnv`, so the argument has the
+  values of `apps/backend/.env`.
+- `entry(env)` is the only place that reads the env keys of the service:
 
 ```ts
-providers: [
-  { resolve: "./src/modules/bank-transfer", id: "bank-transfer" },
+import { <name>ClientOptions } from "../modules/<slug>/client"
+import { <GATEWAY>_PROVIDER_ID } from "../modules/<slug>/constants"
+
+export const GATEWAY_PROVIDERS: GatewayProvider[] = [
   {
-    resolve: "./src/modules/<slug>",
-    id: "<slug>",
-    options: { storefrontUrl: env.STOREFRONT_URL, ...<name>ClientOptions(env) },
+    entry: (env) => ({
+      resolve: "./src/modules/<slug>",
+      id: "<slug>",
+      options: {
+        storefrontUrl: env.STOREFRONT_URL,
+        ...<name>ClientOptions(env),
+      },
+    }),
+    providerId: <GATEWAY>_PROVIDER_ID,
+    isConfigured: (env) => !!env.<GATEWAY>_SERVER_KEY,
   },
-],
+]
 ```
 
 - `<name>ClientOptions(env)` is an exported function in `client.ts`. It returns the options of the
@@ -121,7 +177,7 @@ export function <name>ClientOptions(env: Record<string, string | undefined>) {
 ```
 
 - A gateway doc can add a service option next to `storefrontUrl`, for example a webhook token that
-  only the service uses. Read it from `env` in `paymentModule(env)`. Put a key in
+  only the service uses. Read it from `env` in `entry(env)`. Put a key in
   `<name>ClientOptions(env)` only when the client or the recovery adapter needs it.
 - Medusa gives the `options` object to the constructor of the service as the second argument. The
   service reads its keys only from `options`, not from `process.env`.
@@ -136,9 +192,11 @@ export function <name>ClientOptions(env: Record<string, string | undefined>) {
   when `storefrontUrl` or a base URL is empty. Do not check the secrets there. A secret can be
   empty, so that the backend starts in development before you have a key. Each call to the gateway
   then fails.
-- Add `<provider_id>` to `PAYMENT_PROVIDERS` in `apps/backend/src/seed/region.ts` (line 21). The
-  storefront lists only the providers of the region (`listPaymentProviders`, `useCheckout.ts` lines
-  73-82). Medusa refuses a payment session for a provider that is not in the region.
+- The seed (`apps/backend/src/seed/region.ts`) gets the providers of the region from
+  `regionPaymentProviderIds(process.env)`. A configured gateway thus goes into the region with no
+  change to the seed. The storefront lists only the providers of the region
+  (`listPaymentProviders` in `useCheckout.ts`). Medusa refuses a payment session for a provider
+  that is not in the region.
 - Call the gateway API with the global `fetch`. If you use an SDK of the gateway, configure it to use
   `fetch`. The tests replace `global.fetch`, so a call that does not use `fetch` reaches the real
   API.
@@ -409,9 +467,9 @@ To add the adapter:
    the name `<name>RecoveryAdapter`.
 2. The adapter is not a Medusa service and gets no options. Make it create the client of
    `client.ts` inside `isSessionPaid`, with values from `process.env`.
-3. Use the same keys and the same defaults as `paymentModule(env)`. Put the code that makes the
-   client options from an env object in one exported function, for example `<name>ClientOptions(env)`
-   in `client.ts`. Call it from `paymentModule(env)` and from the adapter.
+3. Use the same keys and the same defaults as `entry(env)` in `GATEWAY_PROVIDERS`. Put the
+   code that makes the client options from an env object in one exported function, for example
+   `<name>ClientOptions(env)` in `client.ts`. Call it from `entry(env)` and from the adapter.
 4. Add the object to `RECOVERY_ADAPTERS` in `apps/backend/src/recovery/adapters.ts` (line 17):
 
 ```ts
@@ -444,8 +502,8 @@ export const RECOVERY_ADAPTERS: RecoveryAdapter[] = [<name>RecoveryAdapter]
   gives the exact names.
 - The provider also needs `STOREFRONT_URL` for the return URL. The key already exists in
   `apps/backend/.env.example`, `apps/backend/.env.test` and the Compose anchor.
-- Read each key in `paymentModule(env)` and give it to the provider as an option. The recovery
-  adapter uses the same function of `client.ts`. See
+- Read each key in `entry(env)` of `GATEWAY_PROVIDERS` and give it to the provider as an
+  option. The recovery adapter uses the same function of `client.ts`. See
   [Module and registration](#module-and-registration) and [Recovery adapter](#recovery-adapter).
 
 Add each new key to these five places:
@@ -460,7 +518,7 @@ Add each new key to these five places:
    value.
 4. The table in the section "Environment file" of `docs/deployment.md`: the key, its purpose and its
    value. The repository rule: when you add a key to `.env.example`, add the key to this table.
-5. The `x-medusa-environment` anchor of `docker-compose.yml` (line 11), as `<KEY>: ${<KEY>}`. The
+5. The `x-medusa-environment` anchor of `docker-compose.yml` (line 13), as `<KEY>: ${<KEY>}`. The
    services `medusa-server` and `medusa-worker` both read the anchor.
 
 ## Checkout label
@@ -512,7 +570,7 @@ The refund emails also depend on the provider:
 - The payment data starts as a copy of the session data. Later methods can add only
   `gateway_status` (`retrievePayment`) and `refund_ids` (`refundPayment`).
 - The storefront reads the session data only in `startPayment`
-  (`apps/storefront/app/composables/useCheckout.ts` lines 102-110). It reads only `payment_url`. Do
+  (`apps/storefront/app/composables/useCheckout.ts` lines 120-128). It reads only `payment_url`. Do
   not read the session data in another storefront page.
 
 ## Tests
@@ -554,7 +612,10 @@ Write the tests before the code. Two kinds of test are necessary.
   - `cancelPayment` and `deletePayment` do not throw when the gateway refuses.
   - `isSessionPaid` of the recovery adapter returns `true` only for a paid payment.
 - Change `apps/backend/src/config/__tests__/modules.unit.spec.ts` (the `describe` "buildModules:
-  payment module"). It expects only the bank transfer provider today.
+  payment module"). Its tests pass an env with no gateway key. Add these tests:
+  - With the gateway key, the providers are bank transfer first and then the `entry` of the
+    gateway.
+  - With the gateway key and `BANK_TRANSFER_ENABLED=false`, `buildModules` does not throw.
 
 ### HTTP integration test
 
@@ -618,7 +679,8 @@ export function install<Name>Mock(): <Name>Mock
   `first_name` "Budi", `last_name` "Santoso", `email` "buyer@example.com" and `phone`
   "+6281234567890". Do not add a parameter for the customer.
 - Change `apps/backend/integration-tests/http/seed-region.spec.ts`. It expects only
-  `pp_bank-transfer_bank-transfer` in the region today.
+  `pp_bank-transfer_bank-transfer` in the region today. The fake key in `.env.test` configures the
+  gateway, so the seed adds `<provider_id>` to the region.
 - Test at least these cases:
   - The session stores an `https` `payment_url` and the amount of the cart.
   - `POST /store/carts/:id/complete` with an unpaid payment gives HTTP 200, `type: "cart"`, and no
@@ -671,9 +733,10 @@ Do the steps in this order. Each step is one action.
 9. Write `index.ts`.
 10. Write `recovery.ts` with the recovery adapter.
 11. Run the unit tests and see them pass.
-12. Register the provider in `paymentModule(env)` in `apps/backend/src/config/modules.ts`.
+12. Add the provider to `GATEWAY_PROVIDERS` in `apps/backend/src/config/payment.ts`.
 13. Change `apps/backend/src/config/__tests__/modules.unit.spec.ts` for the new provider list.
-14. Add `<provider_id>` to `PAYMENT_PROVIDERS` in `apps/backend/src/seed/region.ts`.
+14. Make sure that `apps/backend/src/seed/region.ts` needs no change. It reads the region
+    providers from `regionPaymentProviderIds`.
 15. Change `apps/backend/integration-tests/http/seed-region.spec.ts` for the new provider list.
 16. Add the adapter to `RECOVERY_ADAPTERS` in `apps/backend/src/recovery/adapters.ts`.
 17. Add each env key to the five places of [Environment variables](#environment-variables).
@@ -713,7 +776,8 @@ Do each check before you report success.
 
 - [ ] `apps/backend/src/modules/<slug>/` has `index.ts`, `service.ts`, `client.ts`, `constants.ts`
       and `recovery.ts`.
-- [ ] `static identifier` and the `id` in `paymentModule(env)` are both `<slug>`.
+- [ ] `static identifier` and the `id` of the entry in `GATEWAY_PROVIDERS` are both `<slug>`.
+- [ ] `isConfigured(env)` returns `true` only when the gateway key has a value.
 - [ ] `initiatePayment` returns an `https` `payment_url`, the gateway payment id, `amount` and
       `session_id`.
 - [ ] The return URL is `${STOREFRONT_URL}/checkout/return`, with no locale prefix.
@@ -723,7 +787,7 @@ Do each check before you report success.
       `SUCCESSFUL` with `session_id` and `amount`, or `NOT_SUPPORTED`. It never throws.
 - [ ] The session data and the payment data have no secret.
 - [ ] No new code divides a Medusa amount by 100.
-- [ ] `<provider_id>` is in `PAYMENT_PROVIDERS` of `apps/backend/src/seed/region.ts`.
+- [ ] A seed with the gateway key adds `<provider_id>` to the region.
 - [ ] The adapter is in `RECOVERY_ADAPTERS`.
 - [ ] Each env key is in `apps/backend/.env.example`, `apps/backend/.env.test`, `.env.example`, the
       table of `docs/deployment.md` and the `x-medusa-environment` anchor of `docker-compose.yml`.

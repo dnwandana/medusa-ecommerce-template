@@ -39,23 +39,27 @@ The file is `apps/backend/.env`. Copy it from `.env.example`.
 | `REDIS_URL`                                | `redis://localhost:6379`                                   | Redis connection. If it is empty, Medusa uses its in-memory modules. An empty `REDIS_URL` is for development and the tests only.                                                                                     |
 | `STORE_CORS`, `ADMIN_CORS`, `AUTH_CORS`    | local addresses                                            | Origins that can call the API                                                                                                                                                                                        |
 | `JWT_SECRET`, `COOKIE_SECRET`              | `supersecret`                                              | Secrets. Set new values in production.                                                                                                                                                                               |
+| `SESSION_TTL_HOURS`                        | empty                                                      | Hours of no activity before the session ends. Empty means `168`. Each request starts the time again. Admin users share the value. Must be a positive whole number.                                                   |
 | `STOREFRONT_URL`                           | `http://localhost:3000`                                    | Base URL for the email links and for the return URL of a payment gateway                                                                                                                                             |
 | `MEDUSA_BACKEND_URL`                       | `http://localhost:9000`                                    | Public URL of the backend. The admin dashboard reads it at build time.                                                                                                                                               |
 | `MEDUSA_WORKER_MODE`                       | `shared`                                                   | `shared`, `server`, or `worker`. `server` and `worker` require `REDIS_URL`.                                                                                                                                          |
 | `DISABLE_MEDUSA_ADMIN`                     | `false`                                                    | `true` on a worker instance                                                                                                                                                                                          |
 | `SHIPPING_RATE_PER_KG`                     | `10000`                                                    | Shipping price in IDR for each kilogram. Must be a positive whole number.                                                                                                                                            |
-| `SMTP_HOST`                                | `localhost`                                                | SMTP server. If it is empty, the backend writes each email to the log.                                                                                                                                               |
+| `BANK_TRANSFER_ENABLED`                    | empty                                                      | `true` or `false`. Empty means `true`. `false` hides bank transfer from new customers. The provider stays registered for the old orders. With `false`, the project needs a gateway provider.                         |
+| `BANK_TRANSFER_DEADLINE_HOURS`             | empty                                                      | Hours that a customer has to pay a bank transfer order. Empty means `24`. Must be a positive whole number.                                                                                                           |
+| `SMTP_HOST`                                | `localhost`                                                | SMTP server. If it is empty, the `email-log` provider renders each email and writes the subject to the log. Outside production, it also writes the text.                                                             |
 | `SMTP_PORT`                                | `1025`                                                     | SMTP port. Required when `SMTP_HOST` has a value. Port 465 requires `SMTP_SECURE=true`.                                                                                                                              |
 | `SMTP_SECURE`                              | `false`                                                    | `true` for implicit TLS (port 465). `false` for a plain connection or STARTTLS.                                                                                                                                      |
 | `SMTP_USER`                                | empty                                                      | SMTP user name. Empty for Mailpit. With a user name, the backend requires TLS.                                                                                                                                       |
 | `SMTP_PASSWORD`                            | empty                                                      | SMTP password. Set it together with `SMTP_USER`.                                                                                                                                                                     |
-| `EMAIL_FROM`                               | `orders@everyday.test`                                     | Sender address. Required when `SMTP_HOST` has a value.                                                                                                                                                               |
+| `EMAIL_FROM`                               | `no-reply@everyday.com`                                    | Sender address. Required when `SMTP_HOST` has a value.                                                                                                                                                               |
 | `EMAIL_FROM_NAME`                          | `Everyday`                                                 | Sender name                                                                                                                                                                                                          |
 | `STORE_OWNER_EMAIL`                        | empty                                                      | The fallback address for the owner emails (`new-order-owner`, `paid-cart-alert`, `receipt-uploaded`, and `low-stock-owner`) when the store contact email is empty. If both are empty, the backend writes a log line. |
 | `S3_BUCKET`                                | `store-assets`                                             | Garage bucket for the product images. If it is empty, Medusa keeps the images in `static/`. An empty `S3_BUCKET` is for development and the tests only.                                                              |
 | `S3_FILE_URL`                              | `http://assets.localhost:3902`                             | Public address of the product images                                                                                                                                                                                 |
 | `S3_REGION`                                | `garage`                                                   | S3 region of Garage                                                                                                                                                                                                  |
-| `S3_ENDPOINT`                              | `http://localhost:3900`                                    | S3 API of Garage                                                                                                                                                                                                     |
+| `S3_ENDPOINT`                              | `http://localhost:3900`                                    | S3 API of Garage. Optional. With no value, the AWS SDK uses the AWS endpoint of `S3_REGION`.                                                                                                                         |
+| `S3_FORCE_PATH_STYLE`                      | empty                                                      | Empty means `true`. `true` for path-style URLs, for example Garage and MinIO. `false` for AWS S3 with virtual-hosted URLs. The File Module and the receipt storage share the value.                                  |
 | `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | empty                                                      | The Garage key from [step 3 of `docs/development.md`](../../docs/development.md). Required when `S3_BUCKET` has a value.                                                                                             |
 | `S3_RECEIPTS_BUCKET`                       | `store-receipts`                                           | Private Garage bucket for the payment receipts. Required when `S3_BUCKET` has a value. It must not be `S3_BUCKET`.                                                                                                   |
 | `RECEIPTS_DIR`                             | `uploads/receipts`                                         | Private directory for the payment receipts when `S3_BUCKET` is empty. The path is relative to the backend directory. An empty `S3_BUCKET` is for development and the tests only.                                     |
@@ -64,11 +68,15 @@ The backend does not start in these conditions:
 
 - `NODE_ENV=production` and `REDIS_URL` or `S3_BUCKET` is empty.
 - `MEDUSA_WORKER_MODE` is `server` or `worker` and `REDIS_URL` is empty, with any `NODE_ENV`.
-- `SHIPPING_RATE_PER_KG` is not a positive whole number.
+- `SHIPPING_RATE_PER_KG`, `SESSION_TTL_HOURS`, or `BANK_TRANSFER_DEADLINE_HOURS` has a value that
+  is not a positive whole number.
+- `BANK_TRANSFER_ENABLED` or `S3_FORCE_PATH_STYLE` has a value that is not `true` or `false`.
+- `BANK_TRANSFER_ENABLED=false` and no gateway provider is configured.
 - `SMTP_HOST` has a value and `EMAIL_FROM` is empty.
 - `SMTP_PORT` is not an integer from 1 to 65535, or is 465 with `SMTP_SECURE=false`.
 - Only one of `SMTP_USER` and `SMTP_PASSWORD` has a value.
-- `S3_BUCKET` has a value and one of the other `S3_` keys is empty.
+- `S3_BUCKET` has a value and `S3_FILE_URL`, `S3_REGION`, `S3_ACCESS_KEY_ID`, or
+  `S3_SECRET_ACCESS_KEY` is empty.
 - `S3_BUCKET` has a value and `S3_RECEIPTS_BUCKET` is the same bucket.
 
 ## Source layout
@@ -76,13 +84,14 @@ The backend does not start in these conditions:
 | Path                                | Content                                                                                                                                                     |
 | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `medusa-config.ts`                  | Project configuration. Module list comes from `src/config/modules.ts`.                                                                                      |
-| `src/config/`                       | Pure functions that build the module list and the database options from the environment.                                                                    |
+| `src/config/`                       | Pure functions that read the environment: the module list, the database options, the session options, the payment keys, and the S3 client options.          |
 | `src/api/`                          | Custom HTTP routes. `middlewares.ts` adds validation and authentication.                                                                                    |
 | `src/modules/bank-transfer/`        | Bank transfer payment provider                                                                                                                              |
 | `src/modules/bank-account/`         | Bank account and store contact data module                                                                                                                  |
 | `src/modules/weight-shipping/`      | Fulfillment provider that calculates the price from the weight                                                                                              |
 | `src/modules/smtp/`                 | SMTP email provider                                                                                                                                         |
-| `src/email/`                        | The email templates and the plain text part                                                                                                                 |
+| `src/modules/email-log/`            | Email provider when `SMTP_HOST` is empty. It renders each email and writes it to the log.                                                                   |
+| `src/email/`                        | The email templates, the plain text part, and `renderEmail()`, which the two email providers share                                                          |
 | `src/modules/product-review/`       | Review data module                                                                                                                                          |
 | `src/modules/wishlist/`             | Wishlist data module                                                                                                                                        |
 | `src/modules/storefront/`           | Storefront data module: the settings row, the store colours, and the home campaigns                                                                         |
@@ -106,7 +115,8 @@ existing records and does not make copies.
 - Sales channel "Default Sales Channel".
 - Store currency IDR.
 - Region "Indonesia" with country `id`, currency `idr`, and the payment provider
-  `pp_bank-transfer_bank-transfer`.
+  `pp_bank-transfer_bank-transfer`. With `BANK_TRANSFER_ENABLED=false`, the seed does not add bank
+  transfer. The seed also adds each configured gateway provider.
 - Stock location "Jakarta Warehouse" with a shipping service zone for Indonesia.
 - Shipping option "Standard Shipping". Its price comes from the weight-shipping provider.
 - Categories "Clothing" and "Kitchen". "Apparel" is a child of "Clothing".
@@ -178,21 +188,29 @@ owner opens the receipt in the admin dashboard.
 Customers have no password, so the backend sends no password reset email to a customer.
 
 In development, the backend sends each email to Mailpit (`http://localhost:8025`). If `SMTP_HOST`
-is empty, the backend writes each email to the log. A failed email does not stop the order.
+is empty, the `email-log` provider renders each email and sends nothing. It writes the template
+name and the subject to the log. Outside production, it also writes the text of the email. A
+production log never gets the text, because the sign-in emails hold a link. A failed email does
+not stop the order.
 `docs/email/` describes the production providers.
 
 ## Bank transfer payments
 
 Bank transfer is the only payment provider of the store. The provider id is
-`pp_bank-transfer_bank-transfer`. It needs no env key.
+`pp_bank-transfer_bank-transfer`. Two optional keys control it:
+
+- `BANK_TRANSFER_ENABLED=false` hides bank transfer from new customers. The old orders finish as
+  normal. The backend then needs a gateway provider. See
+  [`docs/payments/README.md`](../../docs/payments/README.md).
+- `BANK_TRANSFER_DEADLINE_HOURS` sets the deadline. The default is 24 hours.
 
 ### How an order is paid
 
 1. The customer selects bank transfer at checkout and places the order. There is no redirect.
 2. The provider authorizes the payment at once, and the cart becomes an order.
 3. The order page of the storefront (`/orders/:id`) and the `order-placed` email show the amount,
-   the active bank accounts, and the deadline. The deadline is the order time plus 24 hours, in
-   WIB.
+   the active bank accounts, and the deadline. The deadline is the order time plus
+   `BANK_TRANSFER_DEADLINE_HOURS`, in WIB.
 4. The customer transfers the money and uploads the receipt on the order page.
 5. When the money arrives in the bank account, click **Accept payment** on the order in the admin
    dashboard. See [Payment receipts](#payment-receipts).
@@ -200,7 +218,7 @@ Bank transfer is the only payment provider of the store. The provider id is
 The bank details show only while the payment is `authorized`. After the capture, the order page
 does not show them.
 
-An order with no receipt and no captured payment is cancelled 24 hours after the order time.
+An order with no receipt and no captured payment is cancelled after the deadline.
 
 ### Bank accounts
 
@@ -215,15 +233,15 @@ Open the admin dashboard, then **Settings**, then **Bank transfer**. On this pag
 The customer sees only the active accounts, in `rank` order. A new account with no `rank` goes
 after the other accounts.
 
-| Route                             | Access | Function                                                        |
-| --------------------------------- | ------ | --------------------------------------------------------------- |
-| `GET /store/bank-transfer`        | Public | Lists the active accounts (public fields only) and the contact. |
-| `GET /admin/bank-accounts`        | Admin  | Lists all accounts in `rank` order.                             |
-| `POST /admin/bank-accounts`       | Admin  | Creates an account. The account number has 5 to 20 digits.      |
-| `POST /admin/bank-accounts/:id`   | Admin  | Changes the fields of an account.                               |
-| `DELETE /admin/bank-accounts/:id` | Admin  | Deletes an account.                                             |
-| `GET /admin/store-contact`        | Admin  | Returns the store contact.                                      |
-| `POST /admin/store-contact`       | Admin  | Saves the store contact. `null` clears a value.                 |
+| Route                             | Access | Function                                                                                                                                            |
+| --------------------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /store/bank-transfer`        | Public | Lists the active accounts (public fields only) and the contact. Also returns `enabled` (the value of `BANK_TRANSFER_ENABLED`) and `deadline_hours`. |
+| `GET /admin/bank-accounts`        | Admin  | Lists all accounts in `rank` order.                                                                                                                 |
+| `POST /admin/bank-accounts`       | Admin  | Creates an account. The account number has 5 to 20 digits.                                                                                          |
+| `POST /admin/bank-accounts/:id`   | Admin  | Changes the fields of an account.                                                                                                                   |
+| `DELETE /admin/bank-accounts/:id` | Admin  | Deletes an account.                                                                                                                                 |
+| `GET /admin/store-contact`        | Admin  | Returns the store contact.                                                                                                                          |
+| `POST /admin/store-contact`       | Admin  | Saves the store contact. `null` clears a value.                                                                                                     |
 
 ### Payment receipts
 
@@ -260,18 +278,19 @@ for development and the tests only, because `NODE_ENV=production` requires `S3_B
 admin user can read a receipt file.
 
 The job `cancel-unpaid-orders` runs each 15 minutes. It cancels a bank transfer order that is
-not cancelled, has no captured payment, has no receipt, and is older than 24 hours. After the
-first receipt, the job never cancels the order. The job reads only the orders of the last 7 days
-and cancels at most 50 orders in one run. It sets `metadata.cancel_reason` to `payment_timeout`.
+not cancelled, has no captured payment, has no receipt, and is older than
+`BANK_TRANSFER_DEADLINE_HOURS`. After the first receipt, the job never cancels the order. The job
+reads only the orders with a deadline that passed at most 6 days ago. With the default deadline,
+these are the orders of the last 7 days. The job cancels at most 50 orders in one run. It sets `metadata.cancel_reason` to `payment_timeout`.
 
-| Route                                          | Access | Function                                                                                                                                     |
-| ---------------------------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `POST /store/orders/:id/receipts`              | Public | Saves a receipt. The body is `{ file_name, content }` with the file as base64. Returns 201 and `{ receipt: { id, file_name, created_at } }`. |
-| `GET /store/payment-states?order_id=`          | Public | Takes 1 to 50 order ids. Returns the provider, the capture time, the receipts, and the newest note of each order.                            |
-| `GET /admin/orders/:id/receipts`               | Admin  | Returns the receipts of the order, oldest first, and the newest note.                                                                        |
-| `GET /admin/payment-receipts/:id/file`         | Admin  | Returns the image of a receipt.                                                                                                              |
-| `POST /admin/orders/:id/receipts/accept`       | Admin  | Captures the open bank transfer payment of the order.                                                                                        |
-| `POST /admin/orders/:id/receipts/ask-for-more` | Admin  | Saves the note `{ note }` and sends the `more-payment-needed` email.                                                                         |
+| Route                                          | Access | Function                                                                                                                                                                    |
+| ---------------------------------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST /store/orders/:id/receipts`              | Public | Saves a receipt. The body is `{ file_name, content }` with the file as base64. Returns 201 and `{ receipt: { id, file_name, created_at } }`.                                |
+| `GET /store/payment-states?order_id=`          | Public | Takes 1 to 50 order ids. Returns the provider, the capture time, the deadline (`deadline_at`, `null` for a gateway order), the receipts, and the newest note of each order. |
+| `GET /admin/orders/:id/receipts`               | Admin  | Returns the receipts of the order, oldest first, and the newest note.                                                                                                       |
+| `GET /admin/payment-receipts/:id/file`         | Admin  | Returns the image of a receipt.                                                                                                                                             |
+| `POST /admin/orders/:id/receipts/accept`       | Admin  | Captures the open bank transfer payment of the order.                                                                                                                       |
+| `POST /admin/orders/:id/receipts/ask-for-more` | Admin  | Saves the note `{ note }` and sends the `more-payment-needed` email.                                                                                                        |
 
 The answers of the Store routes have no file key, no file URL, and no file bytes.
 

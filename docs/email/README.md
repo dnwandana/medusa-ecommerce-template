@@ -34,24 +34,25 @@ The provider doc gives the reason for each difference. A provider doc cannot cha
 
 ## What the template sends
 
-Each email has six fields. `send()` in `apps/backend/src/modules/smtp/service.ts` makes them.
+Each email has six fields. `renderEmail(template, data)` in `apps/backend/src/email/render.ts`
+makes four of them: the subject, the HTML, the plain text, and the Reply-To. The provider adds the
+recipient and the sender. Thus a provider only sends.
 
-| Field      | Source                                                                                                  |
-| ---------- | ------------------------------------------------------------------------------------------------------- |
-| Recipient  | `notification.to`. Each email has one recipient.                                                        |
-| Subject    | `renderTemplate(template, data)` in `apps/backend/src/email/templates/index.ts`.                        |
-| HTML       | `renderTemplate(template, data)`. The same call returns the subject and the HTML.                       |
-| Plain text | `htmlToText(html)` in `apps/backend/src/email/text.ts`. A link becomes `label: URL`.                    |
-| Sender     | `EMAIL_FROM` and `EMAIL_FROM_NAME`. Without `EMAIL_FROM_NAME`, the sender is the address only.          |
-| Reply-To   | The store contact email, if it is set. See [Sender address and Reply-To](#sender-address-and-reply-to). |
+| Field      | Source                                                                                                   |
+| ---------- | -------------------------------------------------------------------------------------------------------- |
+| Recipient  | `notification.to`. Each email has one recipient.                                                         |
+| Subject    | `renderEmail` calls `renderTemplate(template, data)` in `apps/backend/src/email/templates/index.ts`.     |
+| HTML       | `renderTemplate(template, data)`. The same call returns the subject and the HTML.                        |
+| Plain text | `renderEmail` calls `htmlToText(html)` in `apps/backend/src/email/text.ts`. A link becomes `label: URL`. |
+| Sender     | `EMAIL_FROM` and `EMAIL_FROM_NAME`. Without `EMAIL_FROM_NAME`, the sender is the address only.           |
+| Reply-To   | The store contact email, if it is set. See [Sender address and Reply-To](#sender-address-and-reply-to).  |
 
-`send()` does these steps in this order:
+`send()` in `apps/backend/src/modules/smtp/service.ts` does these steps in this order:
 
 1. It checks the recipient. Without a recipient, it throws `INVALID_DATA` and sends nothing.
-2. It calls `renderTemplate`. An unknown template name throws, so a bad template sends nothing.
-3. It calls `htmlToText`.
-4. It sends the email through one Nodemailer transport.
-5. It returns `{ id: <message id> }`.
+2. It calls `renderEmail`. An unknown template name throws, so a bad template sends nothing.
+3. It sends the email through one Nodemailer transport.
+4. It returns `{ id: <message id> }`.
 
 Other facts:
 
@@ -70,11 +71,20 @@ Other facts:
 only place that reads them. Medusa permits only one provider for each channel, so the function
 selects one provider for the `email` channel:
 
-- `SMTP_HOST` is empty: the local provider (`@medusajs/medusa/notification-local`) gets the `email`
-  channel. It writes each email to the log and sends nothing. `apps/backend/.env.test` uses this
-  rule.
+- `SMTP_HOST` is empty: the `email-log` provider (`apps/backend/src/modules/email-log/`) gets the
+  `email` channel. It sends nothing. `apps/backend/.env.test` uses this rule.
 - `SMTP_HOST` has a value: the `smtp` provider gets the `email` channel. `EMAIL_FROM` is then
   required, and the start stops without it.
+
+The local provider (`@medusajs/medusa/notification-local`) keeps the `feed` channel in the two
+cases.
+
+The `email-log` provider calls `renderEmail` for each email. Thus a bad template or incomplete data
+fails as it fails with SMTP. The provider writes these lines to the log:
+
+- One line with the template name and the subject. The line never contains the recipient.
+- The plain text of the email, only when `NODE_ENV` is not `production`. The `magic-link` and
+  `password-reset` texts contain a sign-in link, and a production log must not contain it.
 
 | Key               | Meaning                                                                                            | Mailpit value (`apps/backend/.env.example`) | Production value (`.env`)                                                               |
 | ----------------- | -------------------------------------------------------------------------------------------------- | ------------------------------------------- | --------------------------------------------------------------------------------------- |
@@ -83,7 +93,7 @@ selects one provider for the `email` channel:
 | `SMTP_SECURE`     | `true` for implicit TLS. `false` for STARTTLS, or for no TLS. Only the text `true` counts as true. | `false`                                     | `true` for an implicit TLS port, for example `465`. `false` for a STARTTLS port.        |
 | `SMTP_USER`       | The SMTP user name. An empty value means no authentication.                                        | empty                                       | The user name of section 5 of the provider doc.                                         |
 | `SMTP_PASSWORD`   | The SMTP password. Set both `SMTP_USER` and `SMTP_PASSWORD`, or neither.                           | empty                                       | The SMTP password of section 5 of the provider doc. It is not always the main API key.  |
-| `EMAIL_FROM`      | The sender address. Required when `SMTP_HOST` has a value.                                         | `orders@everyday.test`                      | An address on the domain that the provider verified.                                    |
+| `EMAIL_FROM`      | The sender address. Required when `SMTP_HOST` has a value.                                         | `no-reply@everyday.com`                     | An address on the domain that the provider verified.                                    |
 | `EMAIL_FROM_NAME` | The sender name. Optional.                                                                         | `Everyday`                                  | The Medusa store name. See [Sender address and Reply-To](#sender-address-and-reply-to). |
 
 `apps/backend/src/modules/smtp/options.ts` applies these rules:
@@ -149,8 +159,8 @@ v=DMARC1; p=none; rua=mailto:<address>
 
 ## Sender address and Reply-To
 
-`send()` sets the Reply-To from `data.store.contact_email`. It removes the spaces at the start and
-at the end. If the value is empty, the email has no Reply-To, and a reply goes to `EMAIL_FROM`.
+`renderEmail` sets the Reply-To from `data.store.contact_email`. It removes the spaces at the start
+and at the end. If the value is empty, the email has no Reply-To, and a reply goes to `EMAIL_FROM`.
 
 `data.store` comes from `readStoreForEmail` in `apps/backend/src/lib/store-for-email.ts`. The
 contact email is the store contact email in Medusa Admin (**Settings → Bank transfer**). Every
@@ -311,15 +321,17 @@ The <option> option of <slug> is required.
 
 1. Check `notification.to`. If it is empty, throw `INVALID_DATA` with the message
    `` `The "${template}" email has no recipient.` ``. Send no request.
-2. Call `renderTemplate(template, notification.data)` from `../../email/templates`. It returns
-   `{ subject, html }`. It throws for an unknown template, so no request goes out.
-3. Call `htmlToText(html)` from `../../email/text`.
-4. Make the sender from the `from` and `fromName` options.
-5. Make the Reply-To from `data.store.contact_email` with the rule of
+2. Call `renderEmail(template, notification.data)` from `../../email/render`. It returns
+   `{ subject, html, text, replyTo }`. It throws for an unknown template, so no request goes out.
+   `replyTo` is not there when the store contact email is empty. See
    [Sender address and Reply-To](#sender-address-and-reply-to).
-6. Send one request with the global `fetch`. Give it `signal: AbortSignal.timeout(10000)`.
-7. Return `{ id: <message id> }`. The section "7. HTTP API: send one email" of the provider doc
+3. Make the sender from the `from` and `fromName` options.
+4. Send one request with the global `fetch`. Give it `signal: AbortSignal.timeout(10000)`.
+5. Return `{ id: <message id> }`. The section "7. HTTP API: send one email" of the provider doc
    gives the response field.
+
+Do not render the email in the provider. `renderEmail` is the only place that makes the subject,
+the HTML, the text, and the Reply-To.
 
 The request body has only the six fields of [What the template sends](#what-the-template-sends),
 in the format of section 7 of the provider doc.
@@ -364,8 +376,14 @@ Examples:
 
 ```text
 Resend did not send the "order-placed" email. Status: 403. Code: validation_error.
-Brevo did not send the "magic-link" email. Status: 502. Code: unknown.
-Brevo did not send the "magic-link" email. Code: TimeoutError.
+```
+
+The `smtp` provider writes lines of the same form. They have no `Status:` part, because SMTP has
+no HTTP status:
+
+```text
+SMTP did not send the "magic-link" email. Code: EAUTH. Response code: 535.
+SMTP did not send the "magic-link" email. Code: ETIMEDOUT.
 ```
 
 ### Registration
@@ -375,7 +393,7 @@ Register the provider in `notificationModule(env)` in `apps/backend/src/config/m
 - When `<PROVIDER>_API_KEY` has a value, the HTTP API provider gets the `email` channel. The SMTP
   keys then have no effect.
 - When `<PROVIDER>_API_KEY` is empty, the `smtp` rule of [Environment keys](#environment-keys)
-  applies. Development then keeps Mailpit, and the tests keep the local provider.
+  applies. Development then keeps Mailpit, and the tests keep the `email-log` provider.
 - The provider reuses `EMAIL_FROM` and `EMAIL_FROM_NAME`. Do not add sender keys for the provider.
 
 Put the new condition at the start of the function. The rest of the function does not change:
@@ -432,8 +450,8 @@ key of the provider in this way:
 
 1. `apps/backend/.env.example`: an empty value. Add a comment that names the dashboard page of the
    key.
-2. `apps/backend/.env.test`: an empty value. The tests then keep the local provider, also when
-   `apps/backend/.env` has a key.
+2. `apps/backend/.env.test`: an empty value. The tests then keep the `email-log` provider, also
+   when `apps/backend/.env` has a key.
 3. `.env.example` at the repository root: an empty value, never `change-me`. A key that is not a
    secret can have its fixed value, for example `AWS_SES_REGION=ap-southeast-1`.
 4. The `x-medusa-environment` anchor of `docker-compose.yml`, as `<KEY>: ${<KEY>:-}`. The `:-`
@@ -481,24 +499,6 @@ Do not put the API key in `apps/backend/.env`. Development sends every email to 
   - `<PROVIDER>_API_KEY` has a value: the provider `<slug>` has the `email` channel.
   - `<PROVIDER>_API_KEY` is empty: the existing SMTP cases do not change.
   - `<PROVIDER>_API_KEY` has a value and `EMAIL_FROM` is empty: the function throws.
-
-The template had a Brevo HTTP API provider before the `smtp` provider. Revision `7a1603c` has its
-files. Run these commands from the repository root to print them:
-
-```bash
-git show 7a1603c:apps/backend/src/modules/brevo/service.ts
-git show 7a1603c:apps/backend/src/modules/brevo/__tests__/service.unit.spec.ts
-```
-
-Use them as an example of the structure and of the fetch mock. Do not copy these parts, because the
-rules changed:
-
-- They import `renderTemplate` from `./templates`. Import it from `../../email/templates` now.
-- They send no plain text part. Send the result of `htmlToText` now.
-- They write the raw error body and the network error message to the log. Write only the status
-  and the error code now.
-- They read `BREVO_SENDER_EMAIL` and `BREVO_SENDER_NAME`. Use `EMAIL_FROM` and `EMAIL_FROM_NAME`
-  now.
 
 ### Procedure
 
