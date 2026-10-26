@@ -23,13 +23,16 @@ export function breadcrumbJsonLd(items: BreadcrumbEntry[]): Record<string, unkno
   }
 }
 
-// Returns the OnlineStore node of the home page. It has no telephone and no shipping markup,
-// because the template does not know a voice number or a fixed shipping price.
+// Returns the OnlineStore node of the home page. It has no shipping markup, because the template
+// does not know a fixed shipping price. Each contact key shows only when the owner set a value.
 export function onlineStoreJsonLd(input: {
   name: string
   siteUrl: string
   returnsUrl: string // absolute, in the page locale
   email: string | null
+  telephone: string | null
+  address: string | null
+  sameAs: string[] // the URLs of the social links, marketplaces too
 }): Record<string, unknown> {
   return {
     "@context": SCHEMA,
@@ -38,6 +41,9 @@ export function onlineStoreJsonLd(input: {
     url: origin(input.siteUrl),
     logo: absoluteUrl("/logo.png", input.siteUrl),
     ...(input.email ? { email: input.email } : {}),
+    ...(input.telephone ? { telephone: input.telephone } : {}),
+    ...(input.address ? { address: input.address } : {}),
+    ...(input.sameAs.length ? { sameAs: input.sameAs } : {}),
     // Only the link and the country. The client decides the return window and the fees.
     hasMerchantReturnPolicy: {
       "@type": "MerchantReturnPolicy",

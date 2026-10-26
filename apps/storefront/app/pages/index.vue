@@ -6,7 +6,6 @@ const { t, locale, localeProperties } = useI18n()
 const localePath = useLocalePath()
 const catalog = useCatalog()
 const storefront = useStorefront()
-const { getDetails } = useBankTransfer()
 const { brand } = useAppConfig()
 const siteUrl = useSiteUrl()
 // The footer loads the same categories, so the tiles make no request of their own.
@@ -25,10 +24,10 @@ const [{ data, status, refresh }, { data: contact }] = await Promise.all([
       return { campaign, products: newIn?.products ?? null }
     }
   ),
-  // The OnlineStore node shows the store email. The contact page uses the same key and handler,
-  // so the two pages share one request. A failed request leaves data empty, and the node then has
-  // no email.
-  useAsyncData("store-contact", () => getDetails()),
+  // The OnlineStore node shows the store contact. The contact page uses the same key and the same
+  // handler, so the two pages share the data. A failed request leaves data empty, and the node
+  // then has no contact keys.
+  useAsyncData("store-contact", async () => (await storefront.ensureSettings()).contact),
 ])
 
 const loading = computed(() => status.value === "pending")
@@ -43,7 +42,10 @@ usePageSeo(() => ({
       name: brand.name,
       siteUrl,
       returnsUrl: absoluteUrl(localePath("/returns"), siteUrl),
-      email: contact.value?.contact.email ?? null,
+      email: contact.value?.email ?? null,
+      telephone: contact.value?.phone ?? null,
+      address: contact.value?.address ?? null,
+      sameAs: (contact.value?.social_links ?? []).map((link) => link.url),
     }),
     // The i18n config sets the language tag ("en-US") of each locale. The locale code is only a
     // fallback.

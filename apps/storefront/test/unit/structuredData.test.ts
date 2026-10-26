@@ -38,6 +38,9 @@ describe("onlineStoreJsonLd", () => {
       siteUrl: "https://shop.example",
       returnsUrl: "https://shop.example/id/returns",
       email: "hello@shop.example",
+      telephone: null,
+      address: null,
+      sameAs: [],
     })
     expect(data).toEqual({
       "@context": "https://schema.org",
@@ -61,8 +64,43 @@ describe("onlineStoreJsonLd", () => {
         siteUrl: "https://s.example",
         returnsUrl: "https://s.example/returns",
         email: null,
+        telephone: null,
+        address: null,
+        sameAs: [],
       })
     ).not.toHaveProperty("email")
+  })
+
+  it("adds the telephone, the address, and the social links", () => {
+    const node = onlineStoreJsonLd({
+      name: "Everyday",
+      siteUrl: "https://shop.test",
+      returnsUrl: "https://shop.test/returns",
+      email: "a@shop.test",
+      telephone: "+622155500100",
+      address: "Jl. Sudirman 1\nJakarta",
+      sameAs: ["https://instagram.com/store", "https://shopee.co.id/store"],
+    })
+    expect(node).toMatchObject({
+      telephone: "+622155500100",
+      address: "Jl. Sudirman 1\nJakarta",
+      sameAs: ["https://instagram.com/store", "https://shopee.co.id/store"],
+    })
+  })
+
+  it("leaves out each empty value", () => {
+    const node = onlineStoreJsonLd({
+      name: "E",
+      siteUrl: "https://s.example",
+      returnsUrl: "https://s.example/returns",
+      email: "a@s.example",
+      telephone: null,
+      address: null,
+      sameAs: [],
+    })
+    expect(node).not.toHaveProperty("telephone")
+    expect(node).not.toHaveProperty("address")
+    expect(node).not.toHaveProperty("sameAs")
   })
 
   it("gives one slash before the logo when the site URL ends with a slash", () => {
@@ -71,6 +109,9 @@ describe("onlineStoreJsonLd", () => {
       siteUrl: "https://s.example/",
       returnsUrl: "https://s.example/returns",
       email: null,
+      telephone: null,
+      address: null,
+      sameAs: [],
     })
     expect(data.logo).toBe("https://s.example/logo.png")
     expect(data.url).toBe("https://s.example")

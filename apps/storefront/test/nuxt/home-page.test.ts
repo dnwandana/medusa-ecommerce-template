@@ -4,32 +4,28 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { clearNuxtData, useNuxtApp } from "#imports"
 import HomePage from "~/pages/index.vue"
 import type { HomeCategory } from "~/composables/useHomeCategories"
+import { STOREFRONT_DEFAULTS, type StoreContact } from "~/types/storefront"
 import { readHead } from "./helpers/head"
 
-const { catalog, storefront, customerState, homeCategories, bankTransfer } = await vi.hoisted(
-  async () => {
-    const { computed, ref } = await import("vue")
-    const { STOREFRONT_DEFAULTS } = await import("~/types/storefront")
-    return {
-      catalog: { listProducts: vi.fn() },
-      storefront: {
-        getHomeCampaign: vi.fn(),
-        ensureSettings: () => Promise.resolve(STOREFRONT_DEFAULTS),
-        settings: computed(() => STOREFRONT_DEFAULTS),
-      },
-      customerState: { customer: ref(null), ensureLoaded: () => Promise.resolve() },
-      homeCategories: ref<HomeCategory[]>([]),
-      bankTransfer: { getDetails: vi.fn() },
-    }
+const { catalog, storefront, customerState, homeCategories } = await vi.hoisted(async () => {
+  const { computed, ref } = await import("vue")
+  const { STOREFRONT_DEFAULTS } = await import("~/types/storefront")
+  return {
+    catalog: { listProducts: vi.fn() },
+    storefront: {
+      getHomeCampaign: vi.fn(),
+      ensureSettings: vi.fn(),
+      settings: computed(() => STOREFRONT_DEFAULTS),
+    },
+    customerState: { customer: ref(null), ensureLoaded: () => Promise.resolve() },
+    homeCategories: ref<HomeCategory[]>([]),
   }
-)
+})
 
 mockNuxtImport("useCatalog", () => () => catalog)
 mockNuxtImport("useStorefront", () => () => storefront)
 // The hearts of the cards load the customer. A guest makes no wishlist request.
 mockNuxtImport("useCustomer", () => () => customerState)
-// The home page reads the store email for the OnlineStore node.
-mockNuxtImport("useBankTransfer", () => () => bankTransfer)
 mockNuxtImport("useHomeCategories", () => () => ({
   categories: computed(() => homeCategories.value),
   pending: ref(false),
@@ -46,6 +42,17 @@ const CAMPAIGN = {
   link: "/categories/linen",
 }
 
+const CONTACT: StoreContact = {
+  email: "hello@shop.example",
+  phone: "+622155500100",
+  whatsapp: "+6281234567890",
+  address: null,
+  social_links: [
+    { network: "instagram", url: "https://instagram.com/store" },
+    { network: "shopee", url: "https://shopee.co.id/store" },
+  ],
+}
+
 const PRODUCT = {
   id: "prod_1",
   title: "Plain T-Shirt",
@@ -59,9 +66,9 @@ beforeEach(() => {
   homeCategories.value = []
   storefront.getHomeCampaign.mockReset().mockResolvedValue(null)
   catalog.listProducts.mockReset().mockResolvedValue({ products: [PRODUCT], count: 1 })
-  bankTransfer.getDetails.mockReset().mockResolvedValue({
-    bank_accounts: [],
-    contact: { email: "hello@shop.example", whatsapp: "+62 812" },
+  storefront.ensureSettings.mockReset().mockResolvedValue({
+    ...STOREFRONT_DEFAULTS,
+    contact: CONTACT,
   })
 })
 
@@ -167,9 +174,11 @@ describe("home page", () => {
       url: "http://localhost:3000",
       logo: "http://localhost:3000/logo.png",
       email: "hello@shop.example",
+      telephone: "+622155500100",
+      sameAs: ["https://instagram.com/store", "https://shopee.co.id/store"],
       hasMerchantReturnPolicy: { merchantReturnLink: "http://localhost:3000/returns" },
     })
-    expect(store).not.toHaveProperty("telephone")
+    expect(store).not.toHaveProperty("address")
     expect(site).toMatchObject({ "@type": "WebSite", inLanguage: "en-US" })
   })
 
@@ -184,7 +193,7 @@ describe("home page", () => {
   })
 
   it("writes the OnlineStore with no email when the contact request fails", async () => {
-    bankTransfer.getDetails.mockRejectedValue(new Error("down"))
+    storefront.ensureSettings.mockRejectedValue(new Error("down"))
     const wrapper = await mountSuspended(HomePage, { route: "/" })
 
     expect((await readHead()).jsonLd()[0]).not.toHaveProperty("email")
