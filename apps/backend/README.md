@@ -41,7 +41,7 @@ The file is `apps/backend/.env`. Copy it from `.env.example`.
 | `JWT_SECRET`, `COOKIE_SECRET`              | `supersecret`                                              | Secrets. Set new values in production.                                                                                                                                                                               |
 | `STOREFRONT_URL`                           | `http://localhost:3000`                                    | Base URL for the email links and for the return URL of a payment gateway                                                                                                                                             |
 | `MEDUSA_BACKEND_URL`                       | `http://localhost:9000`                                    | Public URL of the backend. The admin dashboard reads it at build time.                                                                                                                                               |
-| `MEDUSA_WORKER_MODE`                       | `shared`                                                   | `shared`, `server`, or `worker`                                                                                                                                                                                      |
+| `MEDUSA_WORKER_MODE`                       | `shared`                                                   | `shared`, `server`, or `worker`. `server` and `worker` require `REDIS_URL`.                                                                                                                                          |
 | `DISABLE_MEDUSA_ADMIN`                     | `false`                                                    | `true` on a worker instance                                                                                                                                                                                          |
 | `SHIPPING_RATE_PER_KG`                     | `10000`                                                    | Shipping price in IDR for each kilogram. Must be a positive whole number.                                                                                                                                            |
 | `SMTP_HOST`                                | `localhost`                                                | SMTP server. If it is empty, the backend writes each email to the log.                                                                                                                                               |
@@ -63,6 +63,7 @@ The file is `apps/backend/.env`. Copy it from `.env.example`.
 The backend does not start in these conditions:
 
 - `NODE_ENV=production` and `REDIS_URL` or `S3_BUCKET` is empty.
+- `MEDUSA_WORKER_MODE` is `server` or `worker` and `REDIS_URL` is empty, with any `NODE_ENV`.
 - `SHIPPING_RATE_PER_KG` is not a positive whole number.
 - `SMTP_HOST` has a value and `EMAIL_FROM` is empty.
 - `SMTP_PORT` is not an integer from 1 to 65535, or is 465 with `SMTP_SECURE=false`.

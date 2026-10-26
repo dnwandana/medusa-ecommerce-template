@@ -57,6 +57,7 @@ pnpm --filter @store/backend lint                         # ESLint, eslint.confi
 - The bank transfer payment provider is always registered. It needs no env key.
 - These conditions stop startup with an error:
   - `NODE_ENV=production` and `REDIS_URL` or `S3_BUCKET` is empty.
+  - `MEDUSA_WORKER_MODE` is `server` or `worker` and `REDIS_URL` is empty, with any `NODE_ENV`.
   - `SHIPPING_RATE_PER_KG` is not a positive integer.
   - `SMTP_HOST` has a value and `EMAIL_FROM` is empty.
   - `SMTP_PORT` is not an integer from 1 to 65535, or is 465 with `SMTP_SECURE=false`.
