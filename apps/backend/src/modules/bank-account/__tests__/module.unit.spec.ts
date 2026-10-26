@@ -5,8 +5,8 @@ describe("bank account module", () => {
     expect(BANK_ACCOUNT_MODULE).toBe("bankAccount")
   })
 
-  it("exposes the bank account and the store contact as linkables", () => {
+  it("exposes the bank account as a linkable, and no store contact", () => {
     expect(BankAccountModule.linkable.bankAccount).toBeDefined()
-    expect(BankAccountModule.linkable.storeContact).toBeDefined()
+    expect((BankAccountModule.linkable as Record<string, unknown>).storeContact).toBeUndefined()
   })
 })
