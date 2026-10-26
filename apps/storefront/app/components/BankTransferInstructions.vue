@@ -15,7 +15,7 @@ const { locale } = useI18n()
 
 const deadlineText = computed(() => formatDeadline(props.deadline, locale.value))
 
-// The 24-hour rule stops after the first receipt. Thus the deadline shows only before it.
+// The payment deadline stops after the first receipt. Thus the deadline shows only before it.
 const showDeadline = computed(() => props.phase === "none")
 // After a receipt, the store checks the payment. The accounts show again when the store asks for
 // more payment.

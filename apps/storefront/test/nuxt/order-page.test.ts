@@ -43,6 +43,7 @@ const bankState = (over: Partial<OrderPaymentState> = {}): OrderPaymentState => 
   order_id: "order_1",
   provider_id: "pp_bank-transfer_bank-transfer",
   captured_at: null,
+  deadline_at: "2026-10-20T07:30:00.000Z",
   receipts: [],
   note: null,
   ...over,
@@ -70,6 +71,8 @@ const details = {
     { id: "ba_1", bank_name: "BCA", account_number: "0123456789", account_holder: "Toko" },
   ],
   contact: { email: "halo@everyday.id", whatsapp: null },
+  enabled: true,
+  deadline_hours: 48,
 }
 
 const shipment = {
@@ -209,7 +212,15 @@ describe("order page", () => {
     bankTransfer.getDetails.mockRejectedValue(new Error("HTTP 500"))
     const wrapper = await mountPage()
     expect(wrapper.findComponent(OrderStatusBlock).props("contact")).toBeNull()
+    expect(wrapper.findComponent(OrderStatusBlock).props("deadlineHours")).toBeNull()
     expect(wrapper.get("h1").text()).toBe("Your order is cancelled.")
+  })
+
+  it("gives the deadline hours to the status block of a timeout cancel", async () => {
+    status.value = "cancelled"
+    tracking.value = { cancel_reason: "payment_timeout", shipments: [] }
+    const wrapper = await mountPage()
+    expect(wrapper.findComponent(OrderStatusBlock).props("deadlineHours")).toBe(48)
   })
 
   it("still shows the order when the tracking does not load", async () => {
@@ -250,12 +261,28 @@ describe("order page", () => {
     expect(wrapper.find('[data-testid="bank-transfer-amount"]').text()).toBe("Rp 318.000")
     expect(wrapper.text()).toContain("0123456789")
     expect(wrapper.text()).toContain(
-      "Transfer and upload your receipt before 18 October 2026, 14:30 WIB."
+      "Transfer and upload your receipt before 20 October 2026, 14:30 WIB."
     )
     // The instructions come before the order summary, so that the customer sees them first.
     expect(wrapper.html().indexOf("Pay by bank transfer")).toBeLessThan(
       wrapper.html().indexOf('data-testid="order-details"')
     )
+  })
+
+  it("gives the deadline of the backend to the bank transfer instructions", async () => {
+    orders.getOrder.mockResolvedValue(bankOrder)
+    const wrapper = await mountPage()
+    const instructions = wrapper.findComponent(BankTransferInstructions)
+    expect(instructions.props("deadline").toISOString()).toBe("2026-10-20T07:30:00.000Z")
+  })
+
+  it("shows no instructions when the backend gives no deadline", async () => {
+    orders.getOrder.mockResolvedValue({
+      ...bankOrder,
+      payment_state: bankState({ deadline_at: null }),
+    })
+    const wrapper = await mountPage()
+    expect(wrapper.findComponent(BankTransferInstructions).exists()).toBe(false)
   })
 
   // Review Focus: a captured order must not show the bank details.
@@ -277,7 +304,7 @@ describe("order page", () => {
   it("shows no instructions for a gateway order", async () => {
     orders.getOrder.mockResolvedValue({
       ...bankOrder,
-      payment_state: bankState({ provider_id: "pp_gateway_gateway" }),
+      payment_state: bankState({ provider_id: "pp_gateway_gateway", deadline_at: null }),
     })
 
     const wrapper = await mountPage()

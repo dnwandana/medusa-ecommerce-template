@@ -1,15 +1,12 @@
 import { describe, expect, it } from "vitest"
-import {
-  bankTransferDeadline,
-  formatDeadline,
-  isAwaitingBankTransfer,
-} from "../../app/utils/bankTransfer"
+import { formatDeadline, isAwaitingBankTransfer } from "../../app/utils/bankTransfer"
 import type { OrderPaymentState } from "../../app/utils/orderStatus"
 
 const bankState = (over: Partial<OrderPaymentState> = {}): OrderPaymentState => ({
   order_id: "order_1",
   provider_id: "pp_bank-transfer_bank-transfer",
   captured_at: null,
+  deadline_at: "2026-10-18T07:30:00.000Z",
   receipts: [],
   note: null,
   ...over,
@@ -42,11 +39,6 @@ describe("isAwaitingBankTransfer", () => {
 })
 
 describe("deadline", () => {
-  it("adds 24 hours to the order time", () => {
-    expect(bankTransferDeadline("2026-10-17T07:30:00Z").toISOString()).toBe(
-      "2026-10-18T07:30:00.000Z"
-    )
-  })
   it("writes the deadline in WIB for each locale", () => {
     const date = new Date("2026-10-18T07:30:00Z")
     expect(formatDeadline(date, "en")).toBe("18 October 2026, 14:30 WIB")

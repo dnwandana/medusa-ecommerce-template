@@ -11,10 +11,12 @@ export type CustomerStatus =
   | "refunded"
 
 // One entry of the answer of `GET /store/payment-states`. It has no file key and no file URL.
+// `deadline_at` is the payment deadline of a bank transfer order, and null for any other order.
 export type OrderPaymentState = {
   order_id: string
   provider_id: string | null
   captured_at: string | null
+  deadline_at: string | null
   receipts: Array<{ id: string; file_name: string; created_at: string }>
   note: { note: string; created_at: string } | null
 }

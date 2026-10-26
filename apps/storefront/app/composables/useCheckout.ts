@@ -1,5 +1,6 @@
 import type { HttpTypes } from "@medusajs/types"
 import type { CartAddress } from "~/utils/addressForm"
+import { BANK_TRANSFER_PROVIDER_ID } from "~/utils/bankTransfer"
 import type { PaymentCustomer } from "~/utils/checkoutForm"
 import { toMedusaLocale } from "~/utils/medusaClient"
 
@@ -9,12 +10,15 @@ export type ShippingChoice = { id: string; name: string; amount: number | null }
 // example bank transfer, gives the order at once.
 export type PaymentStart = { type: "redirect"; url: string } | { type: "order"; orderId: string }
 
+// The Store API returns `is_enabled` on each provider, but the SDK type has only the id.
+type ListedProvider = { id: string; is_enabled?: boolean }
+
 // Returns the functions for the checkout steps of the cart.
 export function useCheckout(): {
   saveContact(email: string, address: CartAddress): Promise<void>
   loadShippingOptions(): Promise<ShippingChoice[]>
   selectShippingOption(optionId: string): Promise<void>
-  listPaymentProviders(): Promise<{ id: string }[]>
+  listPaymentProviders(options?: { bankTransferEnabled?: boolean }): Promise<{ id: string }[]>
   startPayment(providerId: string, customer: PaymentCustomer): Promise<PaymentStart>
   complete(): Promise<HttpTypes.StoreCompleteCartResponse>
 } {
@@ -75,15 +79,24 @@ export function useCheckout(): {
   }
 
   // Returns the payment providers of the cart region. The page needs no list of provider ids.
-  async function listPaymentProviders(): Promise<{ id: string }[]> {
+  // Medusa still returns a provider that left the backend config, with `is_enabled: false`. Thus
+  // the list drops it. A region that the seed linked to bank transfer before the switch went off
+  // keeps the provider enabled. Thus the list also drops bank transfer when the switch is off.
+  async function listPaymentProviders(
+    options: { bankTransferEnabled?: boolean } = {}
+  ): Promise<{ id: string }[]> {
     const regionId = requireCart().region_id
     if (!regionId) {
       throw new Error("The cart has no region.")
     }
+    const bankTransferEnabled = options.bankTransferEnabled ?? true
     const { payment_providers } = await sdk.store.payment.listPaymentProviders({
       region_id: regionId,
     })
-    return payment_providers.map(({ id }) => ({ id }))
+    return (payment_providers as ListedProvider[])
+      .filter((provider) => provider.is_enabled !== false)
+      .filter((provider) => bankTransferEnabled || provider.id !== BANK_TRANSFER_PROVIDER_ID)
+      .map(({ id }) => ({ id }))
   }
 
   async function startPayment(

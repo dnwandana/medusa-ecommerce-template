@@ -129,6 +129,37 @@ describe("useCheckout", () => {
     expect(sdk.store.payment.listPaymentProviders).toHaveBeenCalledWith({ region_id: "reg_1" })
   })
 
+  it("drops a provider that Medusa marks as disabled", async () => {
+    sdk.store.payment.listPaymentProviders.mockResolvedValue({
+      payment_providers: [
+        { id: "pp_a_a", is_enabled: false },
+        { id: "pp_b_b", is_enabled: true },
+      ],
+    })
+    expect(await useCheckout().listPaymentProviders()).toEqual([{ id: "pp_b_b" }])
+  })
+
+  it("drops bank transfer when the switch is off, also when Medusa enables it", async () => {
+    sdk.store.payment.listPaymentProviders.mockResolvedValue({
+      payment_providers: [
+        { id: "pp_bank-transfer_bank-transfer", is_enabled: true },
+        { id: "pp_b_b", is_enabled: true },
+      ],
+    })
+    expect(await useCheckout().listPaymentProviders({ bankTransferEnabled: false })).toEqual([
+      { id: "pp_b_b" },
+    ])
+  })
+
+  it("keeps bank transfer by default", async () => {
+    sdk.store.payment.listPaymentProviders.mockResolvedValue({
+      payment_providers: [{ id: "pp_bank-transfer_bank-transfer", is_enabled: true }],
+    })
+    expect(await useCheckout().listPaymentProviders()).toEqual([
+      { id: "pp_bank-transfer_bank-transfer" },
+    ])
+  })
+
   it("starts the session with the selected provider and the customer object", async () => {
     const cart = cartState.cart.value
 

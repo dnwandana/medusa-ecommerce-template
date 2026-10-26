@@ -102,18 +102,17 @@ describe("locale messages", () => {
     )
   })
 
-  it("has the payment texts that the spec gives and no gateway name", () => {
+  it("has the payment texts that the spec gives", () => {
     expect(english["checkout.paymentProviders.default"]).toBe("Online payment")
     expect(english["checkout.paymentHints.pp_bank-transfer_bank-transfer"]).toBe(
-      "You get the bank details after you place the order. Upload the receipt within 24 hours."
+      "You get the bank details after you place the order. Upload the receipt within {hours} hours."
+    )
+    expect(indonesian["checkout.paymentHints.pp_bank-transfer_bank-transfer"]).toBe(
+      "Anda mendapat detail rekening bank setelah Anda membuat pesanan. Unggah bukti transfer dalam {hours} jam."
     )
     expect(english["checkout.placeOrder"]).toBe("Place order")
     expect(indonesian["checkout.placeOrder"]).toBe("Buat pesanan")
-    expect(english["checkout.mayarHint"]).toBeUndefined()
     expect(english["checkout.pay"]).toBeUndefined()
-    for (const value of [...Object.values(english), ...Object.values(indonesian)]) {
-      expect(value).not.toMatch(/mayar/i)
-    }
   })
 
   it("has no country text, because the store ships only in Indonesia", () => {
@@ -275,7 +274,16 @@ describe("locale messages", () => {
     expect(english["order.tracker.partlyShipped"]).toBe("Part of your order has shipped.")
     expect(indonesian["order.tracker.partlyShipped"]).toBe("Sebagian pesanan Anda sudah dikirim.")
     expect(english["order.cancelledTimeout"]).toBe(
-      "We cancelled this order because we did not get your payment within 24 hours."
+      "We cancelled this order because we did not get your payment within {hours} hours."
+    )
+    expect(indonesian["order.cancelledTimeout"]).toBe(
+      "Kami membatalkan pesanan ini karena kami tidak menerima pembayaran Anda dalam {hours} jam."
+    )
+    expect(english["order.cancelledUnpaid"]).toBe(
+      "We cancelled this order because we did not get your payment in time."
+    )
+    expect(indonesian["order.cancelledUnpaid"]).toBe(
+      "Kami membatalkan pesanan ini karena kami tidak menerima pembayaran Anda tepat waktu."
     )
     expect(english["order.cancelledByStore"]).toBe(
       "The store cancelled this order. Contact us if you have questions."

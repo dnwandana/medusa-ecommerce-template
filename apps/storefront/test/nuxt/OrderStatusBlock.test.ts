@@ -7,13 +7,46 @@ const contact = { email: "halo@everyday.id", whatsapp: "+62 812-3456-7890" }
 describe("OrderStatusBlock", () => {
   it("explains a cancel after 24 hours with no payment", async () => {
     const wrapper = await mountSuspended(OrderStatusBlock, {
-      props: { status: "cancelled", cancelReason: "payment_timeout", refunded: 0, contact },
+      props: {
+        status: "cancelled",
+        cancelReason: "payment_timeout",
+        refunded: 0,
+        contact,
+        deadlineHours: 24,
+      },
     })
     expect(wrapper.get('[data-testid="order-status-block"]').exists()).toBe(true)
     expect(wrapper.text()).toContain(
       "We cancelled this order because we did not get your payment within 24 hours."
     )
     expect(wrapper.text()).not.toContain("We refunded")
+  })
+
+  it("names the deadline hours of a timeout cancel", async () => {
+    const wrapper = await mountSuspended(OrderStatusBlock, {
+      props: {
+        status: "cancelled",
+        cancelReason: "payment_timeout",
+        refunded: 0,
+        contact,
+        deadlineHours: 48,
+      },
+    })
+    expect(wrapper.text()).toContain("did not get your payment within 48 hours.")
+  })
+
+  it("gives a text with no hours when the hours are not known", async () => {
+    const wrapper = await mountSuspended(OrderStatusBlock, {
+      props: {
+        status: "cancelled",
+        cancelReason: "payment_timeout",
+        refunded: 0,
+        contact,
+        deadlineHours: null,
+      },
+    })
+    expect(wrapper.text()).toContain("did not get your payment in time.")
+    expect(wrapper.text()).not.toContain("{hours}")
   })
 
   it("explains a cancel by the store", async () => {

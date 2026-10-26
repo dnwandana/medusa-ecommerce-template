@@ -184,7 +184,7 @@
       "default": "Online payment"
     },
     "paymentHints": {
-      "pp_bank-transfer_bank-transfer": "You get the bank details after you place the order. Upload the receipt within 24 hours."
+      "pp_bank-transfer_bank-transfer": "You get the bank details after you place the order. Upload the receipt within {hours} hours."
     },
     "placeOrder": "Place order",
     "noPaymentProviders": "This store has no payment method now. Contact the store.",
@@ -263,7 +263,8 @@
       "checkingReceipt": "Checking your receipt",
       "partlyShipped": "Part of your order has shipped."
     },
-    "cancelledTimeout": "We cancelled this order because we did not get your payment within 24 hours.",
+    "cancelledTimeout": "We cancelled this order because we did not get your payment within {hours} hours.",
+    "cancelledUnpaid": "We cancelled this order because we did not get your payment in time.",
     "cancelledByStore": "The store cancelled this order. Contact us if you have questions.",
     "refundedAmount": "We refunded {amount} to you.",
     "contactUs": "Contact us:",

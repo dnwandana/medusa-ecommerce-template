@@ -10,7 +10,20 @@ const props = defineProps<{
   cancelReason: string | null
   refunded: number
   contact: StoreContact | null
+  // The payment deadline of the backend. It is null when the bank transfer details do not load.
+  deadlineHours: number | null
 }>()
+
+// The timeout text names the hours. With no hours, the block uses the text with no number.
+const cancelNotice = computed(() => {
+  const key = cancelNoticeKey(props.cancelReason)
+  if (key !== "order.cancelledTimeout") {
+    return { key, params: {} }
+  }
+  return props.deadlineHours === null
+    ? { key: "order.cancelledUnpaid", params: {} }
+    : { key, params: { hours: props.deadlineHours } }
+})
 
 const showRefund = computed(() => props.status === "refunded" || props.refunded > 0)
 const email = computed(() => props.contact?.email || null)
@@ -24,7 +37,9 @@ const whatsapp = computed(() => {
   <div data-testid="order-status-block" class="flex items-start gap-4 border-t border-border pt-6">
     <Info class="mt-0.5 size-5 flex-none text-muted-foreground" aria-hidden="true" />
     <div class="flex min-w-0 flex-col gap-3">
-      <p v-if="status === 'cancelled'" class="text-body">{{ $t(cancelNoticeKey(cancelReason)) }}</p>
+      <p v-if="status === 'cancelled'" class="text-body">
+        {{ $t(cancelNotice.key, cancelNotice.params) }}
+      </p>
       <p v-if="showRefund" class="text-body">
         {{ $t("order.refundedAmount", { amount: formatPrice(refunded) }) }}
       </p>

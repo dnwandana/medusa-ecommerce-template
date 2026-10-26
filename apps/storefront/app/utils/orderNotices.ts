@@ -1,4 +1,4 @@
-// The value that the 24-hour job of payment base part 2 writes into metadata.cancel_reason.
+// The value that the job `cancel-unpaid-orders` writes into metadata.cancel_reason.
 const PAYMENT_TIMEOUT = "payment_timeout"
 
 // Returns the key of the cancel text. A cancel by the store writes no reason.

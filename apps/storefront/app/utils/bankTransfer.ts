@@ -3,9 +3,6 @@ import type { OrderPaymentState } from "./orderStatus"
 // The storefront names the bank transfer provider id only here and in the locale files.
 export const BANK_TRANSFER_PROVIDER_ID = "pp_bank-transfer_bank-transfer"
 
-// The customer must pay within 24 hours of the order time.
-const PAYMENT_DEADLINE_MS = 24 * 60 * 60 * 1000
-
 // Returns true when the order uses bank transfer, the order is not canceled, and the store has
 // not captured the payment.
 export function isAwaitingBankTransfer(
@@ -18,11 +15,6 @@ export function isAwaitingBankTransfer(
     state.provider_id === BANK_TRANSFER_PROVIDER_ID &&
     state.captured_at === null
   )
-}
-
-// Returns the payment deadline: the order time plus 24 hours.
-export function bankTransferDeadline(placedAt: string | Date): Date {
-  return new Date(new Date(placedAt).getTime() + PAYMENT_DEADLINE_MS)
 }
 
 // Returns the deadline in WIB, for example "18 October 2026, 14:30 WIB".

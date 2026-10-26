@@ -11,6 +11,7 @@ const bank = (over: Partial<OrderPaymentState> = {}): OrderPaymentState => ({
   order_id: "o",
   provider_id: "pp_bank-transfer_bank-transfer",
   captured_at: null,
+  deadline_at: "2026-10-18T07:30:00.000Z",
   receipts: [],
   note: null,
   ...over,

@@ -14,6 +14,7 @@ const localePath = useLocalePath()
 const { cart, load } = useCart()
 const { customer } = useCustomer()
 const checkout = useCheckout()
+const bankTransfer = useBankTransfer()
 const { addresses, load: loadSavedAddresses, create: createAddress } = useAddresses()
 
 const contact = reactive<ContactValues>({ email: "" })
@@ -42,6 +43,9 @@ const invalidAddress = ref(false)
 // The payment providers of the region. The page loads them when the payment step opens.
 const providers = ref<{ id: string }[]>([])
 const providerState = ref<"idle" | "loading" | "ready" | "failed">("idle")
+// The payment deadline of a bank transfer order, from the backend. The rows show only after a
+// load sets it.
+const deadlineHours = ref(0)
 const selectedProviderId = ref<string | null>(null)
 // The title of the address that the last "Continue" saved to the account, or null.
 const savedLabel = ref<string | null>(null)
@@ -249,11 +253,16 @@ async function chooseOption(optionId: string): Promise<void> {
 }
 
 // Loads the payment providers and selects the first one. A gateway needs only an i18n label, so
-// the page has no list of provider ids.
+// the page has no list of provider ids. The bank transfer details come first, because they give
+// the switch of the backend and the deadline of the hint.
 async function loadProviders(): Promise<void> {
   providerState.value = "loading"
   try {
-    providers.value = await checkout.listPaymentProviders()
+    const details = await bankTransfer.getDetails()
+    providers.value = await checkout.listPaymentProviders({
+      bankTransferEnabled: details.enabled,
+    })
+    deadlineHours.value = details.deadline_hours
   } catch {
     providerState.value = "failed"
     return
@@ -508,6 +517,7 @@ const paymentState = computed(() =>
               v-model="selectedProviderId"
               :providers="providers"
               :state="paymentState"
+              :deadline-hours="deadlineHours"
               :disabled="busy"
               @retry="loadProviders"
             />

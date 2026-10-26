@@ -26,6 +26,11 @@ const closed = computed(() => status.value === "cancelled" || status.value === "
 
 // A captured order or a gateway order must not show the bank details.
 const awaitingBankTransfer = computed(() => !!order.value && isAwaitingBankTransfer(order.value))
+// The backend owns the payment deadline, so the page has no copy of the deadline rule.
+const paymentDeadline = computed(() => {
+  const deadlineAt = order.value?.payment_state?.deadline_at
+  return deadlineAt ? new Date(deadlineAt) : null
+})
 
 const NO_TRACKING: OrderTracking = { cancel_reason: null, shipments: [] }
 
@@ -33,7 +38,7 @@ const [{ data: bankDetails }, { data: tracking }, { data: storeContact }] = awai
   // The bank panel reads the accounts. The receipt panel reads the contact.
   useAsyncData(
     () => `bank-transfer:${route.params.id}`,
-    async (): Promise<BankTransferDetails | null> => {
+    async (): Promise<Pick<BankTransferDetails, "bank_accounts" | "contact"> | null> => {
       if (!awaitingBankTransfer.value) {
         return null
       }
@@ -147,8 +152,9 @@ useHead({ title: () => t("order.number", { id: order.value?.display_id }) })
 
         <template v-if="awaitingBankTransfer && order.payment_state && !closed">
           <BankTransferInstructions
+            v-if="paymentDeadline"
             :amount="order.total"
-            :deadline="bankTransferDeadline(order.created_at)"
+            :deadline="paymentDeadline"
             :accounts="bankDetails?.bank_accounts ?? []"
             :phase="receiptPhase(order.payment_state)"
             :note="order.payment_state.note"
@@ -167,6 +173,7 @@ useHead({ title: () => t("order.number", { id: order.value?.display_id }) })
           :cancel-reason="cancelReason"
           :refunded="refunded"
           :contact="storeContact?.contact ?? null"
+          :deadline-hours="storeContact?.deadline_hours ?? null"
         />
         <OrderTracker v-else :steps="steps" />
 

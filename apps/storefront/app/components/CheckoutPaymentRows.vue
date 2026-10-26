@@ -7,6 +7,8 @@ type PaymentProvider = { id: string }
 const props = defineProps<{
   providers: PaymentProvider[]
   state: "loading" | "ready" | "failed"
+  // The payment deadline of a bank transfer order. The bank transfer hint names it.
+  deadlineHours: number
   disabled?: boolean
 }>()
 const selected = defineModel<string | null>({ required: true })
@@ -64,7 +66,7 @@ const rows = computed<(PaymentRowKeys & { id: string })[]>(() =>
     :caption="$t(rows[0]!.caption)"
   >
     <p v-if="rows[0]!.hint" class="text-body-sm text-muted-foreground">
-      {{ $t(rows[0]!.hint) }}
+      {{ $t(rows[0]!.hint, { hours: deadlineHours }) }}
     </p>
   </RadioRow>
 
@@ -79,7 +81,7 @@ const rows = computed<(PaymentRowKeys & { id: string })[]>(() =>
     >
       <!-- The hint has the indent of the row text. -->
       <p v-if="row.hint" class="pl-[34px] text-body-sm text-muted-foreground">
-        {{ $t(row.hint) }}
+        {{ $t(row.hint, { hours: deadlineHours }) }}
       </p>
     </RadioRow>
   </RadioGroup>

@@ -5,9 +5,13 @@ export type BankAccount = {
   account_holder: string
 }
 
+// `enabled` is the bank transfer switch of the backend. `deadline_hours` is the time that the
+// customer has to pay. The checkout needs both values before an order exists.
 export type BankTransferDetails = {
   bank_accounts: BankAccount[]
   contact: { email: string | null; whatsapp: string | null }
+  enabled: boolean
+  deadline_hours: number
 }
 
 // Returns the function that reads the bank transfer details from the Store API.

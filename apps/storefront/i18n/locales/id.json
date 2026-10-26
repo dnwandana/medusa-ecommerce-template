@@ -184,7 +184,7 @@
       "default": "Pembayaran online"
     },
     "paymentHints": {
-      "pp_bank-transfer_bank-transfer": "Anda mendapat detail rekening bank setelah Anda membuat pesanan. Unggah bukti transfer dalam 24 jam."
+      "pp_bank-transfer_bank-transfer": "Anda mendapat detail rekening bank setelah Anda membuat pesanan. Unggah bukti transfer dalam {hours} jam."
     },
     "placeOrder": "Buat pesanan",
     "noPaymentProviders": "Toko ini belum punya metode pembayaran. Hubungi toko.",
@@ -263,7 +263,8 @@
       "checkingReceipt": "Memeriksa bukti transfer Anda",
       "partlyShipped": "Sebagian pesanan Anda sudah dikirim."
     },
-    "cancelledTimeout": "Kami membatalkan pesanan ini karena kami tidak menerima pembayaran Anda dalam 24 jam.",
+    "cancelledTimeout": "Kami membatalkan pesanan ini karena kami tidak menerima pembayaran Anda dalam {hours} jam.",
+    "cancelledUnpaid": "Kami membatalkan pesanan ini karena kami tidak menerima pembayaran Anda tepat waktu.",
     "cancelledByStore": "Toko membatalkan pesanan ini. Hubungi kami jika Anda punya pertanyaan.",
     "refundedAmount": "Kami mengembalikan {amount} kepada Anda.",
     "contactUs": "Hubungi kami:",

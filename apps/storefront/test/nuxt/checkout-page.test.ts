@@ -2,10 +2,10 @@ import { mockNuxtImport, mountSuspended } from "@nuxt/test-utils/runtime"
 import { flushPromises } from "@vue/test-utils"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import CheckoutPage from "~/pages/checkout/index.vue"
-import { CheckoutSummary } from "#components"
+import { CheckoutPaymentRows, CheckoutSummary } from "#components"
 
-const { cart, customerState, checkout, navigateToMock, addressesMock } = await vi.hoisted(
-  async () => {
+const { cart, customerState, checkout, bankTransfer, navigateToMock, addressesMock } =
+  await vi.hoisted(async () => {
     const { ref } = await import("vue")
     return {
       cart: { cart: ref<unknown>(null), load: vi.fn() },
@@ -17,15 +17,16 @@ const { cart, customerState, checkout, navigateToMock, addressesMock } = await v
         listPaymentProviders: vi.fn(),
         startPayment: vi.fn(),
       },
+      bankTransfer: { getDetails: vi.fn() },
       navigateToMock: vi.fn(),
       addressesMock: { addresses: ref<unknown[] | null>(null), load: vi.fn(), create: vi.fn() },
     }
-  }
-)
+  })
 
 mockNuxtImport("useCart", () => () => cart)
 mockNuxtImport("useCustomer", () => () => customerState)
 mockNuxtImport("useCheckout", () => () => checkout)
+mockNuxtImport("useBankTransfer", () => () => bankTransfer)
 mockNuxtImport("navigateTo", () => navigateToMock)
 mockNuxtImport("useAddresses", () => () => addressesMock)
 
@@ -147,6 +148,14 @@ const fillAddress = async (wrapper: Page) => {
 
 const BANK_TRANSFER = "pp_bank-transfer_bank-transfer"
 
+// The answer of /store/bank-transfer with the defaults of the backend.
+const details = {
+  bank_accounts: [],
+  contact: { email: null, whatsapp: null },
+  enabled: true,
+  deadline_hours: 24,
+}
+
 const payRadio = (wrapper: Page, providerId: string) =>
   wrapper.find(`[data-testid="payment-provider-${providerId}"] button[role="radio"]`)
 
@@ -180,6 +189,7 @@ beforeEach(() => {
     .mockResolvedValue([{ id: "so_1", name: "Standard Shipping", amount: 18000 }])
   checkout.selectShippingOption.mockReset().mockResolvedValue(undefined)
   checkout.listPaymentProviders.mockReset().mockResolvedValue([{ id: BANK_TRANSFER }])
+  bankTransfer.getDetails.mockReset().mockResolvedValue(details)
   checkout.startPayment
     .mockReset()
     .mockResolvedValue({ type: "redirect", url: "https://pay.example.com/1" })
@@ -368,6 +378,32 @@ describe("checkout page", () => {
     )
   })
 
+  it("lists the providers with the bank transfer switch of the backend", async () => {
+    bankTransfer.getDetails.mockResolvedValue({ ...details, enabled: false, deadline_hours: 48 })
+    const wrapper = await mountPage()
+    await submitAddress(wrapper)
+
+    expect(checkout.listPaymentProviders).toHaveBeenCalledWith({ bankTransferEnabled: false })
+    expect(wrapper.findComponent(CheckoutPaymentRows).props("deadlineHours")).toBe(48)
+  })
+
+  it("shows the failed state when the bank transfer details do not load", async () => {
+    bankTransfer.getDetails.mockRejectedValueOnce(new Error("down"))
+    const wrapper = await mountPage()
+    await submitAddress(wrapper)
+
+    expect(checkout.listPaymentProviders).not.toHaveBeenCalled()
+    expect(wrapper.find('[data-testid="payment-providers-error"]').text()).toContain(
+      "An error occurred. Try again."
+    )
+
+    await wrapper.find('[data-testid="payment-providers-retry"]').trigger("click")
+    await flushPromises()
+
+    expect(bankTransfer.getDetails).toHaveBeenCalledTimes(2)
+    expect(checkout.listPaymentProviders).toHaveBeenCalledTimes(1)
+  })
+
   it("does not load the providers before the shipping option is saved", async () => {
     await mountPage()
     expect(checkout.listPaymentProviders).not.toHaveBeenCalled()
@@ -381,6 +417,14 @@ describe("checkout page", () => {
       "You get the bank details after you place the order. Upload the receipt within 24 hours."
     )
     expect(wrapper.find('[data-testid="pay"]').text()).toBe("Place order · Rp 150.000")
+  })
+
+  it("names the deadline hours of the backend in the bank transfer hint", async () => {
+    bankTransfer.getDetails.mockResolvedValue({ ...details, deadline_hours: 48 })
+    const wrapper = await mountPage()
+    await submitAddress(wrapper)
+
+    expect(wrapper.text()).toContain("Upload the receipt within 48 hours.")
   })
 
   it("selects the first provider", async () => {

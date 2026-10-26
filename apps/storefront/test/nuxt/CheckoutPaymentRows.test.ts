@@ -6,7 +6,7 @@ import { BANK_TRANSFER_PROVIDER_ID } from "~/utils/bankTransfer"
 describe("CheckoutPaymentRows", () => {
   it("shows three skeleton rows while the providers load", async () => {
     const wrapper = await mountSuspended(CheckoutPaymentRows, {
-      props: { modelValue: null, providers: [], state: "loading" },
+      props: { modelValue: null, providers: [], state: "loading", deadlineHours: 24 },
     })
     expect(wrapper.get("[role='status']").text()).toBe("Loading…")
     expect(wrapper.findAll("[data-testid='payment-skeleton-row']")).toHaveLength(3)
@@ -18,6 +18,7 @@ describe("CheckoutPaymentRows", () => {
         modelValue: BANK_TRANSFER_PROVIDER_ID,
         providers: [{ id: BANK_TRANSFER_PROVIDER_ID }],
         state: "ready",
+        deadlineHours: 24,
       },
     })
     expect(wrapper.find("button[role='radio']").exists()).toBe(false)
@@ -35,6 +36,7 @@ describe("CheckoutPaymentRows", () => {
         modelValue: "pp_gateway_card",
         providers: [{ id: BANK_TRANSFER_PROVIDER_ID }, { id: "pp_gateway_card" }],
         state: "ready",
+        deadlineHours: 24,
       },
     })
     expect(wrapper.findAll("button[role='radio']")).toHaveLength(2)
@@ -51,7 +53,7 @@ describe("CheckoutPaymentRows", () => {
 
   it("shows the error with a retry button", async () => {
     const wrapper = await mountSuspended(CheckoutPaymentRows, {
-      props: { modelValue: null, providers: [], state: "failed" },
+      props: { modelValue: null, providers: [], state: "failed", deadlineHours: 24 },
     })
     expect(wrapper.get("[data-testid='payment-providers-error']").text()).toContain(
       "An error occurred. Try again."
@@ -62,7 +64,7 @@ describe("CheckoutPaymentRows", () => {
 
   it("says that the store has no payment method", async () => {
     const wrapper = await mountSuspended(CheckoutPaymentRows, {
-      props: { modelValue: null, providers: [], state: "ready" },
+      props: { modelValue: null, providers: [], state: "ready", deadlineHours: 24 },
     })
     expect(wrapper.text()).toBe("This store has no payment method now. Contact the store.")
   })
