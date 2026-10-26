@@ -64,7 +64,10 @@
     "privacy": "Privasi",
     "terms": "Ketentuan",
     "payment": "Kami menerima transfer bank",
-    "copyright": "© {year} {brand}"
+    "copyright": "© {year} {brand}",
+    "contactTitle": "Kontak",
+    "whatsapp": "WhatsApp {number}",
+    "socialLinks": "Media sosial"
   },
   "home": {
     "title": "Pakaian untuk hari-hari Anda yang sebenarnya.",
@@ -597,7 +600,10 @@
       "intro": "Kirim pesan kepada kami. Kami membalas dalam satu hari kerja.",
       "whatsapp": "WhatsApp",
       "email": "Email",
-      "unavailable": "Detail kontak tidak dapat dimuat. Coba lagi nanti."
+      "unavailable": "Detail kontak tidak dapat dimuat. Coba lagi nanti.",
+      "phone": "Telepon",
+      "address": "Alamat",
+      "socialLinks": "Media sosial"
     }
   },
   "checkoutLayout": {

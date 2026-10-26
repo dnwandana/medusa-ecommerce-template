@@ -64,7 +64,10 @@
     "privacy": "Privacy",
     "terms": "Terms",
     "payment": "We accept bank transfer",
-    "copyright": "© {year} {brand}"
+    "copyright": "© {year} {brand}",
+    "contactTitle": "Contact",
+    "whatsapp": "WhatsApp {number}",
+    "socialLinks": "Social links"
   },
   "home": {
     "title": "Clothes for the days you actually have.",
@@ -597,7 +600,10 @@
       "intro": "Send us a message. We reply within one working day.",
       "whatsapp": "WhatsApp",
       "email": "Email",
-      "unavailable": "The contact details did not load. Try again later."
+      "unavailable": "The contact details did not load. Try again later.",
+      "phone": "Phone",
+      "address": "Address",
+      "socialLinks": "Social links"
     }
   },
   "checkoutLayout": {
