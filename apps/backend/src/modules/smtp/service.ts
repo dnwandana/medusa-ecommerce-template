@@ -6,8 +6,7 @@ import type {
 } from "@medusajs/framework/types"
 import { createTransport, type Mail } from "nodemailer"
 import type SMTPTransport from "nodemailer/lib/smtp-transport"
-import { renderTemplate } from "../../email/templates"
-import { htmlToText } from "../../email/text"
+import { renderEmail } from "../../email/render"
 import { type SmtpOptions, transportOptions, validateSmtpOptions } from "./options"
 
 type InjectedDependencies = { logger: Logger }
@@ -55,17 +54,11 @@ class SmtpNotificationProviderService extends AbstractNotificationProviderServic
     }
 
     // The template renders before the send, so a bad template never opens a connection.
-    const { subject, html } = renderTemplate(template, notification.data)
-    const text = htmlToText(html)
+    const { subject, html, text, replyTo } = renderEmail(template, notification.data)
 
     const from = this.options_.fromName
       ? { name: this.options_.fromName, address: this.options_.from }
       : this.options_.from
-
-    // A reply goes to the store contact. Without a contact email, the reply goes to the sender.
-    const contactEmail = (notification.data as any)?.store?.contact_email
-    const replyTo =
-      typeof contactEmail === "string" && contactEmail.trim() ? contactEmail.trim() : undefined
 
     let messageId: string
     try {
