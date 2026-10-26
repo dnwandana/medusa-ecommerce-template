@@ -6,7 +6,8 @@ import { listActiveBankAccounts } from "../lib/bank-accounts"
 import { readOwnerEmail } from "../lib/owner-email"
 import { readStoreForEmail } from "../lib/store-for-email"
 import { readStorefrontUrl, storefrontLink } from "../lib/storefront-url"
-import { BANK_TRANSFER_PROVIDER_ID, PAYMENT_DEADLINE_MS } from "../modules/bank-transfer/constants"
+import { bankTransferDeadlineMs } from "../config/payment"
+import { BANK_TRANSFER_PROVIDER_ID } from "../modules/bank-transfer/constants"
 import { formatWibTime } from "../email/templates/html"
 import { toEmailLocale } from "../email/templates/i18n"
 import type { NewOrderOwnerData } from "../email/templates/new-order-owner"
@@ -164,7 +165,10 @@ async function sendCustomerEmail(
     if (isUnpaidBankTransfer(order.payment_collections as PaymentCollection[])) {
       emailData.bank_transfer = {
         amount: Number(order.total),
-        deadline: formatWibTime(new Date(createdAt.getTime() + PAYMENT_DEADLINE_MS), locale),
+        deadline: formatWibTime(
+          new Date(createdAt.getTime() + bankTransferDeadlineMs(process.env)),
+          locale
+        ),
         accounts: await listActiveBankAccounts(container),
       }
     }

@@ -18,6 +18,9 @@ export type OrderCancelledData = {
   store: EmailStore
   shop_url: string
   reason: "payment_timeout" | "staff"
+  // The hours of BANK_TRANSFER_DEADLINE_HOURS. The timeout text names them, so a timeout email
+  // needs them. A staff cancel has none.
+  deadline_hours?: number | null
   note?: string | null
   // The captured payment of the order. It is absent when nothing was captured, so the email
   // promises no refund.
@@ -33,12 +36,22 @@ export type OrderCancelledData = {
   }
 }
 
+// Returns the timeout text. A timeout email with no hours would tell the customer a wrong
+// deadline, so the render stops.
+function timeoutText(locale: EmailLocale, data: OrderCancelledData, n: number): string {
+  const hours = data.deadline_hours
+  if (hours === undefined || hours === null) {
+    throw new Error('The "order-cancelled" template needs deadline_hours for a payment timeout.')
+  }
+  return t(locale, "orderCancelled.timeout", { n, hours })
+}
+
 // Returns the paragraphs that give the reason, the staff note, and the refund line.
 function reasonBlocks(locale: EmailLocale, data: OrderCancelledData, n: number): string[] {
   // A timeout order has no captured payment, so the timeout wording never has a refund line.
   if (data.reason === "payment_timeout") {
     return [
-      paragraph(t(locale, "orderCancelled.timeout", { n })),
+      paragraph(timeoutText(locale, data, n)),
       paragraph(t(locale, "orderCancelled.timeoutNext")),
     ]
   }
@@ -74,7 +87,7 @@ export function renderOrderCancelled(data: OrderCancelledData): RenderedEmail {
   const subject = t(locale, "orderCancelled.subject", { n })
   const preheader =
     data.reason === "payment_timeout"
-      ? t(locale, "orderCancelled.timeout", { n })
+      ? timeoutText(locale, data, n)
       : t(locale, "orderCancelled.staff", { n })
 
   const body = [

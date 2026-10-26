@@ -80,7 +80,7 @@ export const id: Record<EmailKey, string> = {
   "orderCancelled.eyebrow": "Pesanan #{n} · {date}",
   "orderCancelled.heading": "Pesanan Anda kami batalkan.",
   "orderCancelled.timeout":
-    "Kami tidak menerima pembayaran Anda dalam 24 jam, jadi pesanan #{n} kami batalkan dan stoknya kami lepas. Tidak ada biaya yang ditagih.",
+    "Kami tidak menerima pembayaran Anda dalam {hours} jam, jadi pesanan #{n} kami batalkan dan stoknya kami lepas. Tidak ada biaya yang ditagih.",
   "orderCancelled.timeoutNext":
     "Jika Anda masih ingin barangnya, buat pesanan lagi. Stok mungkin sudah berubah.",
   "orderCancelled.staffNote": "Toko membatalkan pesanan #{n}. Catatan dari toko:",

@@ -3,6 +3,7 @@ import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { readStoreForEmail } from "../lib/store-for-email"
 import { ORDER_CANCEL_NOTE, ORDER_CANCEL_REASON } from "../lib/storefront-metadata"
 import { readStorefrontUrl, storefrontLink } from "../lib/storefront-url"
+import { bankTransferDeadlineHours } from "../config/payment"
 import { BANK_TRANSFER_PROVIDER_ID } from "../modules/bank-transfer/constants"
 import { toEmailLocale } from "../email/templates/i18n"
 import type { OrderCancelledData } from "../email/templates/order-cancelled"
@@ -103,6 +104,10 @@ export default async function orderCancelledHandler({
       // The English home link has no path, so the link has no trailing slash.
       shop_url: storefrontLink(storefrontUrl, locale, "/").replace(/\/+$/, ""),
       reason,
+      // Only the timeout text names the deadline, so a staff cancel gets no deadline_hours key.
+      ...(reason === "payment_timeout"
+        ? { deadline_hours: bankTransferDeadlineHours(process.env) }
+        : {}),
       note: cancelNote(metadata),
       refund: capturedRefund(order.payment_collections as (PaymentCollection | null)[]),
       order: {

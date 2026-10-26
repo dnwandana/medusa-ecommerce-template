@@ -12,10 +12,11 @@ const order = {
   items: [{ title: "Medusa T-Shirt", variant_title: "M / Black", quantity: 2, unit_price: 150000 }],
 }
 const base = { locale: "en-US" as const, store, shop_url: "https://shop.example.com", order }
+const timeoutData = { ...base, reason: "payment_timeout" as const, deadline_hours: 24 }
 
 describe("renderOrderCancelled", () => {
   it("renders the timeout wording", () => {
-    const { subject, html } = renderOrderCancelled({ ...base, reason: "payment_timeout" })
+    const { subject, html } = renderOrderCancelled(timeoutData)
     expect(subject).toBe("Order #1042 is cancelled")
     expect(html).toContain("We did not get your payment within 24 hours")
     expect(html).toContain("If you still want the items, place the order again.")
@@ -28,8 +29,7 @@ describe("renderOrderCancelled", () => {
 
   it("never shows a refund line for the timeout wording", () => {
     const { html } = renderOrderCancelled({
-      ...base,
-      reason: "payment_timeout",
+      ...timeoutData,
       note: "A note",
       refund: { amount: 645000, method: "bank_transfer" },
     })
@@ -75,15 +75,29 @@ describe("renderOrderCancelled", () => {
   })
 
   it("renders Indonesian", () => {
-    const { subject, html } = renderOrderCancelled({
-      ...base,
-      locale: "id-ID",
-      reason: "payment_timeout",
-    })
+    const { subject, html } = renderOrderCancelled({ ...timeoutData, locale: "id-ID" })
     expect(subject).toBe("Pesanan #1042 dibatalkan")
     expect(html).toContain("Belanja lagi")
     expect(html).toContain("Pesanan yang dibatalkan")
     expect(html).toContain("21 Oktober 2026")
+  })
+
+  it("names the deadline hours in a timeout email", () => {
+    const en = renderOrderCancelled({ ...timeoutData, deadline_hours: 48 })
+    expect(en.html).toContain("within 48 hours")
+    const id = renderOrderCancelled({ ...timeoutData, locale: "id-ID", deadline_hours: 48 })
+    expect(id.html).toContain("dalam 48 jam")
+  })
+
+  it("refuses a timeout email with no deadline hours", () => {
+    expect(() => renderOrderCancelled({ ...timeoutData, deadline_hours: undefined })).toThrow(
+      'The "order-cancelled" template needs deadline_hours for a payment timeout.'
+    )
+  })
+
+  it("renders a staff cancel with no deadline hours", () => {
+    const { html } = renderOrderCancelled({ ...base, reason: "staff" })
+    expect(html).toContain("The store cancelled order #1042.")
   })
 
   it("throws without an order and is in the map", () => {

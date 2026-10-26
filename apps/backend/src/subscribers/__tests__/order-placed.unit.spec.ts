@@ -147,6 +147,26 @@ describe("order-placed subscriber", () => {
     })
   })
 
+  it("adds the deadline of BANK_TRANSFER_DEADLINE_HOURS to the order time", async () => {
+    const saved = process.env.BANK_TRANSFER_DEADLINE_HOURS
+    process.env.BANK_TRANSFER_DEADLINE_HOURS = "48"
+    try {
+      const { container, createNotifications } = makeContainer([bankTransferOrder])
+
+      await run(container)
+
+      expect(createNotifications.mock.calls[0][0].data.bank_transfer.deadline).toBe(
+        "19 Oktober 2026, 14.30 WIB"
+      )
+    } finally {
+      if (saved === undefined) {
+        delete process.env.BANK_TRANSFER_DEADLINE_HOURS
+      } else {
+        process.env.BANK_TRANSFER_DEADLINE_HOURS = saved
+      }
+    }
+  })
+
   // Review Focus: a gateway order email does not show the bank details.
   it("adds no bank details for a gateway order", async () => {
     const { container, createNotifications, bankAccountService } = makeContainer([

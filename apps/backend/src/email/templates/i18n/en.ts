@@ -77,7 +77,7 @@ export const en = {
   "orderCancelled.eyebrow": "Order #{n} · {date}",
   "orderCancelled.heading": "We cancelled your order.",
   "orderCancelled.timeout":
-    "We did not get your payment within 24 hours, so we cancelled order #{n} and released the items. Nothing was charged.",
+    "We did not get your payment within {hours} hours, so we cancelled order #{n} and released the items. Nothing was charged.",
   "orderCancelled.timeoutNext":
     "If you still want the items, place the order again. The stock may have changed.",
   "orderCancelled.staffNote": "The store cancelled order #{n}. A note from the store:",

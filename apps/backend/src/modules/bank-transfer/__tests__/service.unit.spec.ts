@@ -1,6 +1,6 @@
 import { PaymentActions } from "@medusajs/framework/utils"
 import BankTransferProviderService from "../service"
-import { BANK_TRANSFER_PROVIDER_ID, PAYMENT_DEADLINE_MS } from "../constants"
+import { BANK_TRANSFER_PROVIDER_ID } from "../constants"
 
 const service = () => new BankTransferProviderService({} as any, {})
 const customer = {
@@ -14,7 +14,6 @@ describe("bank transfer provider", () => {
   it("has the identifier and the constants of the spec", () => {
     expect(BankTransferProviderService.identifier).toBe("bank-transfer")
     expect(BANK_TRANSFER_PROVIDER_ID).toBe("pp_bank-transfer_bank-transfer")
-    expect(PAYMENT_DEADLINE_MS).toBe(86_400_000)
   })
 
   it("starts a session with no payment_url and does not keep the customer", async () => {

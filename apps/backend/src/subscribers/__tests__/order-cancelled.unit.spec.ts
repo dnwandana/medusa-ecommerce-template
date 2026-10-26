@@ -96,6 +96,7 @@ describe("order-cancelled subscriber", () => {
         store: { name: "Everyday", contact_email: "hello@everyday.id", whatsapp: null },
         shop_url: "https://shop.example.com/id",
         reason: "payment_timeout",
+        deadline_hours: 24,
         note: null,
         refund: null,
         order: {
@@ -108,6 +109,34 @@ describe("order-cancelled subscriber", () => {
         },
       },
     })
+  })
+
+  it("gives the deadline hours for a timeout cancel", async () => {
+    const saved = process.env.BANK_TRANSFER_DEADLINE_HOURS
+    process.env.BANK_TRANSFER_DEADLINE_HOURS = "48"
+    try {
+      const { container, createNotifications } = makeContainer([
+        { ...order, metadata: { cancel_reason: "payment_timeout" } },
+      ])
+      await run(container)
+      expect(createNotifications.mock.calls[0][0].data.deadline_hours).toBe(48)
+    } finally {
+      if (saved === undefined) {
+        delete process.env.BANK_TRANSFER_DEADLINE_HOURS
+      } else {
+        process.env.BANK_TRANSFER_DEADLINE_HOURS = saved
+      }
+    }
+  })
+
+  it("gives no deadline hours for a staff cancel", async () => {
+    const { container, createNotifications } = makeContainer([
+      { ...order, metadata: { cancel_reason: "staff" } },
+    ])
+    await run(container)
+    const { data } = createNotifications.mock.calls[0][0]
+    expect(data.deadline_hours).toBeUndefined()
+    expect(data).not.toHaveProperty("deadline_hours")
   })
 
   it("sends the staff wording with the note and the bank refund", async () => {
