@@ -1,6 +1,9 @@
 import type { ReceiptStorageOptions } from "../modules/payment-receipt/storage/types"
+import { bankTransferDeadlineHours, checkPaymentProviders, registeredGateways } from "./payment"
+import { s3ClientOptions } from "./s3"
 
-export type ModuleEntry = { resolve: string; options?: Record<string, unknown> }
+// A provider entry, for example a payment gateway, also has an id.
+export type ModuleEntry = { resolve: string; id?: string; options?: Record<string, unknown> }
 export type Env = Record<string, string | undefined>
 
 const PRODUCTION_REQUIRED_KEYS = ["REDIS_URL", "S3_BUCKET"] as const
@@ -115,7 +118,9 @@ const LOCAL_NOTIFICATION_NAME = "Local Notification Provider"
 
 // Puts one provider on the email channel, because Medusa permits only one
 // provider for each channel. The smtp provider gets the channel when SMTP_HOST
-// has a value. Otherwise the local provider writes each email to the log.
+// has a value. Otherwise the email-log provider renders each email and writes it
+// to the log, so that a bad template fails as it fails with SMTP. The local
+// provider keeps the feed channel in both cases.
 function notificationModule(env: Env): ModuleEntry {
   const host = env.SMTP_HOST
   if (!host) {
@@ -126,7 +131,12 @@ function notificationModule(env: Env): ModuleEntry {
           {
             resolve: "@medusajs/medusa/notification-local",
             id: "local",
-            options: { name: LOCAL_NOTIFICATION_NAME, channels: ["feed", "email"] },
+            options: { name: LOCAL_NOTIFICATION_NAME, channels: ["feed"] },
+          },
+          {
+            resolve: "./src/modules/email-log",
+            id: "email-log",
+            options: { channels: ["email"] },
           },
         ],
       },
@@ -167,12 +177,17 @@ function notificationModule(env: Env): ModuleEntry {
 }
 
 // Registers the payment providers. Bank transfer is the default provider, and Medusa stores its id
-// as "pp_bank-transfer_bank-transfer". A client project adds its gateway provider to this list.
-function paymentModule(): ModuleEntry {
+// as "pp_bank-transfer_bank-transfer". The provider stays registered when BANK_TRANSFER_ENABLED is
+// false, so that the admin can still capture and cancel the old bank transfer orders. A client
+// project adds its gateway to GATEWAY_PROVIDERS in payment.ts.
+function paymentModule(env: Env): ModuleEntry {
   return {
     resolve: "@medusajs/medusa/payment",
     options: {
-      providers: [{ resolve: "./src/modules/bank-transfer", id: "bank-transfer" }],
+      providers: [
+        { resolve: "./src/modules/bank-transfer", id: "bank-transfer" },
+        ...registeredGateways(env).map((gateway) => gateway.entry(env)),
+      ],
     },
   }
 }
@@ -197,14 +212,16 @@ function receiptStorage(env: Env): ReceiptStorageOptions {
     throw new Error("S3_RECEIPTS_BUCKET must not be the S3_BUCKET of the product images.")
   }
 
-  // fileModule() stops the start when one of these keys is missing.
+  // fileModule() stops the start when one of these keys is missing. S3_ENDPOINT is optional, as in
+  // fileModule().
   return {
     type: "s3",
     bucket,
-    endpoint: env.S3_ENDPOINT!,
+    endpoint: env.S3_ENDPOINT || undefined,
     region: env.S3_REGION!,
     accessKeyId: env.S3_ACCESS_KEY_ID!,
     secretAccessKey: env.S3_SECRET_ACCESS_KEY!,
+    clientOptions: s3ClientOptions(env),
   }
 }
 
@@ -231,7 +248,6 @@ const S3_REQUIRED_KEYS = [
   "S3_ACCESS_KEY_ID",
   "S3_SECRET_ACCESS_KEY",
   "S3_REGION",
-  "S3_ENDPOINT",
 ] as const
 
 // Returns the File Module with the S3 provider. It returns an empty list when S3_BUCKET has no
@@ -267,15 +283,12 @@ function fileModule(env: Env): ModuleEntry[] {
               secret_access_key: env.S3_SECRET_ACCESS_KEY,
               region: env.S3_REGION,
               bucket,
-              endpoint: env.S3_ENDPOINT,
-              // Garage has no ACL support, so the provider must not send the x-amz-acl header.
+              // With no endpoint, the AWS SDK uses the AWS endpoint of S3_REGION.
+              endpoint: env.S3_ENDPOINT || undefined,
+              // Some S3 stores do not support ACLs, so the provider must not send the x-amz-acl
+              // header.
               acl: false,
-              additional_client_config: {
-                forcePathStyle: true,
-                // These two options are the workaround for Garage issue 1236.
-                requestChecksumCalculation: "WHEN_REQUIRED",
-                responseChecksumValidation: "WHEN_REQUIRED",
-              },
+              additional_client_config: s3ClientOptions(env),
             },
           },
         ],
@@ -288,12 +301,15 @@ function fileModule(env: Env): ModuleEntry[] {
 export function buildModules(env: Env): ModuleEntry[] {
   checkProductionServices(env)
   checkWorkerModeServices(env)
+  checkPaymentProviders(env)
+  // The cancel job and the subscribers read the deadline later. A bad value must stop the start.
+  bankTransferDeadlineHours(env)
 
   return [
     ...redisModules(env),
     fulfillmentModule(env),
     notificationModule(env),
-    paymentModule(),
+    paymentModule(env),
     translationModule(),
     ...customModules(env),
     ...fileModule(env),

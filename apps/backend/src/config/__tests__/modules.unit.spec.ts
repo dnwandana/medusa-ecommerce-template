@@ -1,4 +1,5 @@
 import { buildModules, type Env } from "../modules"
+import { s3ClientOptions } from "../s3"
 
 const resolves = (env: Record<string, string | undefined>) =>
   buildModules(env).map((m) => m.resolve)
@@ -90,28 +91,35 @@ describe("buildModules: notification module", () => {
     return (entry?.options as any)?.providers
   }
 
-  it("uses the local provider for feed and email when SMTP_HOST is absent", () => {
-    expect(providers({})).toEqual([
-      {
-        resolve: "@medusajs/medusa/notification-local",
-        id: "local",
-        options: { name: "Local Notification Provider", channels: ["feed", "email"] },
-      },
-    ])
+  const noSmtpProviders = [
+    {
+      resolve: "@medusajs/medusa/notification-local",
+      id: "local",
+      options: { name: "Local Notification Provider", channels: ["feed"] },
+    },
+    {
+      resolve: "./src/modules/email-log",
+      id: "email-log",
+      options: { channels: ["email"] },
+    },
+  ]
+
+  it("uses the local provider for feed and email-log for email when SMTP_HOST is absent", () => {
+    expect(providers({})).toEqual(noSmtpProviders)
   })
 
-  it("uses the local provider for email when SMTP_HOST is empty", () => {
-    expect(providers({ SMTP_HOST: "" })).toHaveLength(1)
+  it("uses the local provider for feed and email-log for email when SMTP_HOST is empty", () => {
+    expect(providers({ SMTP_HOST: "" })).toEqual(noSmtpProviders)
   })
 
   it("uses smtp for email when SMTP_HOST has a value", () => {
     expect(
       providers({
-        SMTP_HOST: "smtp.resend.com",
+        SMTP_HOST: "smtp.example.com",
         SMTP_PORT: "587",
         SMTP_SECURE: "false",
-        SMTP_USER: "resend",
-        SMTP_PASSWORD: "re_secret",
+        SMTP_USER: "smtp-user",
+        SMTP_PASSWORD: "smtp-secret",
         EMAIL_FROM: "orders@shop.example.com",
         EMAIL_FROM_NAME: "Everyday",
       })
@@ -126,11 +134,11 @@ describe("buildModules: notification module", () => {
         id: "smtp",
         options: {
           channels: ["email"],
-          host: "smtp.resend.com",
+          host: "smtp.example.com",
           port: 587,
           secure: false,
-          user: "resend",
-          password: "re_secret",
+          user: "smtp-user",
+          password: "smtp-secret",
           from: "orders@shop.example.com",
           fromName: "Everyday",
         },
@@ -174,10 +182,20 @@ describe("buildModules: payment module", () => {
     })
   })
 
-  it("registers only the bank transfer provider, also with a Mayar key in the env", () => {
-    expect(
-      providers({ MAYAR_API_KEY: "live-key", STOREFRONT_URL: "https://shop.example.com" })
-    ).toEqual([{ resolve: "./src/modules/bank-transfer", id: "bank-transfer" }])
+  it("registers the bank transfer provider with the switch on", () => {
+    expect(providers({})).toEqual([{ resolve: "./src/modules/bank-transfer", id: "bank-transfer" }])
+  })
+
+  it("stops the start when bank transfer is off and no gateway exists", () => {
+    expect(() => buildModules({ BANK_TRANSFER_ENABLED: "false" })).toThrow(
+      /BANK_TRANSFER_ENABLED=true/
+    )
+  })
+
+  it("stops the start for a bad deadline", () => {
+    expect(() => buildModules({ BANK_TRANSFER_DEADLINE_HOURS: "abc" })).toThrow(
+      /BANK_TRANSFER_DEADLINE_HOURS/
+    )
   })
 })
 
@@ -254,6 +272,9 @@ describe("buildModules: S3 file provider", () => {
   const fileModule = (env: Record<string, string | undefined>) =>
     buildModules(env).find((m) => m.resolve === FILE)
 
+  const s3ProviderOptions = (env: Record<string, string | undefined>) =>
+    (fileModule(env)?.options as any).providers[0].options
+
   it("adds no file module when S3_BUCKET is absent", () => {
     expect(fileModule({})).toBeUndefined()
   })
@@ -263,7 +284,7 @@ describe("buildModules: S3 file provider", () => {
     expect(fileModule({ ...s3Env, S3_BUCKET: "" })).toBeUndefined()
   })
 
-  it("adds the S3 provider with the Garage options when S3_BUCKET has a value", () => {
+  it("adds the S3 provider when S3_BUCKET has a value", () => {
     expect(fileModule(s3Env)).toEqual({
       resolve: FILE,
       options: {
@@ -291,6 +312,16 @@ describe("buildModules: S3 file provider", () => {
     })
   })
 
+  it("starts with no S3_ENDPOINT and gives the provider no endpoint", () => {
+    const { S3_ENDPOINT: _endpoint, ...env } = s3Env
+    expect(s3ProviderOptions(env).endpoint).toBeUndefined()
+  })
+
+  it("passes S3_FORCE_PATH_STYLE=false to the client config", () => {
+    const options = s3ProviderOptions({ ...s3Env, S3_FORCE_PATH_STYLE: "false" })
+    expect(options.additional_client_config.forcePathStyle).toBe(false)
+  })
+
   it("removes one slash from the end of S3_FILE_URL", () => {
     const entry = fileModule({ ...s3Env, S3_FILE_URL: "https://assets.example.com/" }) as any
     expect(entry.options.providers[0].options.file_url).toBe("https://assets.example.com")
@@ -308,7 +339,7 @@ describe("buildModules: S3 file provider", () => {
   it("does not put a secret in the error message", () => {
     expect.assertions(1)
     try {
-      buildModules({ ...s3Env, S3_ENDPOINT: undefined })
+      buildModules({ ...s3Env, S3_REGION: undefined })
     } catch (error) {
       expect((error as Error).message).not.toContain("secret-value")
     }
@@ -347,7 +378,8 @@ describe("buildModules: payment receipt module", () => {
   })
 
   it("keeps the receipts in the private bucket with S3", () => {
-    expect(receipt({ ...s3Env, S3_RECEIPTS_BUCKET: "store-receipts" })?.options).toEqual({
+    const env = { ...s3Env, S3_RECEIPTS_BUCKET: "store-receipts" }
+    expect(receipt(env)?.options).toEqual({
       storage: {
         type: "s3",
         bucket: "store-receipts",
@@ -355,8 +387,19 @@ describe("buildModules: payment receipt module", () => {
         region: s3Env.S3_REGION,
         accessKeyId: s3Env.S3_ACCESS_KEY_ID,
         secretAccessKey: s3Env.S3_SECRET_ACCESS_KEY,
+        clientOptions: s3ClientOptions(env),
       },
     })
+  })
+
+  it("gives the receipt storage no endpoint and the path style of S3_FORCE_PATH_STYLE", () => {
+    const { S3_ENDPOINT: _endpoint, ...env } = s3Env
+    const storage = (
+      receipt({ ...env, S3_RECEIPTS_BUCKET: "store-receipts", S3_FORCE_PATH_STYLE: "false" })
+        ?.options as any
+    ).storage
+    expect(storage.endpoint).toBeUndefined()
+    expect(storage.clientOptions.forcePathStyle).toBe(false)
   })
 
   it("stops when S3 is on and the receipts bucket is missing", () => {

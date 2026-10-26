@@ -11,15 +11,16 @@ type S3Options = Extract<ReceiptStorageOptions, { type: "s3" }>
 
 const MISSING_ERRORS = new Set(["NoSuchKey", "NotFound"])
 
-// Keeps the receipts in a private bucket. No command sets an ACL, because the bucket has no web
-// endpoint and Garage does not support ACLs.
+// Keeps the receipts in a private bucket of the S3 store. No command sets an ACL, because the
+// bucket is private and some S3 stores do not support ACLs.
 export class S3ReceiptStorage implements ReceiptStorage {
   private readonly bucket: string
   private readonly client: S3Client
 
   constructor(options: S3Options, client?: S3Client) {
     this.bucket = options.bucket
-    // The same client settings as the File Module in src/config/modules.ts.
+    // The client options come from s3ClientOptions() in src/config/s3.ts, so that the receipts and
+    // the File Module talk to the S3 store in the same way.
     this.client =
       client ??
       new S3Client({
@@ -29,9 +30,7 @@ export class S3ReceiptStorage implements ReceiptStorage {
           accessKeyId: options.accessKeyId,
           secretAccessKey: options.secretAccessKey,
         },
-        forcePathStyle: true,
-        requestChecksumCalculation: "WHEN_REQUIRED",
-        responseChecksumValidation: "WHEN_REQUIRED",
+        ...options.clientOptions,
       })
   }
 

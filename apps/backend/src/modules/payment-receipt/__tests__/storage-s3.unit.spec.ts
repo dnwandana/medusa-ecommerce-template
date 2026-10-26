@@ -3,6 +3,17 @@ import { createReceiptStorage } from "../storage"
 import { LocalReceiptStorage } from "../storage/local"
 import { S3ReceiptStorage } from "../storage/s3"
 
+// The real commands stay, so that the tests can check the command type and its input.
+jest.mock("@aws-sdk/client-s3", () => {
+  const actual = jest.requireActual("@aws-sdk/client-s3")
+  return { ...actual, S3Client: jest.fn() }
+})
+
+const clientOptions = {
+  forcePathStyle: true,
+  requestChecksumCalculation: "WHEN_REQUIRED" as const,
+  responseChecksumValidation: "WHEN_REQUIRED" as const,
+}
 const options = {
   type: "s3" as const,
   bucket: "store-receipts",
@@ -10,6 +21,7 @@ const options = {
   region: "garage",
   accessKeyId: "k",
   secretAccessKey: "s",
+  clientOptions,
 }
 const send = jest.fn()
 const storage = new S3ReceiptStorage(options, { send } as unknown as S3Client)
@@ -53,4 +65,22 @@ it("makes the storage that the options name", () => {
     LocalReceiptStorage
   )
   expect(createReceiptStorage(options)).toBeInstanceOf(S3ReceiptStorage)
+})
+
+it("builds the client from the shared options, with no endpoint for AWS", () => {
+  new S3ReceiptStorage({
+    type: "s3",
+    bucket: "receipts",
+    region: "eu-west-1",
+    accessKeyId: "id",
+    secretAccessKey: "secret",
+    clientOptions: {
+      forcePathStyle: false,
+      requestChecksumCalculation: "WHEN_REQUIRED",
+      responseChecksumValidation: "WHEN_REQUIRED",
+    },
+  })
+  expect(S3Client).toHaveBeenCalledWith(
+    expect.objectContaining({ endpoint: undefined, region: "eu-west-1", forcePathStyle: false })
+  )
 })

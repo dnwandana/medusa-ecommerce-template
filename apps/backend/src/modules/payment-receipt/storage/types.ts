@@ -1,3 +1,4 @@
+import type { S3ClientOptions } from "../../../config/s3"
 import type { ReceiptMimeType } from "../constants"
 
 export interface ReceiptStorage {
@@ -11,8 +12,9 @@ export type ReceiptStorageOptions =
   | {
       type: "s3"
       bucket: string
-      endpoint: string
+      endpoint?: string
       region: string
       accessKeyId: string
       secretAccessKey: string
+      clientOptions: S3ClientOptions
     }
