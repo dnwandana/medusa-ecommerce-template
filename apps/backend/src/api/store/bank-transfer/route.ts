@@ -7,19 +7,16 @@ import type BankAccountModuleService from "../../../modules/bank-account/service
 // the customer needs only the data to make the transfer.
 export const STORE_BANK_ACCOUNT_FIELDS = ["id", "bank_name", "account_number", "account_holder"]
 
-// Returns the active bank accounts in the order that the owner set, and the store contact. It also
-// returns the bank transfer switch and the deadline hours, because the checkout needs them before
-// an order exists. The route needs only the publishable API key.
+// Returns the active bank accounts in the order that the owner set. It also returns the bank
+// transfer switch and the deadline hours, because the checkout needs them before an order exists.
+// The route needs only the publishable API key.
 export const GET = async (req: MedusaRequest, res: MedusaResponse): Promise<void> => {
   const service: BankAccountModuleService = req.scope.resolve(BANK_ACCOUNT_MODULE)
 
-  const [accounts, contact] = await Promise.all([
-    service.listBankAccounts(
-      { is_active: true },
-      { select: STORE_BANK_ACCOUNT_FIELDS, order: { rank: "ASC", created_at: "ASC" } }
-    ),
-    service.getContact(),
-  ])
+  const accounts = await service.listBankAccounts(
+    { is_active: true },
+    { select: STORE_BANK_ACCOUNT_FIELDS, order: { rank: "ASC", created_at: "ASC" } }
+  )
 
   // The service can add keys that the select did not ask for. Copy only the public fields.
   const bank_accounts = accounts.map((account) => ({
@@ -31,7 +28,6 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse): Promise<void
 
   res.json({
     bank_accounts,
-    contact,
     enabled: bankTransferEnabled(process.env),
     deadline_hours: bankTransferDeadlineHours(process.env),
   })
