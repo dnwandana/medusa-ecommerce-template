@@ -38,36 +38,40 @@ Nuxt reads the keys when the server starts. A new value does not need a new buil
 
 ## Pages
 
-| Route                     | Content                                                                                                     |
-| ------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `/`                       | The home campaign or a text hero, the four newest products, the home categories, and the service row        |
-| `/products`               | All products with filters, a sort, and the category links. 12 products load at a time.                      |
-| `/categories/:handle`     | The products of one category and of its descendant categories, with filters and a sort                      |
-| `/search`                 | The products that match the `q` text. With no match, the four newest products. No search engine indexes it. |
-| `/products/:handle`       | Gallery, colour and size, add to cart, wishlist, details, reviews, and "You may also like"                  |
-| `/cart`                   | Cart lines, stock limits, move to the wishlist, the summary with "You save", and "You may also like"        |
-| `/checkout`               | Email, delivery address, delivery method, and payment on one page. Uses the checkout layout.                |
-| `/checkout/return`        | The return page after the payment on a gateway page. Uses the checkout layout.                              |
-| `/orders/:id`             | The order status, tracker, shipments, and summary. A bank transfer order also shows the receipts.           |
-| `/account/sign-in`        | Sign-in form for the email. Then "Check your email", which waits for the link.                              |
-| `/account/sign-in/verify` | The page of the link in the email. It signs in this browser, or confirms the sign-in of another device.     |
-| `/account/welcome`        | The first sign-in only: an optional full name. Needs a sign-in.                                             |
-| `/account`                | Profile: full name and phone. Needs a sign-in.                                                              |
-| `/account/orders`         | Order history with the status of each order, and the items to review. Needs a sign-in.                      |
-| `/account/addresses`      | Saved addresses: add, edit, delete, and set the default. Needs a sign-in.                                   |
-| `/account/wishlist`       | Wishlist. Needs a sign-in.                                                                                  |
-| `/delivery`               | Delivery information                                                                                        |
-| `/returns`                | Returns information                                                                                         |
-| `/about`                  | The story of the store                                                                                      |
-| `/privacy`                | Privacy policy                                                                                              |
-| `/terms`                  | Terms                                                                                                       |
-| `/contact`                | The WhatsApp number and the email of the store, from `/store/bank-transfer`                                 |
+| Route                     | Content                                                                                                                      |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `/`                       | The home campaign or a text hero, the four newest products, the home categories, and the service row                         |
+| `/products`               | All products with filters, a sort, and the category links. 12 products load at a time.                                       |
+| `/categories/:handle`     | The products of one category and of its descendant categories, with filters and a sort                                       |
+| `/search`                 | The products that match the `q` text. With no match, the four newest products. No search engine indexes it.                  |
+| `/products/:handle`       | Gallery, colour and size, add to cart, wishlist, details, reviews, and "You may also like"                                   |
+| `/cart`                   | Cart lines, stock limits, move to the wishlist, the summary with "You save", and "You may also like"                         |
+| `/checkout`               | Email, delivery address, delivery method, and payment on one page. Uses the checkout layout.                                 |
+| `/checkout/return`        | The return page after the payment on a gateway page. Uses the checkout layout.                                               |
+| `/orders/:id`             | The order status, tracker, shipments, and summary. A bank transfer order also shows the receipts.                            |
+| `/account/sign-in`        | Sign-in form for the email. Then "Check your email", which waits for the link.                                               |
+| `/account/sign-in/verify` | The page of the link in the email. It signs in this browser, or confirms the sign-in of another device.                      |
+| `/account/welcome`        | The first sign-in only: an optional full name. Needs a sign-in.                                                              |
+| `/account`                | Profile: full name and phone. Needs a sign-in.                                                                               |
+| `/account/orders`         | Order history with the status of each order, and the items to review. Needs a sign-in.                                       |
+| `/account/addresses`      | Saved addresses: add, edit, delete, and set the default. Needs a sign-in.                                                    |
+| `/account/wishlist`       | Wishlist. Needs a sign-in.                                                                                                   |
+| `/delivery`               | Delivery information                                                                                                         |
+| `/returns`                | Returns information                                                                                                          |
+| `/about`                  | The story of the store                                                                                                       |
+| `/privacy`                | Privacy policy                                                                                                               |
+| `/terms`                  | Terms                                                                                                                        |
+| `/contact`                | The WhatsApp number, the email, the phone, the address, and the social links of the store, from `/store/storefront/settings` |
 
 Each route also exists with the prefix `/id`. The text of the five static pages (`/delivery`,
 `/returns`, `/about`, `/privacy`, `/terms`) is in the locale files, below `pages`.
 
 The home hero shows the live campaign that staff publish in the admin: a full-width photo, then
 a row of two text columns. With no live campaign, the hero shows the text of the locale files.
+
+The footer has a Contact column with the WhatsApp number, the email, the phone, and the social
+icons of the store. It shows no address. A field with no value does not show. With no value at
+all, the column does not show. The contact comes from `/store/storefront/settings`.
 
 A product URL can name a variant: `/products/:handle?variant=<variant id>`. The page then opens
 with that variant selected. A new selection changes the URL, but it adds no browser history entry.
@@ -87,25 +91,25 @@ with that variant selected. A new selection changes the URL, but it adds no brow
 
 ## Source layout
 
-| Path                          | Content                                                                                                                                           |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `app/pages/`                  | Pages                                                                                                                                             |
-| `app/layouts/default.vue`     | The announcement bar, the header (navigation, search, language, account, wishlist, cart), and the footer                                          |
-| `app/layouts/checkout.vue`    | "Back to cart", the wordmark, "Secure checkout", and a short footer. The checkout pages use it.                                                   |
-| `app/error.vue`               | The error page. A 404 shows the text of its `messageKey` and the category links.                                                                  |
-| `app/app.config.ts`           | The store name                                                                                                                                    |
-| `app/components/`             | Store components                                                                                                                                  |
-| `app/components/ui/`          | shadcn-vue components                                                                                                                             |
-| `app/composables/`            | Medusa SDK client, cart, region, catalog, listings, search, settings, checkout, customer, sign-in, addresses, orders, receipts, reviews, wishlist |
-| `app/utils/`                  | Pure functions: price format, address form, catalog query, price ranges, badges, sign-in, retry, redirects, bank transfer, order status, receipts |
-| `app/types/storefront.ts`     | The types of the storefront settings and the home campaign                                                                                        |
-| `app/middleware/auth.ts`      | Sends a guest to the sign-in page                                                                                                                 |
-| `server/routes/`              | The Nitro routes `robots.txt` and `sitemap.xml`. Their helpers are in `server/utils/`.                                                            |
-| `app/assets/css/tailwind.css` | Tailwind, the design tokens, the type utilities, and the `@font-face` rules                                                                       |
-| `public/fonts/`               | The font files: Cormorant Garamond (regular and italic) and Instrument Sans                                                                       |
-| `i18n/locales/`               | Interface text in `en.json` and `id.json`                                                                                                         |
-| `test/unit/`                  | Unit tests of `app/utils` and of the locale files                                                                                                 |
-| `test/nuxt/`                  | Tests of components, pages, composables, layouts, and middleware                                                                                  |
+| Path                          | Content                                                                                                                                                            |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `app/pages/`                  | Pages                                                                                                                                                              |
+| `app/layouts/default.vue`     | The announcement bar, the header (navigation, search, language, account, wishlist, cart), and the footer                                                           |
+| `app/layouts/checkout.vue`    | "Back to cart", the wordmark, "Secure checkout", and a short footer. The checkout pages use it.                                                                    |
+| `app/error.vue`               | The error page. A 404 shows the text of its `messageKey` and the category links.                                                                                   |
+| `app/app.config.ts`           | The store name                                                                                                                                                     |
+| `app/components/`             | Store components                                                                                                                                                   |
+| `app/components/ui/`          | shadcn-vue components                                                                                                                                              |
+| `app/composables/`            | Medusa SDK client, cart, region, catalog, listings, search, settings, checkout, customer, sign-in, addresses, orders, receipts, reviews, wishlist                  |
+| `app/utils/`                  | Pure functions: price format, address form, catalog query, price ranges, badges, sign-in, retry, redirects, bank transfer, order status, receipts, social networks |
+| `app/types/storefront.ts`     | The types of the storefront settings, the store contact, and the home campaign                                                                                     |
+| `app/middleware/auth.ts`      | Sends a guest to the sign-in page                                                                                                                                  |
+| `server/routes/`              | The Nitro routes `robots.txt` and `sitemap.xml`. Their helpers are in `server/utils/`.                                                                             |
+| `app/assets/css/tailwind.css` | Tailwind, the design tokens, the type utilities, and the `@font-face` rules                                                                                        |
+| `public/fonts/`               | The font files: Cormorant Garamond (regular and italic) and Instrument Sans                                                                                        |
+| `i18n/locales/`               | Interface text in `en.json` and `id.json`                                                                                                                          |
+| `test/unit/`                  | Unit tests of `app/utils` and of the locale files                                                                                                                  |
+| `test/nuxt/`                  | Tests of components, pages, composables, layouts, and middleware                                                                                                   |
 
 ## Languages
 
@@ -213,7 +217,8 @@ A bank transfer order that is not paid and not cancelled shows two panels:
 - The receipt panel. It lists the uploaded receipts by name and time. The customer uploads 1 to 3
   receipts, one at a time. A receipt is a JPG, PNG, or WebP file of at most 5 MB. The storefront
   checks the type and the size before the upload, and the backend checks them again. At 3
-  receipts, the upload closes and the panel shows the email and the WhatsApp number of the store.
+  receipts, the upload closes and the panel shows the email, the WhatsApp number, and the phone
+  of the store.
 
 The customer cannot delete a receipt. The receipt files are private. Only the owner sees them, in
 the order widget of the admin.

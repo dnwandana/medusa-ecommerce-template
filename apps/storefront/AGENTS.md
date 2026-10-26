@@ -72,6 +72,9 @@ pnpm --filter @store/storefront lint                       # ESLint, eslint.conf
     The home page and the footer share the request.
   - `storefront-settings`: `ProductGrid`, `RelatedProducts`, and the product page load the
     settings with `useStorefront().ensureSettings()`. The product cards read them.
+  - `store-contact`: the contact page, the home page, and the order page load the store contact
+    with `useAsyncData("store-contact", async () => (await ensureSettings()).contact)`. The
+    three pages use the same key and the same handler, so they share the data.
 - The cart id is in the cookie `cart_id` (`useCartId.ts`): 30 days, `sameSite: "lax"`. The `lax`
   value keeps the cookie on the top-level return from a payment page.
 - The cart carries the storefront locale. `useCart.add` sends `locale` on `cart.create`.
@@ -88,6 +91,18 @@ pnpm --filter @store/storefront lint                       # ESLint, eslint.conf
 ### Layouts and errors
 
 - `app/layouts/default.vue` has the announcement bar, the header, and the footer.
+- `AppFooter.vue` has the columns Shop, Help, and About, then a Contact column.
+  - The footer calls `ensureSettings()` in `onMounted`. The server render does not wait for the
+    settings, so the first client render has the same footer as the server HTML.
+  - The Contact column shows the WhatsApp number, the email, the phone, and then the social
+    icons, in this order. It shows no address. A field with no value does not show.
+  - With no contact value at all, the Contact column does not show. The desktop grid then has
+    three columns. With the Contact column, the grid is `repeat(4, minmax(0, 240px))`.
+  - The phone view shows the same content in a fourth accordion item.
+- `pages/contact.vue` shows the WhatsApp number, the email, the phone, and the address, in this
+  order. The address keeps its line breaks and has no link.
+  - The "Social links" section lists each link with its icon and the network name.
+  - With no contact value at all, the page shows the unavailable text.
 - `app/layouts/checkout.vue` has "Back to cart", the wordmark, "Secure checkout", and a short
   footer. The header has no navigation, so the customer stays in the checkout. `/checkout` and
   `/checkout/return` use it with `definePageMeta({ layout: "checkout" })`.
@@ -162,8 +177,12 @@ The composables call the custom routes with `sdk.client.fetch`:
   to 5 products.
 - `useRelatedProducts(key, source)` reads 12 products of the first category and returns up to 4,
   with no sold-out product. The product page and the cart page use it.
-- `useStorefront()` returns the settings (badge rules, colours, price limits) and the live home
-  campaign. A failed settings request gives `STOREFRONT_DEFAULTS`.
+- `useStorefront()` returns the settings (badge rules, colours, price limits, and the store
+  contact) and the live home campaign. A failed settings request gives `STOREFRONT_DEFAULTS`.
+  - `settings.contact` (type `StoreContact` in `app/types/storefront.ts`) has `email`, `phone`,
+    `whatsapp`, `address`, and `social_links`. A field with no value is `null`, and the
+    storefront does not show it. The default contact has no values.
+  - `useStorefront` is the only source of the store contact. `useBankTransfer` has no contact.
 - `useMoveToWishlist()` moves a cart line to the wishlist. A guest goes to the sign-in page, and
   the cart does not change.
 
@@ -190,6 +209,9 @@ The composables call the custom routes with `sdk.client.fetch`:
   - `structuredData.ts`: the `BreadcrumbList`, `OnlineStore`, and `WebSite` nodes, and
     `jsonLdScript`. `jsonLdScript` replaces each `<` with the six characters `\u003c`. Thus
     a product text cannot close the script tag.
+  - The home page gives the store contact to `onlineStoreJsonLd`. The `OnlineStore` node has
+    `email`, `telephone` (the phone), `address`, and `sameAs` (the URLs of the social links)
+    only when the value exists.
 - The Nitro routes are in `server/routes/`. Their helpers are in `server/utils/`. The server code
   has no `~` alias, so it imports `app/utils/` with a relative path.
   - `robots.txt.ts` blocks the filter and sort parameters: `FILTER_NAMES` of
@@ -252,8 +274,9 @@ The composables call the custom routes with `sdk.client.fetch`:
 - The storefront code has no payment provider id. Only `app/utils/bankTransfer.ts` and the locale
   files name `pp_bank-transfer_bank-transfer`.
 - The backend owns the bank transfer switch and the deadline. The storefront has no copy of them.
-  `useBankTransfer().getDetails()` reads `/store/bank-transfer`, which returns `enabled`
-  (`BANK_TRANSFER_ENABLED`) and `deadline_hours` (`BANK_TRANSFER_DEADLINE_HOURS`).
+  `useBankTransfer().getDetails()` reads `/store/bank-transfer`, which returns `bank_accounts`,
+  `enabled` (`BANK_TRANSFER_ENABLED`), and `deadline_hours` (`BANK_TRANSFER_DEADLINE_HOURS`).
+  The type `BankTransferDetails` has no store contact.
 - `useCheckout().listPaymentProviders({ bankTransferEnabled })` lists the providers of the cart
   region. `bankTransferEnabled` defaults to `true`. The function drops these providers:
   - A provider with `is_enabled: false`. Medusa marks a provider that left the backend config in
@@ -291,7 +314,8 @@ The composables call the custom routes with `sdk.client.fetch`:
      `new Date(payment_state.deadline_at)`. The page shows the instructions only when
      `deadline_at` has a value.
   3. `OrderStatusBlock` for a cancelled or refunded order, else `OrderTracker`. The block takes
-     the prop `deadlineHours` (`deadline_hours` of `/store/bank-transfer`, or `null`). A timeout
+     the prop `deadlineHours` (`deadline_hours` of `/store/bank-transfer`, or `null`). The page
+     reads it only for a closed order, with the key `bank-transfer-deadline:<order id>`. A timeout
      cancel shows `order.cancelledTimeout` with `{ hours }`, or `order.cancelledUnpaid` when the
      hours are `null`. A staff cancel shows `order.cancelledByStore`.
   4. `OrderShipments`, from `/store/orders/:id/tracking`.
@@ -303,7 +327,11 @@ The composables call the custom routes with `sdk.client.fetch`:
   because the Store order route does not return the refunds of a payment collection.
 - Receipts:
   - `ReceiptPanel` lists the uploaded receipts by name and time. The receipt files are private.
-    Below 3 receipts it shows `ReceiptUploadForm`. At 3 receipts it shows the store contact.
+    Below 3 receipts it shows `ReceiptUploadForm`. At 3 receipts it shows the store contact:
+    the email, the WhatsApp number, and the phone.
+  - The order page gives the store contact (the key `store-contact`) to `ReceiptPanel` and to
+    `OrderStatusBlock`. The status block lists the email, the WhatsApp number, and the phone in
+    one sentence. A failed settings request does not hide the order.
   - `ReceiptUploadForm` has a drop zone and a file input. `checkReceiptFile`
     (`app/utils/receiptFile.ts`) refuses a file that is not JPG, PNG, or WebP, or that is larger
     than 5 MB. The backend checks the file bytes again.
@@ -362,7 +390,15 @@ The composables call the custom routes with `sdk.client.fetch`:
   - `cn()` from `app/lib/utils.ts` appears only in `app/components/ui/`.
   - When you add a `text-*` type utility to `tailwind.css`, add its name to the tailwind-merge
     list in `app/lib/utils.ts`. Otherwise `cn()` reads it as a color and removes it.
-- Icons come from `@lucide/vue` with a stroke width of 1.5.
+- Icons come from `@lucide/vue` with a stroke width of 1.5. The social network icons are the
+  exception:
+  - `app/utils/socialNetworks.ts` has `SOCIAL_NETWORKS` (the id, the name, and the SVG path of
+    each network, for the viewBox `0 0 24 24`) and `socialNetwork(id)`. Keep the license note at
+    the top of the file.
+  - The backend has a second copy of the ids in `apps/backend/src/lib/social-networks.ts`.
+    Change the two copies together.
+  - `SocialIcon.vue` draws the icon of a network with `fill="currentColor"`. The caller sets the
+    size with a class. An unknown network gives no icon. The parent link has the accessible name.
 - Quotes:
   - App code uses double quotes with no semicolons.
   - The generated shadcn files in `app/components/ui/` use single quotes.
