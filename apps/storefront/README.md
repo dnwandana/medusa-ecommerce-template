@@ -195,7 +195,7 @@ the order, from `customerStatus` in `app/utils/orderStatus.ts`:
 | `processing`          | A paid order, or a gateway order.                          |
 | `shipped`             | A part or all of the order left the store.                 |
 | `delivered`           | The order arrived.                                         |
-| `cancelled`           | The store or the 24-hour rule cancelled the order.         |
+| `cancelled`           | The store or the payment deadline cancelled the order.     |
 | `refunded`            | The store refunded the payment.                            |
 
 The account order list shows the same status as a badge.

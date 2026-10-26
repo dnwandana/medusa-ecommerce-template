@@ -34,7 +34,7 @@ pnpm --filter @store/storefront lint                       # ESLint, eslint.conf
   - `public.medusaPublishableKey` (`NUXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY`).
   - `public.siteUrl` (`NUXT_PUBLIC_SITE_URL`): the public origin of the storefront, with no
     trailing slash. The default is `http://localhost:3000`. `docker-compose.yml` sets it to
-    `https://${DOMAIN}`. All absolute URLs in the head, the JSON-LD, the sitemap, and `robots.txt`
+    `STOREFRONT_URL`, by default `https://${DOMAIN}`. All absolute URLs in the head, the JSON-LD, the sitemap, and `robots.txt`
     come from it. No code reads the `Host` header for a URL.
 - i18n:
   - Locales `en` (default, `language: "en-US"`) and `id` (`language: "id-ID"`), with the strategy
@@ -209,14 +209,14 @@ The composables call the custom routes with `sdk.client.fetch`:
 - The customer has no password. The sign-in page sends the email to `/store/magic-link`, and the
   backend sends a link. `useMagicLink()` has the state and the requests of the flow.
 - The browser keeps `{ request_id, secret, email, redirect, sent_at }` in `localStorage` under the
-  key `everyday.magicLink` (`app/utils/magicLinkStorage.ts`). The record has no token. Only the
+  key `store.magicLink` (`app/utils/magicLinkStorage.ts`). The record has no token. Only the
   email link has the token.
 - The original tab asks `/store/magic-link/status` every 3 seconds (`MAGIC_LINK_POLL_MS`). A link
   expires after 15 minutes. "Send the link again" is available after 60 seconds. A new link makes
   the older link of the email invalid.
 - The link opens `/account/sign-in/verify?id=<request id>&token=<token>`.
   - Same browser: the verify page gets the session. It sends a message on the `BroadcastChannel`
-    `everyday-sign-in` (`app/utils/signInChannel.ts`). If the original tab answers, the verify
+    `store-sign-in` (`app/utils/signInChannel.ts`). If the original tab answers, the verify
     tab closes. If not, the verify tab continues as the signed-in tab.
   - Other device: the verify page shows the browser and the time of the request. The customer
     clicks "Yes, sign me in". The original tab then gets the session at its next status request.
@@ -251,13 +251,29 @@ The composables call the custom routes with `sdk.client.fetch`:
 - The checkout country is fixed to `id`. Prices are always IDR.
 - The storefront code has no payment provider id. Only `app/utils/bankTransfer.ts` and the locale
   files name `pp_bank-transfer_bank-transfer`.
+- The backend owns the bank transfer switch and the deadline. The storefront has no copy of them.
+  `useBankTransfer().getDetails()` reads `/store/bank-transfer`, which returns `enabled`
+  (`BANK_TRANSFER_ENABLED`) and `deadline_hours` (`BANK_TRANSFER_DEADLINE_HOURS`).
+- `useCheckout().listPaymentProviders({ bankTransferEnabled })` lists the providers of the cart
+  region. `bankTransferEnabled` defaults to `true`. The function drops these providers:
+  - A provider with `is_enabled: false`. Medusa marks a provider that left the backend config in
+    this way, but `/store/payment-providers` still returns it when the region links it. A
+    provider with no `is_enabled` field stays in the list.
+  - Bank transfer, when `bankTransferEnabled` is `false`. A region that the seed linked before
+    the switch went off still has bank transfer with `is_enabled: true`.
+- The checkout page reads `getDetails()` first, then calls `listPaymentProviders` with
+  `bankTransferEnabled: details.enabled`. A failure of either call shows the failed state.
+  `CheckoutPaymentRows` takes the prop `deadlineHours` and renders the hint with
+  `$t(hint, { hours: deadlineHours })`.
 - `useOrders()` adds `order.payment_state` to each order (type `PaymentOrder`). The value is the
   entry of `/store/payment-states` for the order, or `null`. `listOrders` makes one payment state
   request for the page. `useReceipts().getPaymentStates` sends at most 50 order ids in one request.
 - `ORDER_FIELDS` has no payment sessions and no payments. The Store API gives the session data,
   with the payment URL and the customer object of a gateway, to each person who knows the order
-  id. `payment_state` gives only the provider id, the capture time, the receipt names, and the
-  newest store note. It has no file key and no file URL.
+  id. `payment_state` gives only the provider id, the capture time, the receipt names, the newest
+  store note, and `deadline_at`. It has no file key and no file URL.
+  - `deadline_at` is an ISO time for a bank transfer order: the order time plus
+    `BANK_TRANSFER_DEADLINE_HOURS`. It is `null` for another order.
 - `app/utils/orderStatus.ts`:
   - `customerStatus(order)` returns the status that the customer sees: `waiting_for_payment`,
     `payment_submitted`, `processing`, `shipped`, `delivered`, `cancelled`, or `refunded`. A
@@ -271,8 +287,13 @@ The composables call the custom routes with `sdk.client.fetch`:
   1. The eyebrow (order number and date), the `h1`, and the body text. The text comes from
      `customerStatus(order)`.
   2. For a bank transfer order that waits for the capture, `BankTransferInstructions` and
-     `ReceiptPanel`. The bank panel takes `receiptPhase` and the store note.
-  3. `OrderStatusBlock` for a cancelled or refunded order, else `OrderTracker`.
+     `ReceiptPanel`. The bank panel takes `receiptPhase`, the store note, and the deadline
+     `new Date(payment_state.deadline_at)`. The page shows the instructions only when
+     `deadline_at` has a value.
+  3. `OrderStatusBlock` for a cancelled or refunded order, else `OrderTracker`. The block takes
+     the prop `deadlineHours` (`deadline_hours` of `/store/bank-transfer`, or `null`). A timeout
+     cancel shows `order.cancelledTimeout` with `{ hours }`, or `order.cancelledUnpaid` when the
+     hours are `null`. A staff cancel shows `order.cancelledByStore`.
   4. `OrderShipments`, from `/store/orders/:id/tracking`.
   5. `OrderSummary`. The payment method comes from `payment_state.provider_id`.
   6. An aside with "Continue shopping" and the contact link.
@@ -304,8 +325,8 @@ The composables call the custom routes with `sdk.client.fetch`:
 - The variant selection rules, the product badges, the colour dots, the gallery images, and the
   product details.
 - The catalog URL query (`catalogQuery.ts`) and the price ranges (`priceRanges.ts`).
-- Bank transfer: `isAwaitingBankTransfer`, `bankTransferDeadline` (the order time plus 24 hours),
-  and `formatDeadline` (WIB).
+- Bank transfer: `isAwaitingBankTransfer` and `formatDeadline` (WIB). The deadline comes from
+  the backend, not from a storefront function.
 - Order status: `customerStatus`, `receiptPhase`, `trackerSteps`, `cancelNoticeKey`, and
   `refundedAmount`.
 - Receipt files: `checkReceiptFile` and `formatFileSize`.
