@@ -7,7 +7,7 @@ import {
   updateRegionsWorkflow,
   updateStoresWorkflow,
 } from "@medusajs/medusa/core-flows"
-import { BANK_TRANSFER_PROVIDER_ID } from "../modules/bank-transfer/constants"
+import { regionPaymentProviderIds } from "../config/payment"
 
 export type SeedRegionResult = { salesChannelId: string; storeId: string; regionId: string }
 
@@ -16,14 +16,12 @@ const STORE_NAME = "Everyday"
 const REGION_NAME = "Indonesia"
 const CURRENCY = "idr"
 const COUNTRY = "id"
-// The region does not use the system default provider. That provider authorizes each payment with
-// no money.
-const PAYMENT_PROVIDERS = [BANK_TRANSFER_PROVIDER_ID]
 
-// Creates the sales channel, the store currency, and the region. The region uses the bank transfer
-// provider pp_bank-transfer_bank-transfer as its only payment provider. It creates no tax region,
-// because the store calculates no tax. Each step looks for the record first, so a second run
-// creates no record.
+// Creates the sales channel, the store currency, and the region. The region gets the bank transfer
+// provider pp_bank-transfer_bank-transfer only when BANK_TRANSFER_ENABLED is on, and the gateways
+// that have their configuration in the env. It never gets the system default provider, because
+// that provider authorizes each payment with no money. The seed creates no tax region, because the
+// store calculates no tax. Each step looks for the record first, so a second run creates no record.
 export async function seedRegion(container: MedusaContainer): Promise<SeedRegionResult> {
   const salesChannelId = await findOrCreateSalesChannel(container)
   const storeId = await upsertStore(container, salesChannelId)
@@ -76,6 +74,8 @@ async function upsertStore(container: MedusaContainer, salesChannelId: string): 
 }
 
 async function findOrCreateRegion(container: MedusaContainer): Promise<string> {
+  // Read the env at the call, so a seed run uses the switch of that run.
+  const paymentProviders = regionPaymentProviderIds(process.env)
   const query = container.resolve(ContainerRegistrationKeys.QUERY)
   const { data: regions } = await query.graph({
     entity: "region",
@@ -84,9 +84,9 @@ async function findOrCreateRegion(container: MedusaContainer): Promise<string> {
   })
   if (regions.length > 0) {
     const regionId: string = regions[0].id
-    // A database from an earlier seed can have a different provider, so set the provider again.
+    // A database from an earlier seed can have different providers, so set the providers again.
     await updateRegionsWorkflow(container).run({
-      input: { selector: { id: regionId }, update: { payment_providers: PAYMENT_PROVIDERS } },
+      input: { selector: { id: regionId }, update: { payment_providers: paymentProviders } },
     })
     return regionId
   }
@@ -98,7 +98,7 @@ async function findOrCreateRegion(container: MedusaContainer): Promise<string> {
           name: REGION_NAME,
           currency_code: CURRENCY,
           countries: [COUNTRY],
-          payment_providers: PAYMENT_PROVIDERS,
+          payment_providers: paymentProviders,
         },
       ],
     },

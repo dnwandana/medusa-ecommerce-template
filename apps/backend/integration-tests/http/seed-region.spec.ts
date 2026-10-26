@@ -91,6 +91,22 @@ medusaIntegrationTestRunner({
           "pp_bank-transfer_bank-transfer",
         ])
       })
+
+      it("links no bank transfer provider when BANK_TRANSFER_ENABLED is false", async () => {
+        const previous = process.env.BANK_TRANSFER_ENABLED
+        process.env.BANK_TRANSFER_ENABLED = "false"
+        try {
+          const { regionId } = await seedRegion(getContainer())
+          const regions = await graph("region", ["id", "payment_providers.id"])
+          const region = regions.find((r: any) => r.id === regionId)
+          expect(region.payment_providers.map((p: any) => p.id)).not.toContain(
+            "pp_bank-transfer_bank-transfer"
+          )
+        } finally {
+          if (previous === undefined) delete process.env.BANK_TRANSFER_ENABLED
+          else process.env.BANK_TRANSFER_ENABLED = previous
+        }
+      })
     })
   },
 })
