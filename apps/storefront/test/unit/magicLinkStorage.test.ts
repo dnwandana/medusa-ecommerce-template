@@ -73,4 +73,8 @@ describe("magicLinkStorage", () => {
       Object.defineProperty(globalThis, "localStorage", original)
     }
   })
+
+  it("uses a key with no brand name", () => {
+    expect(MAGIC_LINK_STORAGE_KEY).toBe("store.magicLink")
+  })
 })

@@ -89,7 +89,7 @@
   --shadow-focus: var(--focus-ring);
 }
 
-/* The values come from docs/superpowers/design/everyday-atelier/tokens.css. */
+/* These tokens are the one source of the colours, the radii, the shadows, and the type scale. */
 :root {
   --background: #f4f1eb;
   --foreground: #1d1b18;

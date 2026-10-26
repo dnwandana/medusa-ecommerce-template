@@ -1,6 +1,6 @@
 // The verify tab and the original tab of a magic link sign-in talk on this channel. The messages
 // carry no token, no secret and no session.
-export const SIGN_IN_CHANNEL = "everyday-sign-in"
+export const SIGN_IN_CHANNEL = "store-sign-in"
 
 export type SignInMessage =
   { type: "signed-in"; request_id: string } | { type: "ack"; request_id: string }

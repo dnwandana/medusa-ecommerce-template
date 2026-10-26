@@ -1,7 +1,7 @@
 // The browser keeps the sign-in request here. localStorage is shared by all the tabs of the
 // browser, so the verify tab reads the secret of the original tab. The record holds no token.
 // Only the email link holds the token.
-export const MAGIC_LINK_STORAGE_KEY = "everyday.magicLink"
+export const MAGIC_LINK_STORAGE_KEY = "store.magicLink"
 
 // sent_at is the time of the send in milliseconds (Date.now()).
 export type StoredMagicLink = {

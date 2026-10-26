@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { announceSignIn, listenForSignIn } from "../../app/utils/signInChannel"
+import { announceSignIn, listenForSignIn, SIGN_IN_CHANNEL } from "../../app/utils/signInChannel"
 
 const stops: (() => void)[] = []
 afterEach(() => {
@@ -39,5 +39,9 @@ describe("signInChannel", () => {
     const stop = listenForSignIn("mlr_1", vi.fn())
     expect(() => stop()).not.toThrow()
     expect(await announceSignIn("mlr_1", 50)).toBe(false)
+  })
+
+  it("uses a channel name with no brand name", () => {
+    expect(SIGN_IN_CHANNEL).toBe("store-sign-in")
   })
 })
