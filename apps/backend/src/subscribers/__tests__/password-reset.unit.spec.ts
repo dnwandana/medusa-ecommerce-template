@@ -53,6 +53,24 @@ describe("password-reset subscriber", () => {
     )
   })
 
+  it("uses the localhost default when backendUrl is the Medusa default", async () => {
+    const { container, createNotifications } = makeContainer({ ...admin, backendUrl: "/" })
+    await run(container, { entity_id: "owner@example.com", actor_type: "user", token: "t 1" })
+    expect(createNotifications.mock.calls[0][0].data.reset_url).toBe(
+      "http://localhost:9000/app/reset-password?token=t%201&email=owner%40example.com"
+    )
+  })
+
+  it("uses /app when the admin path is absent", async () => {
+    const { container, createNotifications } = makeContainer({
+      backendUrl: "https://api.shop.example.com",
+    })
+    await run(container, { entity_id: "owner@example.com", actor_type: "user", token: "t" })
+    expect(createNotifications.mock.calls[0][0].data.reset_url).toBe(
+      "https://api.shop.example.com/app/reset-password?token=t&email=owner%40example.com"
+    )
+  })
+
   it("passes the store to the template", async () => {
     const { container, createNotifications } = makeContainer(admin)
 

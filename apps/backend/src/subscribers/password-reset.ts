@@ -1,11 +1,9 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import { adminLink } from "../lib/admin-url"
 import { readStoreForEmail } from "../lib/store-for-email"
 
 type PasswordResetEvent = { entity_id: string; actor_type: string; token: string }
-
-const DEFAULT_BACKEND_URL = "http://localhost:9000"
-const DEFAULT_ADMIN_PATH = "/app"
 
 // Sends the email with the reset link to an admin user. The log messages do not contain the token
 // or the email address.
@@ -22,18 +20,9 @@ export default async function passwordResetHandler({
       return
     }
 
-    const configModule = container.resolve(ContainerRegistrationKeys.CONFIG_MODULE)
-    const admin = configModule.admin ?? {}
-
-    // The Medusa default for backendUrl is "/". The value can also be empty.
-    const backendUrl =
-      !admin.backendUrl || admin.backendUrl === "/"
-        ? DEFAULT_BACKEND_URL
-        : admin.backendUrl.replace(/\/$/, "")
-    const baseUrl = `${backendUrl}${admin.path ?? DEFAULT_ADMIN_PATH}/reset-password`
-
     const reset_url =
-      `${baseUrl}?token=${encodeURIComponent(token)}` + `&email=${encodeURIComponent(entity_id)}`
+      `${adminLink(container, "/reset-password")}?token=${encodeURIComponent(token)}` +
+      `&email=${encodeURIComponent(entity_id)}`
 
     const notificationService = container.resolve(Modules.NOTIFICATION)
     await notificationService.createNotifications({

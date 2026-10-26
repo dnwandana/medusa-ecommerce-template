@@ -1,7 +1,8 @@
 import type { MedusaContainer } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
-// The same defaults as the password reset email.
+// The development defaults: `medusa develop` listens on port 9000, and Medusa serves the admin at
+// "/app" when the config sets no admin path.
 const DEFAULT_BACKEND_URL = "http://localhost:9000"
 const DEFAULT_ADMIN_PATH = "/app"
 
