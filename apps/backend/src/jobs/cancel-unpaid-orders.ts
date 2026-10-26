@@ -2,9 +2,9 @@ import type { MedusaContainer } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { runPaymentTimeout } from "../payment-timeout/run"
 
-// Cancels each unpaid bank transfer order with no receipt 24 hours after the order. The Medusa job
-// loader calls the handler with a context object as the second argument, so the handler reads only
-// the container.
+// Cancels each unpaid bank transfer order with no receipt after the deadline of
+// BANK_TRANSFER_DEADLINE_HOURS. The Medusa job loader calls the handler with a context object as
+// the second argument, so the handler reads only the container.
 export default async function cancelUnpaidOrdersJob(container: MedusaContainer): Promise<void> {
   try {
     await runPaymentTimeout(container)

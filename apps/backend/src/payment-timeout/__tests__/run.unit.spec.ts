@@ -35,13 +35,14 @@ const order = {
   ],
 }
 
+const graph = jest.fn(async () => ({ data: [order] }))
 const run = jest.fn()
 const updateOrders = jest.fn()
 const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() }
 
 const registry: Record<string, unknown> = {
   [ContainerRegistrationKeys.LOGGER]: logger,
-  [ContainerRegistrationKeys.QUERY]: { graph: jest.fn(async () => ({ data: [order] })) },
+  [ContainerRegistrationKeys.QUERY]: { graph },
   [PAYMENT_RECEIPT_MODULE]: {
     listPaymentReceipts: jest.fn().mockResolvedValue([]),
     countReceipts: jest.fn().mockResolvedValue(0),
@@ -80,5 +81,24 @@ describe("runPaymentTimeout", () => {
     expect(logger.error).toHaveBeenCalledWith(
       "The payment timeout did not cancel order order_1. Cause: boom"
     )
+  })
+
+  it("reads the deadline from BANK_TRANSFER_DEADLINE_HOURS", async () => {
+    const saved = process.env.BANK_TRANSFER_DEADLINE_HOURS
+    process.env.BANK_TRANSFER_DEADLINE_HOURS = "48"
+    try {
+      run.mockResolvedValue({})
+      await runPaymentTimeout(container, NOW)
+      const [{ filters }] = graph.mock.calls[0] as unknown as [
+        { filters: { created_at: { $lte: Date } } },
+      ]
+      expect(filters.created_at.$lte).toEqual(new Date(NOW.getTime() - 48 * 60 * 60 * 1000))
+    } finally {
+      if (saved === undefined) {
+        delete process.env.BANK_TRANSFER_DEADLINE_HOURS
+      } else {
+        process.env.BANK_TRANSFER_DEADLINE_HOURS = saved
+      }
+    }
   })
 })

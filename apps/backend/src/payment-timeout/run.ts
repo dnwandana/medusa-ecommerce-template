@@ -2,6 +2,7 @@ import type { MedusaContainer } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { cancelOrderWorkflow } from "@medusajs/medusa/core-flows"
 import { ORDER_PAYMENT_FIELDS, receiptLockKey } from "../api/store/orders/[id]/receipts/route"
+import { bankTransferDeadlineMs } from "../config/payment"
 import { ORDER_CANCEL_REASON } from "../lib/storefront-metadata"
 import { PAYMENT_RECEIPT_MODULE } from "../modules/payment-receipt"
 import type PaymentReceiptModuleService from "../modules/payment-receipt/service"
@@ -30,7 +31,9 @@ export async function runPaymentTimeout(
 ): Promise<{ cancelled: string[]; failed: string[] }> {
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
   const query = container.resolve(ContainerRegistrationKeys.QUERY)
-  const { from, to } = timeoutWindow(now)
+  // One read for the run, so the selection and the check inside the lock use the same deadline.
+  const deadlineMs = bankTransferDeadlineMs(process.env)
+  const { from, to } = timeoutWindow(now, deadlineMs)
 
   const { data } = await query.graph({
     entity: "order",
@@ -57,7 +60,7 @@ export async function runPaymentTimeout(
   const cancelled: string[] = []
   const failed: string[] = []
 
-  for (const orderId of selectExpiredOrders(orders, receiptCounts, now)) {
+  for (const orderId of selectExpiredOrders(orders, receiptCounts, now, deadlineMs)) {
     try {
       // The upload route takes the same lock. Inside the lock, the job reads the order and the
       // receipts again, because a receipt can go in after the selection.
@@ -71,7 +74,10 @@ export async function runPaymentTimeout(
         })
         const count = await receiptModule.countReceipts(orderId)
         const current = order as unknown as QueriedOrder | undefined
-        if (!current || !selectExpiredOrders([current], new Map([[orderId, count]]), now).length) {
+        if (
+          !current ||
+          !selectExpiredOrders([current], new Map([[orderId, count]]), now, deadlineMs).length
+        ) {
           return false
         }
 
