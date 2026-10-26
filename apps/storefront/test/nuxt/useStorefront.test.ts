@@ -32,6 +32,18 @@ describe("useStorefront", () => {
     expect(sdk.client.fetch).toHaveBeenCalledWith("/store/storefront/settings")
   })
 
+  it("returns the empty contact before the settings load", () => {
+    const { settings } = useStorefront()
+
+    expect(settings.value.contact).toEqual({
+      email: null,
+      phone: null,
+      whatsapp: null,
+      address: null,
+      social_links: [],
+    })
+  })
+
   it("shares one request between callers at the same time", async () => {
     sdk.client.fetch.mockResolvedValue(SETTINGS)
 
