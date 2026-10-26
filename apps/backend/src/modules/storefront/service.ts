@@ -1,6 +1,8 @@
 import { MedusaError, MedusaService } from "@medusajs/framework/utils"
+import { EMPTY_CONTACT, type SocialLink, type StoreContact } from "../../lib/store-contact"
 import HomeCampaign, { type HomeCampaignRecord } from "./models/home-campaign"
 import StoreColour from "./models/store-colour"
+import StorefrontContact from "./models/storefront-contact"
 import StorefrontSetting from "./models/storefront-setting"
 import {
   normalizePriceLimits,
@@ -32,6 +34,26 @@ function assertUniqueName(
   }
 }
 
+type StorefrontContactRow = {
+  email: string | null
+  phone: string | null
+  whatsapp: string | null
+  address: string | null
+  social_links: unknown
+}
+
+// Returns the five contact fields of a row, without the id. A null social_links column gives an
+// empty list, so that the callers always get a list.
+function toContact(row: StorefrontContactRow): StoreContact {
+  return {
+    email: row.email ?? null,
+    phone: row.phone ?? null,
+    whatsapp: row.whatsapp ?? null,
+    address: row.address ?? null,
+    social_links: Array.isArray(row.social_links) ? (row.social_links as SocialLink[]) : [],
+  }
+}
+
 // Reads the oldest row, so that the result stays the same if a second row exists.
 const SETTINGS_ROW = { take: 1, order: { created_at: "ASC" as const } }
 
@@ -39,6 +61,7 @@ class StorefrontModuleService extends MedusaService({
   StorefrontSetting,
   StoreColour,
   HomeCampaign,
+  StorefrontContact,
 }) {
   // Returns the storefront settings. Returns the defaults for a missing row or a null field.
   async getSettings(): Promise<StorefrontSettings> {
@@ -61,6 +84,31 @@ class StorefrontModuleService extends MedusaService({
       ? await this.updateStorefrontSettings({ id: existing.id, ...values })
       : await this.createStorefrontSettings(values)
     return resolveSettings(row as StorefrontSettingRow)
+  }
+
+  // Returns the store contact. Returns the empty contact when there is no row.
+  async getContact(): Promise<StoreContact> {
+    const [row] = await this.listStorefrontContacts({}, SETTINGS_ROW)
+    return row ? toContact(row as StorefrontContactRow) : { ...EMPTY_CONTACT, social_links: [] }
+  }
+
+  // Replaces the store contact. The module keeps one contact row, so this method updates the row
+  // when it exists and creates it only when there is none.
+  async setContact(input: StoreContact): Promise<StoreContact> {
+    const values = {
+      email: input.email,
+      phone: input.phone,
+      whatsapp: input.whatsapp,
+      address: input.address,
+      // The generated type of a JSON field is an object, but the jsonb column also stores an
+      // array.
+      social_links: input.social_links as unknown as Record<string, unknown>,
+    }
+    const [existing] = await this.listStorefrontContacts({}, SETTINGS_ROW)
+    const row = existing
+      ? await this.updateStorefrontContacts({ id: existing.id, ...values })
+      : await this.createStorefrontContacts(values)
+    return toContact(row as StorefrontContactRow)
   }
 
   // Returns the store colours in the order of the name.

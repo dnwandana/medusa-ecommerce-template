@@ -39,6 +39,24 @@ medusaIntegrationTestRunner({
         })
       })
 
+      it("keeps one contact row and returns the links in their order", async () => {
+        const service: StorefrontModuleService = getContainer().resolve(STOREFRONT_MODULE)
+        const contact = {
+          email: "store@example.com",
+          phone: "+6281234567890",
+          whatsapp: "+6281234567891",
+          address: "Jl. Merdeka 1\nJakarta",
+          social_links: [
+            { network: "instagram", url: "https://instagram.com/store" },
+            { network: "tiktok", url: "https://tiktok.com/@store" },
+          ],
+        }
+        await service.setContact({ ...contact, phone: null })
+        await service.setContact(contact)
+        expect(await service.listStorefrontContacts({})).toHaveLength(1)
+        expect(await service.getContact()).toEqual(contact)
+      })
+
       it("stores a colour with a lower-case hex", async () => {
         const service: StorefrontModuleService = getContainer().resolve(STOREFRONT_MODULE)
         await service.createColour({ name: "Sage", hex: "#9AA68C" })

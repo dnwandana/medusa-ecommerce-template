@@ -46,6 +46,61 @@ describe("storefront service: settings", () => {
   })
 })
 
+describe("storefront service: contact", () => {
+  const values = {
+    email: "store@example.com",
+    phone: "+6281234567890",
+    whatsapp: null,
+    address: "Jl. Merdeka 1\nJakarta",
+    social_links: [{ network: "instagram", url: "https://instagram.com/store" }],
+  }
+
+  it("returns the empty contact when there is no row", async () => {
+    const self = { listStorefrontContacts: jest.fn().mockResolvedValue([]) }
+    expect(await proto.getContact.call(self)).toEqual({
+      email: null,
+      phone: null,
+      whatsapp: null,
+      address: null,
+      social_links: [],
+    })
+  })
+
+  it("returns an empty list for a null social_links column", async () => {
+    const self = {
+      listStorefrontContacts: jest.fn().mockResolvedValue([
+        {
+          id: "sc_1",
+          email: "a@b.co",
+          phone: null,
+          whatsapp: null,
+          address: null,
+          social_links: null,
+        },
+      ]),
+    }
+    expect((await proto.getContact.call(self)).social_links).toEqual([])
+  })
+
+  it("creates the row on the first save", async () => {
+    const self = {
+      listStorefrontContacts: jest.fn().mockResolvedValue([]),
+      createStorefrontContacts: jest.fn().mockImplementation(async (v) => ({ id: "sc_1", ...v })),
+    }
+    expect(await proto.setContact.call(self, values)).toEqual(values)
+    expect(self.createStorefrontContacts).toHaveBeenCalledWith(values)
+  })
+
+  it("updates the one row when it exists", async () => {
+    const self = {
+      listStorefrontContacts: jest.fn().mockResolvedValue([{ id: "sc_1" }]),
+      updateStorefrontContacts: jest.fn().mockImplementation(async (v) => v),
+    }
+    expect(await proto.setContact.call(self, values)).toEqual(values)
+    expect(self.updateStorefrontContacts).toHaveBeenCalledWith({ id: "sc_1", ...values })
+  })
+})
+
 describe("storefront service: store colours", () => {
   const existing = [{ id: "col_1", name: "Sage", hex: "#9aa68c" }]
 
