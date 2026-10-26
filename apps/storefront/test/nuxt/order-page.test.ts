@@ -12,12 +12,14 @@ import {
 import { clearNuxtData } from "#imports"
 import OrderPage from "~/pages/orders/[id].vue"
 import type { OrderTracking } from "~/composables/useOrders"
+import { STOREFRONT_DEFAULTS, type StoreContact } from "~/types/storefront"
 import type { CustomerStatus, OrderPaymentState } from "~/utils/orderStatus"
 import { readHead } from "./helpers/head"
 
-const { orders, bankTransfer, receipts, toast, status } = vi.hoisted(() => ({
+const { orders, bankTransfer, storefront, receipts, toast, status } = vi.hoisted(() => ({
   orders: { getOrder: vi.fn(), listOrders: vi.fn(), getTracking: vi.fn() },
   bankTransfer: { getDetails: vi.fn() },
+  storefront: { ensureSettings: vi.fn() },
   receipts: { uploadReceipt: vi.fn(), getPaymentStates: vi.fn() },
   toast: { success: vi.fn(), error: vi.fn() },
   // null keeps the real customerStatus, so that the payment tests use the real rules.
@@ -26,6 +28,11 @@ const { orders, bankTransfer, receipts, toast, status } = vi.hoisted(() => ({
 
 mockNuxtImport("useOrders", () => () => orders)
 mockNuxtImport("useBankTransfer", () => () => bankTransfer)
+mockNuxtImport("useStorefront", () => () => ({
+  settings: computed(() => STOREFRONT_DEFAULTS),
+  ensureSettings: storefront.ensureSettings,
+  getHomeCampaign: vi.fn(),
+}))
 mockNuxtImport("useReceipts", () => () => receipts)
 vi.mock("vue-sonner", () => ({ toast }))
 mockNuxtImport(
@@ -70,9 +77,16 @@ const details = {
   bank_accounts: [
     { id: "ba_1", bank_name: "BCA", account_number: "0123456789", account_holder: "Toko" },
   ],
-  contact: { email: "halo@everyday.id", whatsapp: null },
   enabled: true,
   deadline_hours: 48,
+}
+
+const storeContact: StoreContact = {
+  email: "halo@everyday.id",
+  phone: "+622155500100",
+  whatsapp: null,
+  address: null,
+  social_links: [],
 }
 
 const shipment = {
@@ -149,6 +163,8 @@ beforeEach(() => {
   orders.getTracking.mockImplementation(async () => tracking.value)
   bankTransfer.getDetails.mockReset()
   bankTransfer.getDetails.mockResolvedValue(details)
+  storefront.ensureSettings.mockReset()
+  storefront.ensureSettings.mockResolvedValue({ ...STOREFRONT_DEFAULTS, contact: storeContact })
   toast.success.mockReset()
 })
 
@@ -191,7 +207,7 @@ describe("order page", () => {
       const wrapper = await mountPage()
       const block = wrapper.findComponent(OrderStatusBlock)
       expect(block.props("cancelReason")).toBe("payment_timeout")
-      expect(block.props("contact")).toEqual(details.contact)
+      expect(block.props("contact")).toEqual(storeContact)
       expect(wrapper.findComponent(OrderTracker).exists()).toBe(false)
       expect(wrapper.find('[data-testid="related"]').exists()).toBe(false)
       expect(wrapper.findComponent(BankTransferInstructions).exists()).toBe(false)
@@ -207,11 +223,30 @@ describe("order page", () => {
     expect(wrapper.findComponent(OrderStatusBlock).props("refunded")).toBe(776000)
   })
 
+  it("passes the settings contact to the status block of a cancelled order", async () => {
+    status.value = "cancelled"
+    const wrapper = await mountPage()
+    const block = wrapper.findComponent(OrderStatusBlock)
+    expect(block.get("a[href='tel:+622155500100']").text()).toBe("+622155500100")
+    // The bank transfer details still give the deadline hours.
+    expect(bankTransfer.getDetails).toHaveBeenCalled()
+    expect(block.props("deadlineHours")).toBe(48)
+  })
+
   it("still shows the status block when the store contact does not load", async () => {
+    status.value = "cancelled"
+    storefront.ensureSettings.mockRejectedValue(new Error("HTTP 500"))
+    const wrapper = await mountPage()
+    expect(wrapper.findComponent(OrderStatusBlock).props("contact")).toBeNull()
+    expect(wrapper.findComponent(OrderStatusBlock).props("deadlineHours")).toBe(48)
+    expect(wrapper.get("h1").text()).toBe("Your order is cancelled.")
+  })
+
+  it("still shows the status block when the deadline hours do not load", async () => {
     status.value = "cancelled"
     bankTransfer.getDetails.mockRejectedValue(new Error("HTTP 500"))
     const wrapper = await mountPage()
-    expect(wrapper.findComponent(OrderStatusBlock).props("contact")).toBeNull()
+    expect(wrapper.findComponent(OrderStatusBlock).props("contact")).toEqual(storeContact)
     expect(wrapper.findComponent(OrderStatusBlock).props("deadlineHours")).toBeNull()
     expect(wrapper.get("h1").text()).toBe("Your order is cancelled.")
   })
@@ -247,7 +282,7 @@ describe("order page", () => {
     expect(aside.text()).toContain("Contact us, in English or Bahasa Indonesia.")
     expect(aside.get('a[href="/contact"]').text()).toBe("Contact us")
     expect(aside.get('a[href="/products"]').text()).toBe("Continue shopping")
-    // A processing order needs no bank details and no store contact.
+    // A processing order needs no bank details and no deadline hours.
     expect(bankTransfer.getDetails).not.toHaveBeenCalled()
   })
 
@@ -334,7 +369,7 @@ describe("order page", () => {
     expect(wrapper.findComponent(BankTransferInstructions).props("note")).toBeNull()
     const panel = wrapper.findComponent(ReceiptPanel)
     expect(panel.exists()).toBe(true)
-    expect(panel.props("contact")).toEqual(details.contact)
+    expect(panel.props("contact")).toEqual(storeContact)
     // Both parts come before the order summary.
     expect(wrapper.html().indexOf("Your receipt")).toBeLessThan(
       wrapper.html().indexOf('data-testid="order-details"')

@@ -1,8 +1,21 @@
 import { mountSuspended } from "@nuxt/test-utils/runtime"
 import { describe, expect, it } from "vitest"
 import OrderStatusBlock from "~/components/OrderStatusBlock.vue"
+import type { StoreContact } from "~/types/storefront"
 
-const contact = { email: "halo@everyday.id", whatsapp: "+62 812-3456-7890" }
+const NO_CONTACT: StoreContact = {
+  email: null,
+  phone: null,
+  whatsapp: null,
+  address: null,
+  social_links: [],
+}
+
+const contact: StoreContact = {
+  ...NO_CONTACT,
+  email: "halo@everyday.id",
+  whatsapp: "+62 812-3456-7890",
+}
 
 describe("OrderStatusBlock", () => {
   it("explains a cancel after 24 hours with no payment", async () => {
@@ -90,11 +103,45 @@ describe("OrderStatusBlock", () => {
         status: "cancelled",
         cancelReason: null,
         refunded: 0,
-        contact: { email: null, whatsapp: "+62 812-3456-7890" },
+        contact: { ...NO_CONTACT, whatsapp: "+62 812-3456-7890" },
       },
     })
     expect(wrapper.findAll("a")).toHaveLength(1)
     expect(wrapper.text()).toContain("Contact us:")
+    expect(wrapper.text()).not.toContain(" or ")
+  })
+
+  it("lists email, WhatsApp, and phone in one sentence", async () => {
+    const wrapper = await mountSuspended(OrderStatusBlock, {
+      props: {
+        status: "cancelled",
+        cancelReason: null,
+        refunded: 0,
+        contact: {
+          ...NO_CONTACT,
+          email: "a@store.id",
+          whatsapp: "+6281234567890",
+          phone: "+622155500100",
+        },
+        deadlineHours: null,
+      },
+    })
+    expect(wrapper.text()).toContain("Contact us: a@store.id, +6281234567890 or +622155500100")
+    expect(wrapper.get("a[href='tel:+622155500100']").text()).toBe("+622155500100")
+  })
+
+  it("shows only the phone when it is the only value", async () => {
+    const wrapper = await mountSuspended(OrderStatusBlock, {
+      props: {
+        status: "cancelled",
+        cancelReason: null,
+        refunded: 0,
+        contact: { ...NO_CONTACT, phone: "+622155500100" },
+        deadlineHours: null,
+      },
+    })
+    expect(wrapper.text()).toContain("Contact us: +622155500100")
+    expect(wrapper.findAll("a")).toHaveLength(1)
     expect(wrapper.text()).not.toContain(" or ")
   })
 
@@ -104,7 +151,7 @@ describe("OrderStatusBlock", () => {
         status: "cancelled",
         cancelReason: null,
         refunded: 0,
-        contact: { email: null, whatsapp: null },
+        contact: NO_CONTACT,
       },
     })
     expect(wrapper.text()).not.toContain("Contact us:")

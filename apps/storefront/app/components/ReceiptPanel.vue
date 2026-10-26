@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { FileImage, Mail, MessageCircle } from "@lucide/vue"
-import type { BankTransferDetails } from "~/composables/useBankTransfer"
+import { FileImage, Mail, MessageCircle, Phone } from "@lucide/vue"
+import type { StoreContact } from "~/types/storefront"
 import type { OrderPaymentState } from "~/utils/orderStatus"
 import { whatsappHref } from "~/utils/orderNotices"
 
 const props = defineProps<{
   orderId: string
   state: OrderPaymentState
-  contact: BankTransferDetails["contact"] | null
+  contact: StoreContact | null
 }>()
 const emit = defineEmits<{ uploaded: [] }>()
 
@@ -26,6 +26,7 @@ const whatsapp = computed(() => {
   const href = whatsappHref(props.contact?.whatsapp)
   return href ? { href, text: props.contact!.whatsapp! } : null
 })
+const phone = computed(() => props.contact?.phone || null)
 </script>
 
 <template>
@@ -91,6 +92,14 @@ const whatsapp = computed(() => {
             rel="noopener noreferrer"
             class="inline-flex min-h-11 items-center break-all text-link underline underline-offset-4 hover:text-muted-foreground"
             >{{ whatsapp.text }}</a
+          >
+        </p>
+        <p v-if="phone" class="flex items-center gap-2 text-body-sm">
+          <Phone :stroke-width="1.5" aria-hidden="true" class="size-4 flex-none" />
+          <a
+            :href="`tel:${phone}`"
+            class="inline-flex min-h-11 items-center break-all text-link underline underline-offset-4 hover:text-muted-foreground"
+            >{{ phone }}</a
           >
         </p>
       </div>

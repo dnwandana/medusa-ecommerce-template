@@ -11,6 +11,7 @@ const { t, locale } = useI18n()
 const route = useRoute()
 const { getOrder, getTracking } = useOrders()
 const { getDetails } = useBankTransfer()
+const { ensureSettings } = useStorefront()
 
 const { data: order, refresh } = await useAsyncData(
   () => `order:${locale.value}:${route.params.id}`,
@@ -34,45 +35,53 @@ const paymentDeadline = computed(() => {
 
 const NO_TRACKING: OrderTracking = { cancel_reason: null, shipments: [] }
 
-const [{ data: bankDetails }, { data: tracking }, { data: storeContact }] = await Promise.all([
-  // The bank panel reads the accounts. The receipt panel reads the contact.
-  useAsyncData(
-    () => `bank-transfer:${route.params.id}`,
-    async (): Promise<Pick<BankTransferDetails, "bank_accounts" | "contact"> | null> => {
-      if (!awaitingBankTransfer.value) {
-        return null
+const [{ data: bankDetails }, { data: tracking }, { data: storeContact }, { data: deadlineHours }] =
+  await Promise.all([
+    // The bank panel reads the accounts.
+    useAsyncData(
+      () => `bank-transfer:${route.params.id}`,
+      async (): Promise<Pick<BankTransferDetails, "bank_accounts"> | null> => {
+        if (!awaitingBankTransfer.value) {
+          return null
+        }
+        try {
+          return { bank_accounts: (await getDetails()).bank_accounts }
+        } catch {
+          // A failed request must not hide the order. The bank panel then shows the contact text.
+          return { bank_accounts: [] }
+        }
       }
-      try {
-        return await getDetails()
-      } catch {
-        // A failed request must not hide the order. The bank panel then shows the contact text.
-        return { bank_accounts: [], contact: { email: null, whatsapp: null } }
+    ),
+    // A failed request must not hide the order. The page then shows no shipment.
+    useAsyncData(
+      () => `order-tracking:${route.params.id}`,
+      async (): Promise<OrderTracking> => {
+        try {
+          return (await getTracking(String(route.params.id))) ?? NO_TRACKING
+        } catch {
+          return NO_TRACKING
+        }
       }
-    }
-  ),
-  // A failed request must not hide the order. The page then shows no shipment.
-  useAsyncData(
-    () => `order-tracking:${route.params.id}`,
-    async (): Promise<OrderTracking> => {
-      try {
-        return (await getTracking(String(route.params.id))) ?? NO_TRACKING
-      } catch {
-        return NO_TRACKING
+    ),
+    // The receipt panel and the status block show the store contact. The contact page uses the
+    // same key and the same handler, so the pages share the data. A failed request leaves data
+    // empty, and the order still shows.
+    useAsyncData("store-contact", async () => (await ensureSettings()).contact),
+    // Only the status block of a cancelled or refunded order names the payment deadline.
+    useAsyncData(
+      () => `bank-transfer-deadline:${route.params.id}`,
+      async (): Promise<number | null> => {
+        if (!closed.value) {
+          return null
+        }
+        try {
+          return (await getDetails()).deadline_hours
+        } catch {
+          return null
+        }
       }
-    }
-  ),
-  // Only the status block of a cancelled or refunded order shows the store contact.
-  useAsyncData("store-contact", async (): Promise<BankTransferDetails | null> => {
-    if (!closed.value) {
-      return null
-    }
-    try {
-      return await getDetails()
-    } catch {
-      return null
-    }
-  }),
-])
+    ),
+  ])
 
 const cancelReason = computed(() => tracking.value?.cancel_reason ?? null)
 const shipments = computed(() => tracking.value?.shipments ?? [])
@@ -162,7 +171,7 @@ useHead({ title: () => t("order.number", { id: order.value?.display_id }) })
           <ReceiptPanel
             :order-id="order.id"
             :state="order.payment_state"
-            :contact="bankDetails?.contact ?? null"
+            :contact="storeContact ?? null"
             @uploaded="onReceiptUploaded"
           />
         </template>
@@ -172,8 +181,8 @@ useHead({ title: () => t("order.number", { id: order.value?.display_id }) })
           :status="status"
           :cancel-reason="cancelReason"
           :refunded="refunded"
-          :contact="storeContact?.contact ?? null"
-          :deadline-hours="storeContact?.deadline_hours ?? null"
+          :contact="storeContact ?? null"
+          :deadline-hours="deadlineHours ?? null"
         />
         <OrderTracker v-else :steps="steps" />
 

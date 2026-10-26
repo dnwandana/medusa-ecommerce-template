@@ -1,9 +1,7 @@
 <script setup lang="ts">
 import { Info } from "@lucide/vue"
-import type { BankTransferDetails } from "~/composables/useBankTransfer"
+import type { StoreContact } from "~/types/storefront"
 import { cancelNoticeKey, whatsappHref } from "~/utils/orderNotices"
-
-type StoreContact = BankTransferDetails["contact"]
 
 const props = defineProps<{
   status: "cancelled" | "refunded"
@@ -26,10 +24,26 @@ const cancelNotice = computed(() => {
 })
 
 const showRefund = computed(() => props.status === "refunded" || props.refunded > 0)
-const email = computed(() => props.contact?.email || null)
-const whatsapp = computed(() => {
-  const href = whatsappHref(props.contact?.whatsapp)
-  return href ? { href, text: props.contact!.whatsapp! } : null
+// The sentence lists the present values in this order: email, WhatsApp, phone.
+const links = computed(() => {
+  const contact = props.contact
+  const list: { key: string; href: string; text: string; external: boolean }[] = []
+  if (contact?.email) {
+    list.push({
+      key: "email",
+      href: `mailto:${contact.email}`,
+      text: contact.email,
+      external: false,
+    })
+  }
+  const whatsapp = whatsappHref(contact?.whatsapp)
+  if (whatsapp) {
+    list.push({ key: "whatsapp", href: whatsapp, text: contact!.whatsapp!, external: true })
+  }
+  if (contact?.phone) {
+    list.push({ key: "phone", href: `tel:${contact.phone}`, text: contact.phone, external: false })
+  }
+  return list
 })
 </script>
 
@@ -44,24 +58,21 @@ const whatsapp = computed(() => {
         {{ $t("order.refundedAmount", { amount: formatPrice(refunded) }) }}
       </p>
       <!-- Separate text nodes keep the word order of each language around the links. -->
-      <p v-if="email || whatsapp" class="text-body-sm text-muted-foreground">
+      <p v-if="links.length" class="text-body-sm text-muted-foreground">
         {{ $t("order.contactUs") }}
-        <a
-          v-if="email"
-          :href="`mailto:${email}`"
-          class="inline-flex min-h-11 items-center break-all text-link underline underline-offset-4 hover:text-muted-foreground"
-          >{{ email }}</a
-        >
-        <!-- The template compiler removes the white space between two elements. -->
-        <template v-if="email && whatsapp">{{ ` ${$t("order.or")} ` }}</template>
-        <a
-          v-if="whatsapp"
-          :href="whatsapp.href"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="inline-flex min-h-11 items-center break-all text-link underline underline-offset-4 hover:text-muted-foreground"
-          >{{ whatsapp.text }}</a
-        >
+        <template v-for="(link, index) in links" :key="link.key">
+          <!-- The template compiler removes the white space between two elements. -->
+          <template v-if="index > 0">{{
+            index === links.length - 1 ? ` ${$t("order.or")} ` : ", "
+          }}</template>
+          <a
+            :href="link.href"
+            :target="link.external ? '_blank' : undefined"
+            :rel="link.external ? 'noopener noreferrer' : undefined"
+            class="inline-flex min-h-11 items-center break-all text-link underline underline-offset-4 hover:text-muted-foreground"
+            >{{ link.text }}</a
+          >
+        </template>
       </p>
     </div>
   </div>

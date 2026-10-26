@@ -1,6 +1,7 @@
 import { mockNuxtImport, mountSuspended } from "@nuxt/test-utils/runtime"
 import { describe, expect, it, vi } from "vitest"
 import { ReceiptPanel, ReceiptUploadForm } from "#components"
+import type { StoreContact } from "~/types/storefront"
 
 const { receipts } = vi.hoisted(() => ({
   receipts: { uploadReceipt: vi.fn(), getPaymentStates: vi.fn() },
@@ -19,7 +20,18 @@ const state = (n: number) => ({
     created_at: "2026-10-17T07:30:00Z",
   })),
 })
-const contact = { email: "halo@everyday.id", whatsapp: "+6281234567890" }
+const NO_CONTACT: StoreContact = {
+  email: null,
+  phone: null,
+  whatsapp: null,
+  address: null,
+  social_links: [],
+}
+const contact: StoreContact = {
+  ...NO_CONTACT,
+  email: "halo@everyday.id",
+  whatsapp: "+6281234567890",
+}
 
 describe("ReceiptPanel", () => {
   it("asks for the first receipt", async () => {
@@ -100,9 +112,26 @@ describe("ReceiptPanel", () => {
     expect(wrapper.findComponent(ReceiptUploadForm).exists()).toBe(false)
   })
 
+  it("shows the phone row with a tel link", async () => {
+    const wrapper = await mountSuspended(ReceiptPanel, {
+      props: {
+        orderId: "order_1",
+        state: state(3),
+        contact: { ...contact, phone: "+622155500100" },
+      },
+    })
+
+    expect(wrapper.get('a[href="tel:+622155500100"]').text()).toBe("+622155500100")
+    // The phone row comes after the WhatsApp row.
+    const hrefs = wrapper.findAll("a").map((link) => link.attributes("href"))
+    expect(hrefs.indexOf("tel:+622155500100")).toBeGreaterThan(
+      hrefs.findIndex((href) => href?.startsWith("https://wa.me/"))
+    )
+  })
+
   it("shows only the text at 3 receipts when the store has no contact", async () => {
     const wrapper = await mountSuspended(ReceiptPanel, {
-      props: { orderId: "order_1", state: state(3), contact: { email: null, whatsapp: null } },
+      props: { orderId: "order_1", state: state(3), contact: NO_CONTACT },
     })
 
     expect(wrapper.text()).toContain("You cannot upload more receipts.")
