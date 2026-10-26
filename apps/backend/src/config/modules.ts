@@ -22,6 +22,17 @@ function checkProductionServices(env: Env): void {
   }
 }
 
+// Stops a split server or worker start that has no Redis, also outside production. The two
+// processes then share no events and no locks, and the subscribers never run with no error.
+function checkWorkerModeServices(env: Env): void {
+  const mode = env.MEDUSA_WORKER_MODE || "shared"
+  if (mode !== "shared" && !env.REDIS_URL) {
+    throw new Error(
+      `MEDUSA_WORKER_MODE=${mode} needs Redis. Set REDIS_URL, or set MEDUSA_WORKER_MODE=shared.`
+    )
+  }
+}
+
 // Returns the Redis modules. Returns an empty list when REDIS_URL has no value,
 // so that the tests can run without Redis.
 function redisModules(env: Env): ModuleEntry[] {
@@ -276,6 +287,7 @@ function fileModule(env: Env): ModuleEntry[] {
 // Returns the module list for medusa-config.ts. It reads only the given env object.
 export function buildModules(env: Env): ModuleEntry[] {
   checkProductionServices(env)
+  checkWorkerModeServices(env)
 
   return [
     ...redisModules(env),

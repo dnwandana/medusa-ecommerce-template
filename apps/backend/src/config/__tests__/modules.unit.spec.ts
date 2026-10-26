@@ -439,3 +439,23 @@ describe("buildModules: production services", () => {
     }
   )
 })
+
+describe("buildModules: split worker mode", () => {
+  // Review Focus: a staging server can split the processes with a NODE_ENV that is not production.
+  it.each(["server", "worker"])("stops a %s start with no REDIS_URL outside production", (mode) => {
+    expect(() =>
+      buildModules({ NODE_ENV: "staging", MEDUSA_WORKER_MODE: mode, REDIS_URL: "" })
+    ).toThrow(
+      `MEDUSA_WORKER_MODE=${mode} needs Redis. Set REDIS_URL, or set MEDUSA_WORKER_MODE=shared.`
+    )
+  })
+
+  it.each([undefined, "", "shared"])("allows no Redis when MEDUSA_WORKER_MODE is %s", (mode) => {
+    expect(() => buildModules({ MEDUSA_WORKER_MODE: mode })).not.toThrow()
+  })
+
+  it("allows a split start with REDIS_URL", () => {
+    const list = resolves({ MEDUSA_WORKER_MODE: "worker", REDIS_URL: "redis://localhost:6379" })
+    expect(list).toContain("@medusajs/medusa/event-bus-redis")
+  })
+})
