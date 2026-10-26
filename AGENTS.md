@@ -75,7 +75,9 @@ pnpm format:check
 - Custom Store API routes that the storefront uses:
   - `/store/reviews`, `/store/products/:id/reviews`, `/store/customers/me/reviewable-items`.
   - `/store/customers/me/wishlist`, `/store/customers/me/wishlist/items[/:id]`.
-  - `/store/bank-transfer`.
+  - `/store/bank-transfer`. It also returns `enabled` (`BANK_TRANSFER_ENABLED`) and
+    `deadline_hours` (`BANK_TRANSFER_DEADLINE_HOURS`). The storefront reads the two values only
+    from this route.
   - `/store/storefront/settings`, `/store/storefront/home-campaign`,
     `/store/storefront/home-categories`.
   - `/store/storefront/catalog/filters`, `/store/storefront/catalog/products`. The catalog routes
@@ -84,7 +86,8 @@ pnpm format:check
   - `/store/magic-link[/verify|/confirm|/status|/session]`, `/store/customers/me/welcome`.
   - `/store/orders/:id/tracking`.
   - `/store/orders/:id/receipts`, `/store/payment-states`. The storefront adds the payment state of
-    each order as `order.payment_state`.
+    each order as `order.payment_state`. `payment_state.deadline_at` is the payment deadline of a
+    bank transfer order, and `null` for other orders.
 - Custom Admin API routes that the order widget uses: `/admin/orders/:id/receipts`,
   `/admin/orders/:id/receipts/accept`, `/admin/orders/:id/receipts/ask-for-more`, and
   `/admin/orders/:id/receipts/cancel`.
@@ -116,6 +119,8 @@ pnpm format:check
     stock of a variant crosses the low stock threshold.
 - To change the email provider, read `docs/email/README.md` and the doc of the provider. The
   template sends over SMTP with the `smtp` provider. Development sends to Mailpit.
+  - With no `SMTP_HOST`, the `email-log` provider gets the email channel. It renders each email
+    and logs the template and the subject. Outside production, it also logs the text.
 - The store has one region (Indonesia), one currency (`idr`), and amounts in whole rupiah. No code
   divides an amount by 100.
 - Provider ids that both apps depend on:
@@ -128,7 +133,8 @@ pnpm format:check
 
 1. The storefront `/checkout` page updates the cart, lists the shipping options, and adds a
    shipping method.
-2. The storefront lists the payment providers of the region. The customer selects one.
+2. The storefront lists the enabled payment providers of the region. It drops bank transfer when
+   `enabled` from `/store/bank-transfer` is `false`. The customer selects one.
 3. The storefront calls `initiatePaymentSession` with the selected provider id and the customer
    object (`startPayment` in `apps/storefront/app/composables/useCheckout.ts`).
 4. Bank transfer: the session has no `payment_url`. The storefront completes the cart at once and
@@ -139,7 +145,8 @@ pnpm format:check
      The `payment.captured` subscriber then sends the `payment-confirmed` email.
    - **Cancel order** in the order widget takes an optional note. The note goes into the
      `order-cancelled` email.
-   - The job `cancel-unpaid-orders` cancels an unpaid order with no receipt after 24 hours.
+   - The job `cancel-unpaid-orders` cancels an unpaid order with no receipt after
+     `BANK_TRANSFER_DEADLINE_HOURS` (default 24).
 5. Redirect gateway: the session has an https `payment_url`. The browser goes to that page. The
    gateway redirects to `${STOREFRONT_URL}/checkout/return`, a URL with no locale prefix. The
    return page calls `cart.complete` with retries.
@@ -159,14 +166,26 @@ pnpm format:check
 ## Production
 
 - `docker-compose.yml` has the services `caddy`, `storefront`, `medusa-server`,
-  `medusa-worker`, `postgres`, and `redis`. Only `caddy` publishes ports.
+  `medusa-worker`, `postgres`, and `redis`.
+- `COMPOSE_PROFILES` in `.env` selects the profiles `postgres`, `redis`, and `caddy`. Each profile
+  starts the service with the same name. The other services always start. Do not edit
+  `docker-compose.yml` for a managed service or a different proxy.
+- With the `caddy` profile, only `caddy` publishes ports. Without it, no service publishes a port.
 - The server env file is `.env`, from `.env.example`. Compose reads `docker-compose.yml` and
   `.env` automatically. Development uses `docker-compose.local.yml` and never a root `.env`.
 - `medusa-server` and `medusa-worker` use one image (`store-backend`). Only `medusa-server` builds it.
-- The Caddy hosts are `<domain>` (storefront) and `api.<domain>` (backend). The product images
-  use the public URL of the S3 store (`S3_FILE_URL`).
+- The hosts come from `STOREFRONT_URL` (storefront) and `MEDUSA_BACKEND_URL` (backend). By
+  default, they are `<domain>` and `api.<domain>`. Compose and the `Caddyfile` read the two keys.
+  The product images use the public URL of the S3 store (`S3_FILE_URL`).
 - Production requires `REDIS_URL` and the S3 keys. With `NODE_ENV=production`, the backend stops
   at startup without `REDIS_URL` or `S3_BUCKET`.
+- These backend keys are optional. An empty value gives the default. A bad value stops the backend
+  at startup.
+  - `SESSION_TTL_HOURS`: a positive whole number. The default is `168`.
+  - `BANK_TRANSFER_ENABLED`: `true` or `false`. The default is `true`. With `false`, the backend
+    also stops at startup when no gateway provider is registered.
+  - `BANK_TRANSFER_DEADLINE_HOURS`: a positive whole number. The default is `24`.
+  - `S3_FORCE_PATH_STYLE`: `true` or `false`. The default is `true`.
 - A deploy has these steps. `docs/deployment.md` gives the commands.
   1. Pull the code.
   2. Check `.env` against the rules in `docs/deployment.md`.

@@ -31,7 +31,7 @@ of your store.
 | `docs/development.md`      | Local setup from an empty machine, step by step.                                 |
 | `docs/deployment.md`       | Production setup on one server.                                                  |
 | `docker-compose.yml`       | Production services.                                                             |
-| `docker-compose.local.yml` | Development services: PostgreSQL, Redis, and Garage.                             |
+| `docker-compose.local.yml` | Development services: PostgreSQL, Redis, Garage, and Mailpit.                    |
 | `Caddyfile`                | Reverse proxy and TLS for production.                                            |
 | `garage.toml`              | Garage (S3 storage) configuration for development.                               |
 
@@ -63,7 +63,7 @@ Browser ──> Nuxt storefront (:3000) ──> Medusa server (:9000) ──> Po
 - Redis 7 or higher (optional in development)
 - Garage v2.4.1 (from `docker-compose.local.yml`)
 
-Start PostgreSQL, Redis, and Garage from `docker-compose.local.yml`:
+Start PostgreSQL, Redis, Garage, and Mailpit from `docker-compose.local.yml`:
 
 ```bash
 docker compose -f docker-compose.local.yml up -d --wait
@@ -125,14 +125,17 @@ The store runs on one server with Docker Compose. You build the images on the se
 migrations, and start the services with `docker compose` commands. Caddy is the only service that
 publishes ports.
 
-| Service         | Function                                                |
-| --------------- | ------------------------------------------------------- |
-| `caddy`         | TLS and reverse proxy for `<domain>` and `api.<domain>` |
-| `storefront`    | Nuxt server                                             |
-| `medusa-server` | Medusa HTTP API and admin dashboard                     |
-| `medusa-worker` | Medusa scheduled jobs and event subscribers             |
-| `postgres`      | Database                                                |
-| `redis`         | Event bus, workflow engine, cache, and locks            |
+`COMPOSE_PROFILES` in `.env` selects the profiles `postgres`, `redis`, and `caddy`. Each profile
+starts the service with the same name. Remove a profile for a managed service or a different proxy.
+
+| Service         | Function                                                                    |
+| --------------- | --------------------------------------------------------------------------- |
+| `caddy`         | TLS and reverse proxy for `<domain>` and `api.<domain>` (the default hosts) |
+| `storefront`    | Nuxt server                                                                 |
+| `medusa-server` | Medusa HTTP API and admin dashboard                                         |
+| `medusa-worker` | Medusa scheduled jobs and event subscribers                                 |
+| `postgres`      | Database                                                                    |
+| `redis`         | Event bus, workflow engine, cache, and locks                                |
 
 See [docs/deployment.md](docs/deployment.md) for the full procedure: the server, the DNS records,
 the environment file, the first deploy, the payments, and the backups.

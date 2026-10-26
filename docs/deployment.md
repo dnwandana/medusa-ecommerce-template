@@ -2,12 +2,14 @@
 
 This procedure installs the store on one server with Docker Compose. Do the sections in sequence
 for the first deploy. In this document, `<domain>` is the domain of the store, for example
-`example.com`.
+`example.com`. The URLs in the commands use the default hosts `<domain>` and `api.<domain>`. If
+you set `STOREFRONT_URL` or `MEDUSA_BACKEND_URL`, use the hosts of these keys.
 
 ## Server
 
 - 2 vCPU and 4 GB of RAM or more, with Ubuntu 24.04 or a different current Linux.
-- Docker Engine with the Compose plugin, `git`, and `rsync`.
+- Docker Engine with the Compose plugin v2.20 or later, `git`, and `rsync`. The Compose file
+  uses `required: false` in `depends_on`, and older versions do not support it.
 - Open ports: 22, 80, and 443 (TCP), and 443 (UDP).
 - A second server or a storage service that accepts `rsync` through SSH, for the backups.
 
@@ -15,15 +17,18 @@ The commands in this document run as a user in the `docker` group. Only the swap
 
 ## DNS records
 
-Make an A record for each of the two names. Each record points to the server address.
+Make an A record for each of the two hosts. Each record points to the server address. The hosts
+are the hosts of `STOREFRONT_URL` and `MEDUSA_BACKEND_URL`. By default, they are `<domain>` and
+`api.<domain>`.
 
-| Name           | Service                      |
-| -------------- | ---------------------------- |
-| `<domain>`     | Storefront                   |
-| `api.<domain>` | Medusa API and the dashboard |
+| Name                                              | Service                      |
+| ------------------------------------------------- | ---------------------------- |
+| The host of `STOREFRONT_URL` (`<domain>`)         | Storefront                   |
+| The host of `MEDUSA_BACKEND_URL` (`api.<domain>`) | Medusa API and the dashboard |
 
-Make the records before the first deploy. Caddy gets the HTTPS certificates when it starts, and the
-certificate authority must find the server through these records.
+Make the records before the first deploy. With the `caddy` profile, Caddy gets the HTTPS
+certificates when it starts, and the certificate authority must find the server through these
+records.
 
 The product images use the public URL of the S3 store. See
 [S3 store: one-time setup](#s3-store-one-time-setup).
@@ -55,8 +60,8 @@ free -h
 
 ## Environment file
 
-The file `.env` holds the domain and the secrets. The Compose file makes all other values from
-it. The file is not in git.
+The file `.env` holds the domain, the secrets, and the choices of the deploy. The Compose file
+makes the other values from it. The file is not in git.
 
 1. Get the repository, and make the environment file from the example.
 
@@ -73,35 +78,45 @@ chmod 600 .env
 openssl rand -hex 32
 ```
 
-3. Open `.env` in an editor, and set the values of the table below.
+3. Open `.env` in an editor, and set the values of the table below. An optional key can stay
+   empty. An empty key gives the default of the table.
 
 Do not use the characters `$` and `` ` `` in a value. Compose can expand these characters.
 
-| Key                      | Purpose                                                                                                                                                                                                      | Value                                                                                                                                                                                                         |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DOMAIN`                 | The storefront host. The Compose file makes `api.<domain>` from it.                                                                                                                                          | The host name only, for example `example.com`. Do not add `https://` or a path.                                                                                                                               |
-| `ACME_EMAIL`             | Caddy gives this address to the certificate authority.                                                                                                                                                       | Your email address.                                                                                                                                                                                           |
-| `POSTGRES_PASSWORD`      | The password of the database user `postgres`.                                                                                                                                                                | `openssl rand -hex 32`. Use only letters, digits, `-`, and `_`.                                                                                                                                               |
-| `JWT_SECRET`             | Medusa signs the authentication tokens with this secret.                                                                                                                                                     | `openssl rand -hex 32`. Use 32 characters or more.                                                                                                                                                            |
-| `COOKIE_SECRET`          | Medusa signs the session cookie with this secret.                                                                                                                                                            | `openssl rand -hex 32`. Use 32 characters or more.                                                                                                                                                            |
-| `REDIS_URL`              | Medusa keeps the events, the workflows, the cache, and the locks in Redis. The backend stops at startup when this key is empty.                                                                              | `redis://redis:6379`, the `redis` service of `docker-compose.yml`. Change it only for a managed Redis. It starts with `redis://` or `rediss://`.                                                              |
-| `S3_BUCKET`              | The public bucket for the product images. The backend stops at startup when this key is empty.                                                                                                               | The bucket name. See [S3 store: one-time setup](#s3-store-one-time-setup).                                                                                                                                    |
-| `S3_RECEIPTS_BUCKET`     | The private bucket for the payment receipts. The receipts hold customer data.                                                                                                                                | The bucket name. It is not the same as `S3_BUCKET`, and the bucket has no public access.                                                                                                                      |
-| `S3_ENDPOINT`            | Medusa sends the S3 API requests to this URL.                                                                                                                                                                | The S3 API endpoint of the provider, with `https://`.                                                                                                                                                         |
-| `S3_REGION`              | The region of the two buckets.                                                                                                                                                                               | The region from the provider.                                                                                                                                                                                 |
-| `S3_FILE_URL`            | The public URL of `S3_BUCKET`. The image URLs start with this value.                                                                                                                                         | The URL from the provider, or your custom domain. It starts with `https://`.                                                                                                                                  |
-| `S3_ACCESS_KEY_ID`       | Medusa uses this access key to read and write the two buckets.                                                                                                                                               | The key ID from the provider.                                                                                                                                                                                 |
-| `S3_SECRET_ACCESS_KEY`   | The secret of the access key.                                                                                                                                                                                | The secret from the provider.                                                                                                                                                                                 |
-| `MEDUSA_PUBLISHABLE_KEY` | The storefront reads the store API with this key.                                                                                                                                                            | The `PUBLISHABLE_KEY` line of the seed. Keep it empty until the [first deploy](#first-deploy).                                                                                                                |
-| `SHIPPING_RATE_PER_KG`   | The shipping price in IDR for each kilogram.                                                                                                                                                                 | `10000`, or your price.                                                                                                                                                                                       |
-| `SMTP_HOST`              | The SMTP server of the email provider. If it is empty, the store sends no email. The exception is a project with an [HTTP API provider](email/README.md#write-an-http-api-provider) that has its key set.    | The SMTP host from the provider doc. [docs/email/README.md](email/README.md) lists the provider docs.                                                                                                         |
-| `SMTP_PORT`              | The SMTP port.                                                                                                                                                                                               | The port from the provider doc. Check that the server can open it (see [Email](#email)).                                                                                                                      |
-| `SMTP_SECURE`            | `true` for implicit TLS (port 465). `false` for STARTTLS.                                                                                                                                                    | `true` or `false`.                                                                                                                                                                                            |
-| `SMTP_USER`              | The SMTP user name.                                                                                                                                                                                          | The value from the provider doc.                                                                                                                                                                              |
-| `SMTP_PASSWORD`          | The SMTP password. For some providers, it is not the API key.                                                                                                                                                | The SMTP password from the provider doc. [Brevo](email/brevo.md) uses an SMTP key. Its API key gives the error `535`. [Amazon SES](email/amazon-ses.md) uses SMTP credentials, not the IAM secret access key. |
-| `EMAIL_FROM`             | The sender address of the emails. When the store contact email is set, every email uses it as Reply-To, also the owner emails and `password-reset`.                                                          | An address on a domain that the provider verified. A no-reply address works only when the store contact email is set (Settings → Bank transfer).                                                              |
-| `EMAIL_FROM_NAME`        | The sender name of the emails.                                                                                                                                                                               | The store name. Use the same text as the Medusa store name.                                                                                                                                                   |
-| `STORE_OWNER_EMAIL`      | The address that gets the owner emails `new-order-owner`, `paid-cart-alert`, `receipt-uploaded`, and `low-stock-owner`. It is the fallback when the store contact email (Settings → Bank transfer) is empty. | Your email address.                                                                                                                                                                                           |
+| Key                            | Purpose                                                                                                                                                                                                                                                              | Value                                                                                                                                                                                                                                                                                 |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `COMPOSE_PROFILES`             | Compose starts the services of these profiles. The profiles are `postgres`, `redis`, and `caddy`. The other services always start.                                                                                                                                   | `postgres,redis,caddy`. Remove `postgres` for a managed PostgreSQL, `redis` for a managed Redis, and `caddy` for a different proxy. See [Managed services and other proxies](#managed-services-and-other-proxies).                                                                    |
+| `DOMAIN`                       | The storefront host. The defaults of `STOREFRONT_URL` and `MEDUSA_BACKEND_URL` come from it: `https://<domain>` and `https://api.<domain>`.                                                                                                                          | The host name only, for example `example.com`. Do not add `https://` or a path.                                                                                                                                                                                                       |
+| `STOREFRONT_URL`               | The URL of the storefront. The CORS values, the links in the emails, and the Caddy site address use it.                                                                                                                                                              | Optional. Empty means `https://<domain>`. The value starts with `https://` and has no path and no slash at the end.                                                                                                                                                                   |
+| `MEDUSA_BACKEND_URL`           | The URL of the Medusa API and the dashboard. The dashboard gets it at image build time.                                                                                                                                                                              | Optional. Empty means `https://api.<domain>`. The value starts with `https://` and has no path and no slash at the end. Its host is on the same site as the host of `STOREFRONT_URL`, for example `www.shop.com` and `admin.shop.com`.                                                |
+| `ACME_EMAIL`                   | Caddy gives this address to the certificate authority.                                                                                                                                                                                                               | Your email address.                                                                                                                                                                                                                                                                   |
+| `POSTGRES_PASSWORD`            | The password of the database user `postgres` in the `postgres` service.                                                                                                                                                                                              | `openssl rand -hex 32`. Use only letters, digits, `-`, and `_`.                                                                                                                                                                                                                       |
+| `JWT_SECRET`                   | Medusa signs the authentication tokens with this secret.                                                                                                                                                                                                             | `openssl rand -hex 32`. Use 32 characters or more.                                                                                                                                                                                                                                    |
+| `COOKIE_SECRET`                | Medusa signs the session cookie with this secret.                                                                                                                                                                                                                    | `openssl rand -hex 32`. Use 32 characters or more.                                                                                                                                                                                                                                    |
+| `SESSION_TTL_HOURS`            | The hours with no activity before the session ends. Each request starts the time again. Admin users and customers share this value.                                                                                                                                  | Optional. A positive whole number. Empty means `168` (7 days). Another value stops the backend at startup.                                                                                                                                                                            |
+| `DATABASE_URL`                 | The URL of the PostgreSQL database.                                                                                                                                                                                                                                  | Optional. Empty means the `postgres` service: `postgres://postgres:<POSTGRES_PASSWORD>@postgres:5432/medusa-store`. Set it when `COMPOSE_PROFILES` has no `postgres`. For a managed PostgreSQL, put the TLS mode in the URL as the provider documents, for example `sslmode=require`. |
+| `DATABASE_SSL`                 | `false` turns TLS off for the database connection. Any other value keeps the Medusa default.                                                                                                                                                                         | Optional. Empty means `false`, the value for the `postgres` service. For a managed PostgreSQL, set `true`, and set the TLS mode in `DATABASE_URL`.                                                                                                                                    |
+| `REDIS_URL`                    | Medusa keeps the events, the workflows, the cache, and the locks in Redis. The backend stops at startup when this key is empty.                                                                                                                                      | `redis://redis:6379`, the `redis` service of `docker-compose.yml`. When `COMPOSE_PROFILES` has no `redis`, set the URL of the managed Redis. It starts with `redis://` or `rediss://`.                                                                                                |
+| `S3_BUCKET`                    | The public bucket for the product images. The backend stops at startup when this key is empty.                                                                                                                                                                       | The bucket name. See [S3 store: one-time setup](#s3-store-one-time-setup).                                                                                                                                                                                                            |
+| `S3_RECEIPTS_BUCKET`           | The private bucket for the payment receipts. The receipts hold customer data.                                                                                                                                                                                        | The bucket name. It is not the same as `S3_BUCKET`, and the bucket has no public access.                                                                                                                                                                                              |
+| `S3_ENDPOINT`                  | Medusa sends the S3 API requests to this URL.                                                                                                                                                                                                                        | Optional. The S3 API endpoint of the provider, with `https://`. Keep it empty for AWS S3. The AWS SDK then uses the endpoint of `S3_REGION`.                                                                                                                                          |
+| `S3_FORCE_PATH_STYLE`          | `true` sends path-style requests (`<endpoint>/<bucket>`). `false` sends virtual-hosted requests (`<bucket>.<endpoint>`).                                                                                                                                             | Optional. `true` or `false`. Empty means `true`. AWS S3 with virtual-hosted URLs needs `false`. Another value stops the backend at startup.                                                                                                                                           |
+| `S3_REGION`                    | The region of the two buckets.                                                                                                                                                                                                                                       | The region from the provider.                                                                                                                                                                                                                                                         |
+| `S3_FILE_URL`                  | The public URL of `S3_BUCKET`. The image URLs start with this value.                                                                                                                                                                                                 | The URL from the provider, or your custom domain. It starts with `https://`.                                                                                                                                                                                                          |
+| `S3_ACCESS_KEY_ID`             | Medusa uses this access key to read and write the two buckets.                                                                                                                                                                                                       | The key ID from the provider.                                                                                                                                                                                                                                                         |
+| `S3_SECRET_ACCESS_KEY`         | The secret of the access key.                                                                                                                                                                                                                                        | The secret from the provider.                                                                                                                                                                                                                                                         |
+| `MEDUSA_PUBLISHABLE_KEY`       | The storefront reads the store API with this key.                                                                                                                                                                                                                    | The `PUBLISHABLE_KEY` line of the seed. Keep it empty until the [first deploy](#first-deploy).                                                                                                                                                                                        |
+| `SHIPPING_RATE_PER_KG`         | The shipping price in IDR for each kilogram.                                                                                                                                                                                                                         | `10000`, or your price.                                                                                                                                                                                                                                                               |
+| `BANK_TRANSFER_ENABLED`        | `false` hides bank transfer from new customers. The orders from before the change finish as normal. See [Payments](#payments).                                                                                                                                       | Optional. `true` or `false`. Empty means `true`. With `false`, the project needs a gateway provider, or the backend stops at startup. Another value also stops the backend at startup.                                                                                                |
+| `BANK_TRANSFER_DEADLINE_HOURS` | The hours that a customer has to pay a bank transfer order. After this time, the job `cancel-unpaid-orders` cancels an unpaid order with no receipt. The checkout, the order page, and the emails show the time.                                                     | Optional. A positive whole number. Empty means `24`. Another value stops the backend at startup.                                                                                                                                                                                      |
+| `SMTP_HOST`                    | The SMTP server of the email provider. If it is empty, the store sends no email, and the `email-log` provider writes each email to the log. The exception is a project with an [HTTP API provider](email/README.md#write-an-http-api-provider) that has its key set. | The SMTP host from the provider doc. [docs/email/README.md](email/README.md) lists the provider docs.                                                                                                                                                                                 |
+| `SMTP_PORT`                    | The SMTP port.                                                                                                                                                                                                                                                       | The port from the provider doc. Check that the server can open it (see [Email](#email)).                                                                                                                                                                                              |
+| `SMTP_SECURE`                  | `true` for implicit TLS (port 465). `false` for STARTTLS.                                                                                                                                                                                                            | `true` or `false`.                                                                                                                                                                                                                                                                    |
+| `SMTP_USER`                    | The SMTP user name.                                                                                                                                                                                                                                                  | The value from the provider doc.                                                                                                                                                                                                                                                      |
+| `SMTP_PASSWORD`                | The SMTP password. For some providers, it is not the API key.                                                                                                                                                                                                        | The SMTP password from the provider doc. [Brevo](email/brevo.md) uses an SMTP key. Its API key gives the error `535`. [Amazon SES](email/amazon-ses.md) uses SMTP credentials, not the IAM secret access key.                                                                         |
+| `EMAIL_FROM`                   | The sender address of the emails. When the store contact email is set, every email uses it as Reply-To, also the owner emails and `password-reset`.                                                                                                                  | An address on a domain that the provider verified. A no-reply address works only when the store contact email is set (Settings → Bank transfer). Replace the example value `no-reply@everyday.com`.                                                                                   |
+| `EMAIL_FROM_NAME`              | The sender name of the emails.                                                                                                                                                                                                                                       | The store name. Use the same text as the Medusa store name. The example value `Everyday` is the name of the template store.                                                                                                                                                           |
+| `STORE_OWNER_EMAIL`            | The address that gets the owner emails `new-order-owner`, `paid-cart-alert`, `receipt-uploaded`, and `low-stock-owner`. It is the fallback when the store contact email (Settings → Bank transfer) is empty.                                                         | Your email address.                                                                                                                                                                                                                                                                   |
 
 The Medusa store name (Settings → Store) and `brand.name` in `apps/storefront/app/app.config.ts`
 must be the same text. The email wordmark uses the store name.
@@ -124,10 +139,81 @@ Spaces. Do these steps one time, before the first deploy.
 6. Make one access key with read and write access to the two buckets.
 7. Put the key ID into `S3_ACCESS_KEY_ID`. Put the secret into `S3_SECRET_ACCESS_KEY`.
 8. Put the S3 API endpoint of the provider into `S3_ENDPOINT`. Put its region into `S3_REGION`.
-   The backend sends path-style requests, so use an endpoint that accepts them.
+   For AWS S3, keep `S3_ENDPOINT` empty.
+9. By default, the backend sends path-style requests. If the provider accepts only virtual-hosted
+   requests, set `S3_FORCE_PATH_STYLE=false`. AWS S3 with virtual-hosted URLs needs `false`.
 
 Set `REDIS_URL` and `S3_BUCKET` before the first deploy. The backend stops at startup when one of
 them is empty.
+
+## Managed services and other proxies
+
+The services `postgres`, `redis`, and `caddy` each have a profile with the same name.
+`COMPOSE_PROFILES` in `.env` selects the profiles. The other services always start. Do not edit
+`docker-compose.yml` for these choices. The file stays the same in each deploy.
+
+Do these steps before the first deploy. To move the data of a running store to a managed service,
+use the tools of the provider.
+
+### Turn off a local service
+
+1. Remove the profile from `COMPOSE_PROFILES`. For example, `COMPOSE_PROFILES=redis,caddy` turns
+   off the `postgres` service.
+2. For a managed PostgreSQL, set `DATABASE_URL` to the URL from the provider. Put the TLS mode in
+   the URL as the provider documents, for example `?sslmode=require`.
+3. For a managed PostgreSQL, set `DATABASE_SSL=true`. The empty value gives `false`, and `false`
+   turns TLS off.
+4. For a managed Redis, set `REDIS_URL` to the URL from the provider. Use `rediss://` when the
+   provider requires TLS.
+5. Do the check in [Check the environment file](#check-the-environment-file).
+
+### Use a different proxy
+
+Remove `caddy` from `COMPOSE_PROFILES`. Then set these rules in the proxy:
+
+- Send the requests for the host of `STOREFRONT_URL` to `storefront:3000`.
+- Send the requests for the host of `MEDUSA_BACKEND_URL` to `medusa-server:9000`.
+- Get the HTTPS certificates for the two hosts.
+- Set the header `X-Forwarded-Proto: https` on each request to the two services.
+- On the backend host, add the header `X-Robots-Tag: noindex, nofollow` to each response.
+- On the backend host, answer `/robots.txt` with the status 200 and this text:
+
+  ```text
+  User-agent: *
+  Disallow: /
+  ```
+
+Medusa trusts one proxy hop. It reads `X-Forwarded-Proto` only from the proxy in front of it. If a
+CDN is in front of the proxy, the proxy must still send `X-Forwarded-Proto: https`. If Medusa sees
+`http`, it does not set the session cookie, because the cookie has the attribute `Secure`.
+
+The `Caddyfile` shows the same rules. The template has no configuration file for other proxies.
+
+### Use a proxy on the host
+
+A proxy in the same Compose network, for example a Traefik container, gets the services by name.
+It needs no published port. A proxy on the host, for example Nginx from the OS packages, needs
+published ports. With no `caddy` profile, no service publishes a port.
+
+Publish the ports on `127.0.0.1` only. Docker opens a published port also through the firewall,
+so a port on all addresses lets the internet go around the proxy.
+
+1. Make the file `docker-compose.override.yml` in the directory of the repository, with this text.
+   Compose reads this file by itself, together with `docker-compose.yml`. The template has no
+   override file.
+
+```yaml
+services:
+  storefront:
+    ports:
+      - "127.0.0.1:3000:3000"
+  medusa-server:
+    ports:
+      - "127.0.0.1:9000:9000"
+```
+
+2. In the proxy, send the storefront host to `127.0.0.1:3000` and the backend host to
+   `127.0.0.1:9000`. Use the other rules of [Use a different proxy](#use-a-different-proxy).
 
 ## Check the environment file
 
@@ -137,7 +223,7 @@ start the services with a broken configuration.
 1. Find the example values that you did not replace. The command must print nothing.
 
 ```bash
-grep -nE 'change-me|example\.com' .env
+grep -nE 'change-me|example\.com|everyday\.com' .env
 ```
 
 2. Make sure that Compose can read the file. The command must print nothing.
@@ -147,8 +233,11 @@ docker compose config --quiet
 ```
 
 3. Make sure that each value obeys these rules:
-   - Each key in the table of [Environment file](#environment-file) has a value. Only
-     `MEDUSA_PUBLISHABLE_KEY` stays empty until the first deploy.
+   - Each key in the table of [Environment file](#environment-file) has a value, except the
+     optional keys. `MEDUSA_PUBLISHABLE_KEY` stays empty until the first deploy.
+   - `COMPOSE_PROFILES` is present.
+   - When `COMPOSE_PROFILES` has no `postgres`, `DATABASE_URL` has a value.
+   - When `COMPOSE_PROFILES` has no `redis`, `REDIS_URL` points at the managed Redis.
    - The keys of an HTTP API provider are in the table only in a project that uses the provider.
      In that project, they have values, and the `SMTP_` keys keep their values. In a project that
      sends over SMTP, the key that selects the provider stays empty. Do not write `change-me` in
@@ -157,6 +246,10 @@ docker compose config --quiet
    - No value contains a space before a `#`. Compose reads the text after ` #` as a comment.
    - No line ends with a space. Save the file with Unix line ends, not Windows line ends.
    - `DOMAIN` contains only lowercase letters, digits, `.`, and `-`. An example is `store.id`.
+   - `STOREFRONT_URL` and `MEDUSA_BACKEND_URL` are empty, or start with `https://`. They have no
+     path and no slash at the end.
+   - The hosts of the two URLs are on the same site, for example `www.shop.com` and
+     `admin.shop.com`. The session cookie needs this.
    - `POSTGRES_PASSWORD` contains only letters, digits, `-`, and `_`. The database URL contains
      the password without URL encoding.
    - `JWT_SECRET` and `COOKIE_SECRET` have 32 characters or more. They are not `supersecret`, the
@@ -165,6 +258,8 @@ docker compose config --quiet
    - `S3_FILE_URL` starts with `https://`.
    - `S3_RECEIPTS_BUCKET` is not the same as `S3_BUCKET`.
    - `S3_RECEIPTS_BUCKET` names a bucket with no public access.
+   - `SESSION_TTL_HOURS` and `BANK_TRANSFER_DEADLINE_HOURS` are empty, or a positive whole number.
+   - `BANK_TRANSFER_ENABLED` and `S3_FORCE_PATH_STYLE` are empty, `true`, or `false`.
    - `SMTP_SECURE` is `true` or `false`. Port 465 needs `true`.
    - `SMTP_HOST` is not `localhost`. Mailpit is only for development.
 
@@ -195,7 +290,8 @@ $C build medusa-server
 $C build storefront
 ```
 
-4. Run the migrations. Compose starts PostgreSQL and Redis first.
+4. Run the migrations. Compose first starts the `postgres` and `redis` services, if
+   `COMPOSE_PROFILES` has their profiles.
 
 ```bash
 $C run --rm -T medusa-server npx medusa db:migrate --execute-safe-links
@@ -278,11 +374,11 @@ $C run --rm -T medusa-server npx medusa db:migrate --execute-safe-links
 ```
 
 6. Start the services with the new images. The second command makes the `caddy` container again,
-   so that it reads the new `Caddyfile`.
+   so that it reads the new `Caddyfile`. It does this only when `COMPOSE_PROFILES` has `caddy`.
 
 ```bash
 $C up -d --remove-orphans
-$C up -d --no-deps --force-recreate caddy
+$C config --services | grep -qx caddy && $C up -d --no-deps --force-recreate caddy
 ```
 
 7. Remove the old images. This step frees disk space. A failure here does not affect the store.
@@ -309,6 +405,36 @@ store contact. Replace them before you sell.
 
 To add a payment gateway, read `docs/payments/`.
 
+### Turn off bank transfer
+
+`BANK_TRANSFER_ENABLED=false` hides bank transfer from new customers. The orders from before the
+change finish as normal. Staff can accept or cancel them, and the job `cancel-unpaid-orders`
+cancels them after the deadline. The backend stops at startup when bank transfer is off and no
+gateway provider is registered.
+
+1. Set `BANK_TRANSFER_ENABLED=false` in `.env`.
+2. Do the check in [Check the environment file](#check-the-environment-file).
+3. Start the services again, so that they read the new value.
+
+```bash
+$C up -d
+```
+
+4. If the seed ran with bank transfer on, the region still has the bank transfer provider. In the
+   Admin, open **Settings → Regions**, edit the region, and remove bank transfer from **Payment
+   Providers**. The checkout does not show bank transfer, but a customer can start a bank transfer
+   payment through the API while the region has the provider.
+
+### The payment deadline
+
+`BANK_TRANSFER_DEADLINE_HOURS` sets the time that a customer has to pay a bank transfer order. The
+default is 24 hours. The checkout, the order page, the `order-placed` email, and the job
+`cancel-unpaid-orders` use the value.
+
+The deadline of an order is the order time plus the current value. Thus a change applies also to
+the open orders. Their `order-placed` emails keep the old deadline, because the backend sent the
+emails before the change.
+
 ## Orders
 
 Staff do these steps in the Admin, on the order page.
@@ -332,12 +458,12 @@ not move the money.
 
 The `medusa-worker` service runs the scheduled jobs. The schedules are in UTC, and WIB is UTC+7.
 
-| Job                    | Schedule                          | Task                                                                                      |
-| ---------------------- | --------------------------------- | ----------------------------------------------------------------------------------------- |
-| `check-paid-carts`     | Every 15 minutes                  | Completes a paid gateway cart that has no order. With no gateway, the job does nothing.   |
-| `cancel-unpaid-orders` | Every 15 minutes                  | Cancels a bank transfer order with no receipt and no captured payment after 24 hours.     |
-| `review-requests`      | Daily at 03:00 WIB (`0 20 * * *`) | Sends the review request 7 days after the delivery, for the products that have no review. |
-| `wishlist-price-drops` | Daily at 04:00 WIB (`0 21 * * *`) | Sends one email to each customer with a lower price on a wishlist item.                   |
+| Job                    | Schedule                          | Task                                                                                                                        |
+| ---------------------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `check-paid-carts`     | Every 15 minutes                  | Completes a paid gateway cart that has no order. With no gateway, the job does nothing.                                     |
+| `cancel-unpaid-orders` | Every 15 minutes                  | Cancels a bank transfer order with no receipt and no captured payment after `BANK_TRANSFER_DEADLINE_HOURS` (24 by default). |
+| `review-requests`      | Daily at 03:00 WIB (`0 20 * * *`) | Sends the review request 7 days after the delivery, for the products that have no review.                                   |
+| `wishlist-price-drops` | Daily at 04:00 WIB (`0 21 * * *`) | Sends one email to each customer with a lower price on a wishlist item.                                                     |
 
 The `review-requests` job reads only the deliveries of 7 to 37 days ago. An order with a delivery
 more than 37 days before a run never gets a review request, for example after the worker stops
@@ -354,13 +480,15 @@ threshold or below. The value 0 turns off the badge and the email.
 
 The storefront makes the head tags, the JSON-LD, `/sitemap.xml`, and `/robots.txt`. It makes the
 absolute URLs from `NUXT_PUBLIC_SITE_URL`. `docker-compose.yml` sets this key to
-`https://<domain>` from `DOMAIN`, so `.env` needs no new key.
+`STOREFRONT_URL`, by default `https://<domain>`, so `.env` needs no new key.
 
 - The storefront keeps `/sitemap.xml` in a cache for 1 hour. Thus a new product can be missing
   from the sitemap for at most 1 hour.
 - If the backend fails, `/sitemap.xml` returns the status 503.
-- The API host `api.<domain>` sends `X-Robots-Tag: noindex, nofollow`. Its `robots.txt` blocks all
-  paths. Thus search engines do not index the API or the dashboard.
+- The backend host (by default `api.<domain>`) sends `X-Robots-Tag: noindex, nofollow`. Its
+  `robots.txt` blocks all paths. Thus search engines do not index the API or the dashboard.
+  `Caddyfile` sets these rules. A different proxy must set them too. See
+  [Use a different proxy](#use-a-different-proxy).
 
 Do these steps one time, for the launch of the store.
 
@@ -376,12 +504,13 @@ Do these steps one time, for the launch of the store.
 3. Send `https://<domain>/sitemap.xml` in Search Console.
 4. Set the shipping policy and the return policy in Search Console or Merchant Center. The
    template gives only a link to the Returns page.
-5. Optional: add a `www` redirect. First add a DNS record for `www.<domain>`. Then add this site
-   block to the `Caddyfile`.
+5. Optional: add a `www` redirect. This step applies to the `caddy` profile, when the storefront
+   host is `<domain>`. For a different proxy, add the redirect in the proxy. First add a DNS record
+   for `www.<domain>`. Then add this site block to the `Caddyfile`.
 
    ```caddy
    www.{$DOMAIN} {
-   	redir https://{$DOMAIN}{uri} permanent
+   	redir {$STOREFRONT_URL}{uri} permanent
    }
    ```
 
@@ -424,6 +553,9 @@ connection.
    URL.
 
 ## Backups
+
+Use the backups of the provider for a managed PostgreSQL. The `pg_dump` and `psql` steps in this
+section and in [Restore](#restore) apply only to the `postgres` profile.
 
 A backup is a directory `backups/<time>` with one file, `database.sql.gz`. This file is a dump of
 the database. The database holds customer data. Keep each copy of the backup private, and do not
@@ -468,7 +600,7 @@ mkdir -p "backups/$STAMP"
 ```
 
 2. Dump the database. The dump removes each table before it makes the table again, so a restore
-   replaces the current data.
+   replaces the current data. This step needs the `postgres` profile.
 
 ```bash
 $C exec -T postgres pg_dump -U postgres --clean --if-exists medusa-store > "backups/$STAMP/database.sql"
@@ -501,6 +633,9 @@ The operator of the backup server sets the time limit for the copies there.
 Stop the services that write data before you restore. A write during the restore can mix old data
 and new data. Set `C` as in [First deploy](#first-deploy).
 
+This procedure applies only to the `postgres` profile. For a managed PostgreSQL, use the restore
+of the provider.
+
 1. Copy the backup back to the server, if the local copy does not exist. `<time>` is the name of
    the backup directory.
 
@@ -510,7 +645,8 @@ mkdir -p backups
 rsync -a <backup target>/<time> backups/
 ```
 
-2. Stop the services. Then start PostgreSQL, because the restore of the database needs it.
+2. Stop the services. Then start the `postgres` service, because the restore of the database
+   needs it.
 
 ```bash
 $C stop medusa-server medusa-worker storefront
@@ -531,23 +667,34 @@ $C up -d
 
 ## Cookies and CORS
 
-`docker-compose.yml` makes these values from `DOMAIN`. You do not set them in `.env`.
+`docker-compose.yml` makes these values from `STOREFRONT_URL` and `MEDUSA_BACKEND_URL`. You do not
+set them in `.env`.
 
-| Key          | Value                                   |
-| ------------ | --------------------------------------- |
-| `STORE_CORS` | `https://<domain>`                      |
-| `ADMIN_CORS` | `https://api.<domain>`                  |
-| `AUTH_CORS`  | `https://<domain>,https://api.<domain>` |
+| Key          | Value                                                   |
+| ------------ | ------------------------------------------------------- |
+| `STORE_CORS` | `STOREFRONT_URL`, by default `https://<domain>`         |
+| `ADMIN_CORS` | `MEDUSA_BACKEND_URL`, by default `https://api.<domain>` |
+| `AUTH_CORS`  | The two values, with a comma between them               |
 
-Medusa sets the session cookie `connect.sid` for `api.<domain>`. The cookie has the attributes
-`HttpOnly`, `Secure`, and `SameSite=Lax`. Medusa trusts the proxy, so it sets `Secure` behind Caddy.
-The browser sends the cookie from `<domain>`, because `<domain>` and `api.<domain>` are the same
-site.
+Medusa sets the session cookie `connect.sid` for the host of `MEDUSA_BACKEND_URL`. The cookie has
+the attributes `HttpOnly`, `Secure`, and `SameSite=Lax`. Medusa trusts the proxy, so it sets
+`Secure` behind the proxy. The browser sends the cookie from the storefront, because the two hosts
+are on the same site.
 
-A change of `DOMAIN` needs a new build of the backend image, because the dashboard gets its API
-address at build time. Do steps 4 to 6 of [Deploy a new version](#deploy-a-new-version). After a
-change of `DOMAIN`, also do these tasks:
+Keep the two hosts on the same site, for example `www.shop.com` and `admin.shop.com`. The template
+does not support cross-site hosting. The cookie then needs `SameSite=None`, and `SameSite=None`
+brings back the CSRF problem of GHSA-jhvc-qx3m-6r3q.
 
-- Change the two DNS records.
+The session is rolling. Each request starts the time again. The session ends after
+`SESSION_TTL_HOURS` hours with no activity. The default is 168 hours (7 days).
+
+Admin users share the session setting. Thus an Admin user also stays signed in for 7 days with no
+activity. On a shared computer, sign out after the work, or set a smaller value.
+
+A change of `DOMAIN` or `MEDUSA_BACKEND_URL` needs a new build of the backend image, because the
+dashboard gets its API address at build time. Do steps 4 to 6 of
+[Deploy a new version](#deploy-a-new-version). After a change of a host, also do these tasks:
+
+- Change the DNS records.
 - If the public URL of the image bucket changes, set the new URL in `S3_FILE_URL`. See
   [S3 store: one-time setup](#s3-store-one-time-setup).
