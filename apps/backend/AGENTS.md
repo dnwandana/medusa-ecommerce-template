@@ -116,8 +116,7 @@ pnpm --filter @store/backend lint                         # ESLint, eslint.confi
     `pp_bank-transfer_bank-transfer`). The constant `BANK_TRANSFER_PROVIDER_ID` is in
     `constants.ts`. The deadline comes from `bankTransferDeadlineMs(env)` in
     `src/config/payment.ts` (`BANK_TRANSFER_DEADLINE_HOURS`).
-  - `bank-account/`: data module `bankAccount` with the models `bank_account` and `store_contact`.
-    The service adds `getContact()` and `setContact()`, because the module keeps one contact row.
+  - `bank-account/`: data module `bankAccount` with the model `bank_account`.
   - `weight-shipping/`: fulfillment provider. `calculate.ts` has the weight rule: grams, rounded up
     to whole kg, minimum 1 kg, and 1000 g for a variant with no weight.
   - `smtp/`: notification provider (identifier `smtp`).
@@ -140,10 +139,16 @@ pnpm --filter @store/backend lint                         # ESLint, eslint.confi
     - The `add-wishlist-item` step saves the price and the availability of the variant at add
       time.
   - `storefront/`: data module `storefront` (`STOREFRONT_MODULE`) with the models
-    `storefront_setting`, `store_colour`, and `home_campaign`. The module keeps one settings row.
-    A unique partial index allows one `live` campaign. `settings-rules.ts` and
-    `campaign-rules.ts` have no Medusa import, so the routes, the admin helpers, and the tests
-    share them.
+    `storefront_setting`, `store_colour`, `home_campaign`, and `storefront_contact`. The module
+    keeps one settings row and one contact row. A unique partial index allows one `live`
+    campaign. `settings-rules.ts` and `campaign-rules.ts` have no Medusa import, so the routes,
+    the admin helpers, and the tests share them.
+    - `storefront_contact` holds the store contact: `email`, `phone`, `whatsapp`, `address`, and
+      `social_links` (a JSON list of `{ network, url }`). A null field has no value.
+    - `getContact()` gives the contact, or the empty contact when there is no row. A null
+      `social_links` gives an empty list. `setContact(contact)` replaces the five fields. It
+      updates the row when the row exists, else it creates the row.
+    - The store contact is only in this module. The `bankAccount` module has no contact.
   - `magic-link/`: data module `magicLink` (`MAGIC_LINK_MODULE`) with the model
     `magic_link_request`. `tokens.ts` has the token helpers and the lifetimes. `browser.ts`
     makes the browser text, for example "Chrome on Windows". The table keeps only SHA-256 hashes
@@ -164,7 +169,9 @@ pnpm --filter @store/backend lint                         # ESLint, eslint.confi
       of each order in two queries. `countReceipts`, `putFile`, `getFile`, and `removeFile`. A
       summary has no `file_key`.
     - The file key is `<order_id>/<receipt_id>.<jpg|png|webp>`.
-  - Each data module has its own `migrations/`.
+  - Each data module has its own `migrations/`. `medusa db:generate` takes the module key, not
+    the folder name: `bankAccount`, not `bank-account`. The key of `storefront/` is
+    `storefront`.
 - `src/email/`: the email templates in `src/email/templates/` and the plain text part. The unit
   tests are in `src/email/__tests__/`.
   - `src/email/text.ts`: `htmlToText(html)` makes the plain text part of each email.
@@ -213,16 +220,33 @@ pnpm --filter @store/backend lint                         # ESLint, eslint.confi
     `formatWibDate`, and `RenderedEmail`. The two time functions take a locale. `layout`,
     `emailButton`, and `greeting` do not exist.
   - Every customer template takes `locale` and `store` (an `EmailStore`: `name`,
-    `contact_email`, `whatsapp`) in its data. The subscribers and the routes must send both.
-    The store name goes into the wordmark and the footer.
+    `contact_email`, `whatsapp`, `phone`) in its data. The subscribers and the routes must send
+    both. The store name goes into the wordmark and the footer.
+  - The customer footer is one sentence: "Questions? Reply to this email", then the email, the
+    WhatsApp number, and the phone. The sentence drops a contact value that is empty.
   - The owner templates (`new-order-owner`, `paid-cart-alert`, `receipt-uploaded`,
-    `low-stock-owner`) and `password-reset` stay in English. They need no `locale`.
+    `low-stock-owner`) and `password-reset` stay in English. They need no `locale`. Their footer
+    tells the owner to change the address at Settings → Store.
   - Every template needs `store`, also the owner templates and `password-reset`. The shell
     reads `store.name`. `src/email/templates/index.ts` types `data` as `any`, so a missing
     `store` gives no compile error. The send then throws a `TypeError`.
 - `src/lib/`: pure code with no module.
   - `option-names.ts`: the option names of a colour (`colour`, `color`, `warna`) and of a size
     (`size`, `ukuran`), and the fabric tag prefix `Fabric:`.
+  - `store-contact.ts`: the `StoreContact` and `SocialLink` types, `EMPTY_CONTACT`, and the rules
+    of the store contact. `POST /admin/store-contact`, the admin form helpers, and the
+    `storefront` module use them.
+    - `E164_PATTERN` (`^\+[1-9]\d{7,14}$`) is the rule for the phone and the WhatsApp number. No
+      code adds a country code to a local number.
+    - `NUMBER_ERROR`, `ADDRESS_MAX_LENGTH` (500), and `SOCIAL_LINKS_MAX` (10).
+  - `social-networks.ts`: `SOCIAL_NETWORKS` (the id, the name, and the allowed hosts of each
+    network), `SOCIAL_NETWORK_IDS`, `isAllowedSocialUrl`, and `knownSocialLinks`. The storefront
+    has a second copy of the ids in `app/utils/socialNetworks.ts`. Change the two copies together.
+    - `isAllowedSocialUrl(network, url)` is true for an `https` URL with a host of the network or
+      a subdomain of one.
+    - `knownSocialLinks(links)` drops the links of a network that is not in the list. A saved
+      link can name a network that a later code change removed. `GET /store/storefront/settings`
+      uses it, because the storefront has no icon for an unknown network.
   - `storefront-metadata.ts`: the metadata keys `show_on_home`, `tile_image_url`,
     `product_details`, `colour_hex`, `welcome_sent_at`, and `locale` (`CUSTOMER_LOCALE`), and
     their safe readers. The storefront reads `product_details`, `colour_hex`, and
@@ -255,10 +279,13 @@ pnpm --filter @store/backend lint                         # ESLint, eslint.confi
     - `storefront-url.ts`: `readStorefrontUrl(scope)` gives the storefront base URL.
       `storefrontLink(base, locale, path)` adds the prefix `/id` for `id-ID` and no prefix for
       `en-US`.
-    - `store-for-email.ts`: `readStoreForEmail(scope)` gives the `EmailStore` (store name, store
-      contact email, and WhatsApp number). A missing store row gives a default name.
-    - `owner-email.ts`: `readOwnerEmail(scope, env)` gives the store contact email, else
-      `STORE_OWNER_EMAIL`, else an empty string. The caller skips the email on an empty string.
+    - `store-for-email.ts`: `readStoreForEmail(scope)` gives the `EmailStore` (store name, and
+      the email, WhatsApp number, and phone of the store contact). The store name comes from the
+      Medusa store. The contact comes from `getContact()` of the `storefront` module. A missing
+      store row gives a default name.
+    - `owner-email.ts`: `readOwnerEmail(scope, env)` gives the email of the store contact (the
+      `storefront` module), else `STORE_OWNER_EMAIL`, else an empty string. The caller skips the
+      email on an empty string.
     - `bank-accounts.ts`: `listActiveBankAccounts(scope)` gives the active bank accounts in
       display order, with only the public fields.
     - `admin-url.ts`: `adminLink(scope, path)` gives `<admin.backendUrl><admin.path><path>`. When
@@ -430,18 +457,30 @@ pnpm --filter @store/backend lint                         # ESLint, eslint.confi
 - `src/seed/`: idempotent seed steps for the region, the bank account, fulfillment, products, the
   storefront settings, and the API key. `region.ts` sets the region providers from
   `regionPaymentProviderIds(process.env)`: bank transfer only when `BANK_TRANSFER_ENABLED` is on,
-  and each configured gateway. `bank-account.ts` adds the "Sample Bank" account and the
-  sample contact only when the owner has no data. `storefront.ts` saves the price limits only
-  when the module has no settings row. `src/scripts/seed.ts` runs the seed steps and prints the
-  publishable key.
+  and each configured gateway. `bank-account.ts` adds the "Sample Bank" account only when the
+  owner has no account. `storefront.ts` saves the price limits only when the module has no
+  settings row. It writes the sample contact (`store@example.com` and the WhatsApp number
+  `+6281234567890`, with no phone, no address, and no links) only when the module has no contact
+  row. `src/scripts/seed.ts` runs the seed steps and prints the publishable key.
 - `src/admin/`: the admin dashboard extension.
   - Pages: **Reviews** (`routes/reviews/page.tsx`), **Home campaigns**
     (`routes/home-campaigns/page.tsx` and `routes/home-campaigns/[id]/page.tsx`), **Settings →
     Bank transfer** (`routes/settings/bank-transfer/page.tsx`), and **Settings → Storefront**
-    (`routes/settings/storefront/page.tsx`).
+    (`routes/settings/storefront/page.tsx`). **Settings → Bank transfer** has only the bank
+    accounts.
   - Widgets: `category-tile` (zone `product_category.details.side`), `product-details` (zone
-    `product.details`), `colour-dots` (zone `product.details.side`), and `payment-receipts` (zone
-    `order.details`). The `.after` suffix of a zone has no effect in Medusa 2.21.2.
+    `product.details`), `colour-dots` (zone `product.details.side`), `payment-receipts` (zone
+    `order.details`), and `store-contact` (zone `store.details.after`). The `.after` suffix of a
+    zone has no effect in Medusa 2.21.2.
+  - `store-contact.tsx` shows the store contact on Medusa's **Settings → Store** page. It has a
+    **Contact** section (email, phone, WhatsApp, and address) and a **Social links** section.
+    - Each drawer and each link action sends the whole contact to `POST /admin/store-contact`,
+      because the route replaces the whole contact.
+    - The helpers are in `lib/store-contact-form.ts`. `toContactPayload` sends `null` for an
+      empty field. It removes the spaces, the dashes, and the brackets from a number before the
+      check. It never adds a country code.
+    - The widget and the helpers import `src/lib/store-contact.ts` and
+      `src/lib/social-networks.ts`. The two files are pure code.
   - `payment-receipts.tsx` shows only for a bank transfer order. It shows the uploaded receipts,
     the newest owner note, and the buttons **Accept payment**, **Ask for more**, and **Cancel
     order**. The buttons go away after the cancellation or the capture. **Ask for more** opens

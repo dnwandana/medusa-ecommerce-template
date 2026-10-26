@@ -81,31 +81,31 @@ The backend does not start in these conditions:
 
 ## Source layout
 
-| Path                                | Content                                                                                                                                                     |
-| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `medusa-config.ts`                  | Project configuration. Module list comes from `src/config/modules.ts`.                                                                                      |
-| `src/config/`                       | Pure functions that read the environment: the module list, the database options, the session options, the payment keys, and the S3 client options.          |
-| `src/api/`                          | Custom HTTP routes. `middlewares.ts` adds validation and authentication.                                                                                    |
-| `src/modules/bank-transfer/`        | Bank transfer payment provider                                                                                                                              |
-| `src/modules/bank-account/`         | Bank account and store contact data module                                                                                                                  |
-| `src/modules/weight-shipping/`      | Fulfillment provider that calculates the price from the weight                                                                                              |
-| `src/modules/smtp/`                 | SMTP email provider                                                                                                                                         |
-| `src/modules/email-log/`            | Email provider when `SMTP_HOST` is empty. It renders each email and writes it to the log.                                                                   |
-| `src/email/`                        | The email templates, the plain text part, and `renderEmail()`, which the two email providers share                                                          |
-| `src/modules/product-review/`       | Review data module                                                                                                                                          |
-| `src/modules/wishlist/`             | Wishlist data module                                                                                                                                        |
-| `src/modules/storefront/`           | Storefront data module: the settings row, the store colours, and the home campaigns                                                                         |
-| `src/modules/magic-link/`           | Magic link data module: the sign-in requests, the token helpers, and the browser text                                                                       |
-| `src/modules/payment-receipt/`      | Payment receipt data module: the receipts, the owner notes, the file rules, and the private receipt storage                                                 |
-| `src/lib/`                          | The option names, the metadata keys, the payment rules of a bank transfer order, and the pure logic of the catalog routes                                   |
-| `src/links/`                        | Read-only links from reviews and wishlists to products, variants, and customers                                                                             |
-| `src/workflows/`                    | Workflows for reviews, the wishlist, the publish of a home campaign, the customer account of a magic link, and the receipt upload                           |
-| `src/subscribers/`                  | Email for `order.placed`, `shipment.created`, `auth.password_reset` (admin users only), and the two receipt events. The customer name from the first order. |
-| `src/jobs/`, `src/recovery/`        | The `check-paid-carts` job and its logic                                                                                                                    |
-| `src/jobs/`, `src/payment-timeout/` | The `cancel-unpaid-orders` job and its logic                                                                                                                |
-| `src/seed/`, `src/scripts/seed.ts`  | The seed steps and the seed command                                                                                                                         |
-| `src/admin/`                        | Admin dashboard extension: the **Reviews** and **Home campaigns** pages, the **Bank transfer** and **Storefront** settings pages, and four widgets          |
-| `integration-tests/http/`           | HTTP integration tests and their helpers                                                                                                                    |
+| Path                                | Content                                                                                                                                                                     |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `medusa-config.ts`                  | Project configuration. Module list comes from `src/config/modules.ts`.                                                                                                      |
+| `src/config/`                       | Pure functions that read the environment: the module list, the database options, the session options, the payment keys, and the S3 client options.                          |
+| `src/api/`                          | Custom HTTP routes. `middlewares.ts` adds validation and authentication.                                                                                                    |
+| `src/modules/bank-transfer/`        | Bank transfer payment provider                                                                                                                                              |
+| `src/modules/bank-account/`         | Bank account data module                                                                                                                                                    |
+| `src/modules/weight-shipping/`      | Fulfillment provider that calculates the price from the weight                                                                                                              |
+| `src/modules/smtp/`                 | SMTP email provider                                                                                                                                                         |
+| `src/modules/email-log/`            | Email provider when `SMTP_HOST` is empty. It renders each email and writes it to the log.                                                                                   |
+| `src/email/`                        | The email templates, the plain text part, and `renderEmail()`, which the two email providers share                                                                          |
+| `src/modules/product-review/`       | Review data module                                                                                                                                                          |
+| `src/modules/wishlist/`             | Wishlist data module                                                                                                                                                        |
+| `src/modules/storefront/`           | Storefront data module: the settings row, the store contact, the store colours, and the home campaigns                                                                      |
+| `src/modules/magic-link/`           | Magic link data module: the sign-in requests, the token helpers, and the browser text                                                                                       |
+| `src/modules/payment-receipt/`      | Payment receipt data module: the receipts, the owner notes, the file rules, and the private receipt storage                                                                 |
+| `src/lib/`                          | The option names, the metadata keys, the store contact rules, the social network list, the payment rules of a bank transfer order, and the pure logic of the catalog routes |
+| `src/links/`                        | Read-only links from reviews and wishlists to products, variants, and customers                                                                                             |
+| `src/workflows/`                    | Workflows for reviews, the wishlist, the publish of a home campaign, the customer account of a magic link, and the receipt upload                                           |
+| `src/subscribers/`                  | Email for `order.placed`, `shipment.created`, `auth.password_reset` (admin users only), and the two receipt events. The customer name from the first order.                 |
+| `src/jobs/`, `src/recovery/`        | The `check-paid-carts` job and its logic                                                                                                                                    |
+| `src/jobs/`, `src/payment-timeout/` | The `cancel-unpaid-orders` job and its logic                                                                                                                                |
+| `src/seed/`, `src/scripts/seed.ts`  | The seed steps and the seed command                                                                                                                                         |
+| `src/admin/`                        | Admin dashboard extension: the **Reviews** and **Home campaigns** pages, the **Bank transfer** and **Storefront** settings pages, and five widgets                          |
+| `integration-tests/http/`           | HTTP integration tests and their helpers                                                                                                                                    |
 
 ## Seed data
 
@@ -130,9 +130,14 @@ existing records and does not make copies.
 - The price limits 200000 and 500000. They make three price ranges in the storefront. The seed
   saves them only when the storefront settings have no row. The seed creates no home campaign.
 - Publishable API key "Storefront", linked to the sales channel.
-- One bank account "Sample Bank" `1234567890` (holder "Sample Store") and the store contact
-  `store@example.com` and `+6281234567890`. The seed does not change the records that the owner
-  edited. Replace the sample values in the admin dashboard before the store opens.
+- One bank account "Sample Bank" `1234567890` (holder "Sample Store") in the `bank-account`
+  module.
+- The sample store contact in the `storefront` module: the email `store@example.com` and the
+  WhatsApp number `+6281234567890`. It has no phone, no address, and no social links. The seed
+  writes it only when the module has no contact row.
+
+The seed does not change the records that the owner edited. Replace the sample values in the
+admin dashboard before the store opens.
 
 Put the printed key in `NUXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY` of the storefront.
 
@@ -178,7 +183,7 @@ The emails exist in English (`en-US`) and Indonesian (`id-ID`):
 
 The owner emails (`new-order-owner`, `paid-cart-alert`, `receipt-uploaded`, and
 `low-stock-owner`) go to the owner address. The owner address is the store contact email
-(Settings → Bank transfer in the admin dashboard). If the store contact email is empty, the owner
+(Settings → Store in the admin dashboard). If the store contact email is empty, the owner
 address is `STORE_OWNER_EMAIL`. If both are empty, the backend sends no owner email and writes a
 log line.
 
@@ -227,21 +232,19 @@ Open the admin dashboard, then **Settings**, then **Bank transfer**. On this pag
 - Add, edit, and delete the bank accounts.
 - Set an account to active or inactive.
 - Change the order of the accounts with the Up and Down buttons.
-- Set the store contact: an email address and a WhatsApp number in the E.164 format, for example
-  `+6281234567890`.
+
+The store contact is not on this page. See [Store contact](#store-contact).
 
 The customer sees only the active accounts, in `rank` order. A new account with no `rank` goes
 after the other accounts.
 
-| Route                             | Access | Function                                                                                                                                            |
-| --------------------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /store/bank-transfer`        | Public | Lists the active accounts (public fields only) and the contact. Also returns `enabled` (the value of `BANK_TRANSFER_ENABLED`) and `deadline_hours`. |
-| `GET /admin/bank-accounts`        | Admin  | Lists all accounts in `rank` order.                                                                                                                 |
-| `POST /admin/bank-accounts`       | Admin  | Creates an account. The account number has 5 to 20 digits.                                                                                          |
-| `POST /admin/bank-accounts/:id`   | Admin  | Changes the fields of an account.                                                                                                                   |
-| `DELETE /admin/bank-accounts/:id` | Admin  | Deletes an account.                                                                                                                                 |
-| `GET /admin/store-contact`        | Admin  | Returns the store contact.                                                                                                                          |
-| `POST /admin/store-contact`       | Admin  | Saves the store contact. `null` clears a value.                                                                                                     |
+| Route                             | Access | Function                                                                                                                                   |
+| --------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `GET /store/bank-transfer`        | Public | Returns `bank_accounts` (the active accounts, public fields only), `enabled` (the value of `BANK_TRANSFER_ENABLED`), and `deadline_hours`. |
+| `GET /admin/bank-accounts`        | Admin  | Lists all accounts in `rank` order.                                                                                                        |
+| `POST /admin/bank-accounts`       | Admin  | Creates an account. The account number has 5 to 20 digits.                                                                                 |
+| `POST /admin/bank-accounts/:id`   | Admin  | Changes the fields of an account.                                                                                                          |
+| `DELETE /admin/bank-accounts/:id` | Admin  | Deletes an account.                                                                                                                        |
 
 ### Payment receipts
 
@@ -254,7 +257,8 @@ Customer:
 - A receipt is a JPG, PNG, or WebP file of at most 5 MB. The backend checks the file bytes, not the
   file name.
 - The upload is open while the order is not cancelled and the payment is not captured. After 3
-  receipts, the order page shows the store contact.
+  receipts, the order page shows the store contact: the email, the WhatsApp number, and the
+  phone.
 - The customer cannot delete a receipt.
 
 Owner:
@@ -381,7 +385,8 @@ A customer with no wishlist gets `{ "wishlist": { "id": null, "items": [] } }`.
 
 ## Storefront settings
 
-The `storefront` module keeps the storefront settings, the store colours, and the home campaigns.
+The `storefront` module keeps the storefront settings, the store contact, the store colours, and
+the home campaigns.
 
 ### Settings page
 
@@ -397,6 +402,49 @@ have their own **Save** button. A colour saves in its own form.
    `#9aa68c`. Two colours cannot have the same name.
 4. In **Price ranges**, add a range and type its "To" amount in rupiah. The last range has no
    maximum. N limits make N + 1 ranges. With no range, the storefront hides the Price filter.
+
+### Store contact
+
+The store contact is the data that a customer uses to reach the store. The `storefront` module
+keeps it in one row of the table `storefront_contact`. The contact page, the footer, the order
+page, the customer emails, and the JSON-LD of the home page show it. The contact email is also the
+Reply-To address of the emails and the owner address (see [Email](#email)).
+
+The contact has five fields: `email`, `phone`, `whatsapp`, `address`, and `social_links`.
+
+- Email: a valid email address.
+- Phone and WhatsApp: a number of any country in the E.164 format. That is `+`, then 8 to 15
+  digits, and the first digit is not `0`.
+- Address: free text with line breaks, 500 characters max. Only the contact page and the JSON-LD
+  show it.
+- Social links: an ordered list of links. Each link has a network and a URL.
+
+In the admin dashboard, open **Settings → Store**. The `store-contact` widget is below the store
+details. It has the two sections **Contact** and **Social links**.
+
+1. In **Contact**, click **Edit**.
+2. Set the email, the phone, the WhatsApp number, and the address. An empty field clears the value.
+3. Write each number with `+` and the country code, for example `+62 812 3456 7890`. The form
+   removes the spaces, the dashes, and the brackets. It does not change a leading `0` to a country
+   code, so it rejects a local number such as `081234567890`.
+4. In **Social links**, click **Add**.
+5. Select a network and type the URL of the page.
+6. Change the order of the links with the Up and Down buttons. The storefront shows the links in
+   this order.
+
+A field with no value does not show in the storefront.
+
+A social link has these rules:
+
+- The network is one of 14 networks: Instagram, TikTok, Facebook, X, YouTube, Threads, Pinterest,
+  LinkedIn, Telegram, LINE, Shopee, Tokopedia, Lazada, and Amazon.
+- The URL starts with `https://`. Its host is a host of the network or a subdomain of one, for
+  example `instagram.com` or `shopee.co.id`.
+- The contact has at most 10 links. A network can have more than one link.
+
+The network list has one copy in each app: `src/lib/social-networks.ts` and
+`apps/storefront/app/utils/socialNetworks.ts`. Change the two copies together.
+`GET /store/storefront/settings` returns only the links of a network in the backend list.
 
 ### Home campaigns page
 
@@ -422,6 +470,7 @@ Select **Home campaigns** in the sidebar of the admin dashboard.
 | Widget            | Page                  | What it stores                                                                                                                     |
 | ----------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | `category-tile`   | Category, side column | `metadata.show_on_home` (boolean) and `metadata.tile_image_url`. With no image, the tile uses the thumbnail of the newest product. |
+| `store-contact`   | Settings → Store      | The store contact in the `storefront` module. See [Store contact](#store-contact).                                                 |
 | `product-details` | Product, main column  | `metadata.product_details`: the "Details and fit" and the "Fabric and care" lines, each in English and Bahasa Indonesia.           |
 | `colour-dots`     | Product, side column  | `metadata.colour_hex`, for example `{ "Sage": "#9aa68c" }`. A product hex wins over the store colour of the same name.             |
 
@@ -432,27 +481,29 @@ the fabric, for example "Fabric: Cotton".
 
 ### Routes
 
-| Route                                      | Access | Function                                                                                                     |
-| ------------------------------------------ | ------ | ------------------------------------------------------------------------------------------------------------ |
-| `GET /store/storefront/settings`           | Public | Returns `new_badge_days`, `low_stock_threshold`, the colours (`name`, `hex`), and the sorted `price_limits`. |
-| `GET /store/storefront/home-campaign`      | Public | Returns the live campaign in the locale of `x-medusa-locale`, or `null`.                                     |
-| `GET /store/storefront/home-categories`    | Public | Returns the categories with `show_on_home`, in rank order, each with its tile image.                         |
-| `GET /store/storefront/catalog/filters`    | Public | Returns the size, colour, and fabric values of the published products.                                       |
-| `GET /store/storefront/catalog/products`   | Public | Returns one page of the published products with the filters, the price range, and the sort.                  |
-| `GET /admin/storefront/settings`           | Admin  | Returns the settings.                                                                                        |
-| `POST /admin/storefront/settings`          | Admin  | Replaces the three settings.                                                                                 |
-| `GET /admin/storefront/colours`            | Admin  | Lists the store colours by name.                                                                             |
-| `POST /admin/storefront/colours`           | Admin  | Creates a store colour.                                                                                      |
-| `POST /admin/storefront/colours/:id`       | Admin  | Changes the name or the hex of a store colour.                                                               |
-| `DELETE /admin/storefront/colours/:id`     | Admin  | Deletes a store colour.                                                                                      |
-| `GET /admin/home-campaigns`                | Admin  | Lists the campaigns. The parameters `status` and `q` filter the list.                                        |
-| `POST /admin/home-campaigns`               | Admin  | Creates a draft campaign.                                                                                    |
-| `GET /admin/home-campaigns/:id`            | Admin  | Returns a campaign.                                                                                          |
-| `POST /admin/home-campaigns/:id`           | Admin  | Replaces the content and the link of a campaign.                                                             |
-| `DELETE /admin/home-campaigns/:id`         | Admin  | Deletes a draft campaign.                                                                                    |
-| `POST /admin/home-campaigns/:id/publish`   | Admin  | Makes the campaign live and ends the old live campaign (workflow `publish-home-campaign`).                   |
-| `POST /admin/home-campaigns/:id/unpublish` | Admin  | Ends the live campaign.                                                                                      |
-| `POST /admin/home-campaigns/:id/duplicate` | Admin  | Copies the campaign into a new draft.                                                                        |
+| Route                                      | Access | Function                                                                                                                                                                                                 |
+| ------------------------------------------ | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /store/storefront/settings`           | Public | Returns `new_badge_days`, `low_stock_threshold`, the colours (`name`, `hex`), the sorted `price_limits`, and `contact` (`email`, `phone`, `whatsapp`, `address`, `social_links`).                        |
+| `GET /store/storefront/home-campaign`      | Public | Returns the live campaign in the locale of `x-medusa-locale`, or `null`.                                                                                                                                 |
+| `GET /store/storefront/home-categories`    | Public | Returns the categories with `show_on_home`, in rank order, each with its tile image.                                                                                                                     |
+| `GET /store/storefront/catalog/filters`    | Public | Returns the size, colour, and fabric values of the published products.                                                                                                                                   |
+| `GET /store/storefront/catalog/products`   | Public | Returns one page of the published products with the filters, the price range, and the sort.                                                                                                              |
+| `GET /admin/storefront/settings`           | Admin  | Returns the settings.                                                                                                                                                                                    |
+| `POST /admin/storefront/settings`          | Admin  | Replaces the three settings.                                                                                                                                                                             |
+| `GET /admin/store-contact`                 | Admin  | Returns the store contact. A value is `null` and `social_links` is empty when the owner saved no contact.                                                                                                |
+| `POST /admin/store-contact`                | Admin  | Replaces the whole contact. The body has all five keys: `email`, `phone`, `whatsapp`, `address`, and `social_links` (a list of `{ network, url }`). `null` clears a value. An empty string is not valid. |
+| `GET /admin/storefront/colours`            | Admin  | Lists the store colours by name.                                                                                                                                                                         |
+| `POST /admin/storefront/colours`           | Admin  | Creates a store colour.                                                                                                                                                                                  |
+| `POST /admin/storefront/colours/:id`       | Admin  | Changes the name or the hex of a store colour.                                                                                                                                                           |
+| `DELETE /admin/storefront/colours/:id`     | Admin  | Deletes a store colour.                                                                                                                                                                                  |
+| `GET /admin/home-campaigns`                | Admin  | Lists the campaigns. The parameters `status` and `q` filter the list.                                                                                                                                    |
+| `POST /admin/home-campaigns`               | Admin  | Creates a draft campaign.                                                                                                                                                                                |
+| `GET /admin/home-campaigns/:id`            | Admin  | Returns a campaign.                                                                                                                                                                                      |
+| `POST /admin/home-campaigns/:id`           | Admin  | Replaces the content and the link of a campaign.                                                                                                                                                         |
+| `DELETE /admin/home-campaigns/:id`         | Admin  | Deletes a draft campaign.                                                                                                                                                                                |
+| `POST /admin/home-campaigns/:id/publish`   | Admin  | Makes the campaign live and ends the old live campaign (workflow `publish-home-campaign`).                                                                                                               |
+| `POST /admin/home-campaigns/:id/unpublish` | Admin  | Ends the live campaign.                                                                                                                                                                                  |
+| `POST /admin/home-campaigns/:id/duplicate` | Admin  | Copies the campaign into a new draft.                                                                                                                                                                    |
 
 The two catalog routes take `category_id` as one id, a list of ids with commas, or an array. A
 product in one of the categories matches. The storefront sends a category and the ids of its
