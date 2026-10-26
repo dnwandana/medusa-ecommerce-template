@@ -1,12 +1,12 @@
 import { SMTP_TIMEOUT_MS, transportOptions, validateSmtpOptions } from "../options"
 
 const mailpit = { host: "localhost", port: 1025, secure: false, from: "orders@everyday.test" }
-const resend = {
-  host: "smtp.resend.com",
+const relay = {
+  host: "smtp.example.com",
   port: 587,
   secure: false,
-  user: "resend",
-  password: "re_secret",
+  user: "smtp-user",
+  password: "smtp-secret",
   from: "orders@shop.example.com",
 }
 
@@ -34,22 +34,22 @@ describe("validateSmtpOptions", () => {
   })
 
   it("throws for port 465 with secure false", () => {
-    expect(() => validateSmtpOptions({ ...resend, port: 465, secure: false })).toThrow(
+    expect(() => validateSmtpOptions({ ...relay, port: 465, secure: false })).toThrow(
       "Port 465 uses implicit TLS. Set SMTP_SECURE=true."
     )
   })
 
   it("throws when only one of user and password has a value", () => {
     const message = "Set both SMTP_USER and SMTP_PASSWORD, or neither."
-    expect(() => validateSmtpOptions({ ...resend, password: undefined })).toThrow(message)
-    expect(() => validateSmtpOptions({ ...resend, user: undefined })).toThrow(message)
+    expect(() => validateSmtpOptions({ ...relay, password: undefined })).toThrow(message)
+    expect(() => validateSmtpOptions({ ...relay, user: undefined })).toThrow(message)
   })
 
   it("never puts the password in an error message", () => {
     try {
-      validateSmtpOptions({ ...resend, port: 465, secure: false })
+      validateSmtpOptions({ ...relay, port: 465, secure: false })
     } catch (error) {
-      expect(String(error)).not.toContain("re_secret")
+      expect(String(error)).not.toContain("smtp-secret")
     }
   })
 })
@@ -67,15 +67,15 @@ describe("transportOptions", () => {
   })
 
   it("requires STARTTLS when a user name is set and secure is false", () => {
-    expect(transportOptions(resend)).toMatchObject({
+    expect(transportOptions(relay)).toMatchObject({
       secure: false,
       requireTLS: true,
-      auth: { user: "resend", pass: "re_secret" },
+      auth: { user: "smtp-user", pass: "smtp-secret" },
     })
   })
 
   it("uses implicit TLS and no requireTLS for port 465", () => {
-    const options = transportOptions({ ...resend, port: 465, secure: true })
+    const options = transportOptions({ ...relay, port: 465, secure: true })
     expect(options).toMatchObject({ port: 465, secure: true })
     expect(options).not.toHaveProperty("requireTLS")
   })

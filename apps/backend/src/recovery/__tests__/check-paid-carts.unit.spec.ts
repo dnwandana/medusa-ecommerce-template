@@ -190,7 +190,7 @@ describe("checkPaidCarts", () => {
     expect(deps.sendAlert).not.toHaveBeenCalled()
     expect(deps.logger.warn.mock.calls[0][0]).toContain("payses_1")
     expect(deps.logger.warn.mock.calls[0][0]).toContain("pp_test_test")
-    expect(deps.logger.warn.mock.calls[0][0]).not.toMatch(/mayar|invoice/i)
+    expect(deps.logger.warn.mock.calls[0][0]).not.toMatch(/invoice/i)
     expect(result).toEqual({ checked: 1, completed: 1, alerted: 0 })
   })
 

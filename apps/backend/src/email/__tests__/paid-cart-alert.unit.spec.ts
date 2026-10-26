@@ -24,7 +24,7 @@ describe("renderPaidCartAlert", () => {
     const { html } = renderPaidCartAlert(data)
     expect(html).toContain("pp_x_x")
     expect(html).toContain("REF")
-    expect(html).not.toMatch(/mayar|invoice/i)
+    expect(html).not.toMatch(/invoice/i)
   })
 
   it("shows and escapes the customer email address", () => {

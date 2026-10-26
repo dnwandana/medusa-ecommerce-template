@@ -6,11 +6,11 @@ import SmtpNotificationProviderService from "../service"
 
 const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() } as any
 const options = {
-  host: "smtp.resend.com",
+  host: "smtp.example.com",
   port: 587,
   secure: false,
-  user: "resend",
-  password: "re_secret",
+  user: "smtp-user",
+  password: "smtp-secret",
   from: "orders@shop.example.com",
   fromName: "Everyday" as string | undefined,
 }
@@ -47,7 +47,7 @@ describe("SmtpNotificationProviderService", () => {
     make()
     expect(createTransport).toHaveBeenCalledTimes(1)
     expect(createTransport).toHaveBeenCalledWith(
-      expect.objectContaining({ host: "smtp.resend.com", port: 587, requireTLS: true })
+      expect.objectContaining({ host: "smtp.example.com", port: 587, requireTLS: true })
     )
   })
 
@@ -98,7 +98,7 @@ describe("SmtpNotificationProviderService", () => {
 
   it("throws and logs an SMTP error with no address and no secret", async () => {
     mockSendMail.mockRejectedValue(
-      smtpError("550 5.1.1 <buyer@example.com>: user unknown, auth resend:re_secret", {
+      smtpError("550 5.1.1 <buyer@example.com>: user unknown, auth smtp-user:smtp-secret", {
         code: "EENVELOPE",
         responseCode: 550,
       })
@@ -110,7 +110,7 @@ describe("SmtpNotificationProviderService", () => {
 
     expect(logger.error).toHaveBeenCalledTimes(1)
     expect(logger.error).toHaveBeenCalledWith(expected)
-    for (const secret of ["buyer@example.com", "resend", "re_secret"]) {
+    for (const secret of ["buyer@example.com", "smtp-user", "smtp-secret"]) {
       expect(expected).not.toContain(secret)
       expect(logger.error.mock.calls[0][0]).not.toContain(secret)
     }
