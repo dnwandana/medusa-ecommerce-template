@@ -2,13 +2,14 @@
 	email {$ACME_EMAIL}
 }
 
-{$DOMAIN} {
+# Compose sets STOREFRONT_URL and MEDUSA_BACKEND_URL. The defaults come from DOMAIN.
+{$STOREFRONT_URL} {
 	encode zstd gzip
 	reverse_proxy storefront:3000
 }
 
 # Search engines must not index the API or Medusa Admin at /app.
-api.{$DOMAIN} {
+{$MEDUSA_BACKEND_URL} {
 	header X-Robots-Tag "noindex, nofollow"
 	handle /robots.txt {
 		respond "User-agent: *
