@@ -1,4 +1,5 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import { bankTransferDeadlineHours, bankTransferEnabled } from "../../../config/payment"
 import { BANK_ACCOUNT_MODULE } from "../../../modules/bank-account"
 import type BankAccountModuleService from "../../../modules/bank-account/service"
 
@@ -6,8 +7,9 @@ import type BankAccountModuleService from "../../../modules/bank-account/service
 // the customer needs only the data to make the transfer.
 export const STORE_BANK_ACCOUNT_FIELDS = ["id", "bank_name", "account_number", "account_holder"]
 
-// Returns the active bank accounts in the order that the owner set, and the store contact. The
-// route needs only the publishable API key.
+// Returns the active bank accounts in the order that the owner set, and the store contact. It also
+// returns the bank transfer switch and the deadline hours, because the checkout needs them before
+// an order exists. The route needs only the publishable API key.
 export const GET = async (req: MedusaRequest, res: MedusaResponse): Promise<void> => {
   const service: BankAccountModuleService = req.scope.resolve(BANK_ACCOUNT_MODULE)
 
@@ -27,5 +29,10 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse): Promise<void
     account_holder: account.account_holder,
   }))
 
-  res.json({ bank_accounts, contact })
+  res.json({
+    bank_accounts,
+    contact,
+    enabled: bankTransferEnabled(process.env),
+    deadline_hours: bankTransferDeadlineHours(process.env),
+  })
 }

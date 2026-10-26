@@ -22,7 +22,12 @@ medusaIntegrationTestRunner({
         const response = await api.get("/store/bank-transfer", { headers })
 
         expect(response.status).toBe(200)
-        expect(Object.keys(response.data).sort()).toEqual(["bank_accounts", "contact"])
+        expect(Object.keys(response.data).sort()).toEqual([
+          "bank_accounts",
+          "contact",
+          "deadline_hours",
+          "enabled",
+        ])
         const names = response.data.bank_accounts.map((a: any) => a.bank_name)
         expect(names).not.toContain("BRI")
         expect(names).toContain("BCA")
@@ -39,6 +44,35 @@ medusaIntegrationTestRunner({
           email: "store@example.com",
           whatsapp: "+6281234567890",
         })
+      })
+
+      it("returns the switch and the deadline hours with their defaults", async () => {
+        const seed = await runSeed(getContainer())
+        const headers = { "x-publishable-api-key": seed.publishableKey }
+
+        const response = await api.get("/store/bank-transfer", { headers })
+
+        expect(response.data.enabled).toBe(true)
+        expect(response.data.deadline_hours).toBe(24)
+      })
+
+      it("reads the switch and the hours from the env at each request", async () => {
+        const seed = await runSeed(getContainer())
+        const headers = { "x-publishable-api-key": seed.publishableKey }
+        const keys = ["BANK_TRANSFER_ENABLED", "BANK_TRANSFER_DEADLINE_HOURS"] as const
+        const previous = keys.map((key) => [key, process.env[key]] as const)
+        process.env.BANK_TRANSFER_ENABLED = "false"
+        process.env.BANK_TRANSFER_DEADLINE_HOURS = "48"
+        try {
+          const response = await api.get("/store/bank-transfer", { headers })
+          expect(response.data.enabled).toBe(false)
+          expect(response.data.deadline_hours).toBe(48)
+        } finally {
+          for (const [key, value] of previous) {
+            if (value === undefined) delete process.env[key]
+            else process.env[key] = value
+          }
+        }
       })
 
       it("rejects a request with no publishable key", async () => {

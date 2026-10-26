@@ -1,21 +1,50 @@
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import { capturePaymentWorkflow } from "@medusajs/medusa/core-flows"
+import { capturePaymentWorkflow, updateRegionsWorkflow } from "@medusajs/medusa/core-flows"
 import { medusaIntegrationTestRunner } from "@medusajs/test-utils"
 import { PAYMENT_RECEIPT_MODULE } from "../../src/modules/payment-receipt"
 import type PaymentReceiptModuleService from "../../src/modules/payment-receipt/service"
 import { runSeed } from "../../src/seed"
-import { placeOrder } from "../helpers/checkout"
+import { createCartWithShipping, placeOrder, type StoreContext } from "../helpers/checkout"
 
 jest.setTimeout(180 * 1000)
 
 const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1])
+const SYSTEM_PROVIDER_ID = "pp_system_default"
+
+// Places an order with the system default provider, which stands in for a gateway. The seeded
+// region has only bank transfer, so the region gets the system provider first.
+async function placeGatewayOrder(
+  ctx: StoreContext,
+  container: Parameters<typeof updateRegionsWorkflow>[0]
+): Promise<{ id: string }> {
+  await updateRegionsWorkflow(container).run({
+    input: {
+      selector: { id: ctx.regionId },
+      update: { payment_providers: ["pp_bank-transfer_bank-transfer", SYSTEM_PROVIDER_ID] },
+    },
+  })
+  const { api, headers } = ctx
+  const { cartId } = await createCartWithShipping(ctx, [["TOTE-DEFAULT", 1]])
+  const collection = await api.post("/store/payment-collections", { cart_id: cartId }, { headers })
+  await api.post(
+    `/store/payment-collections/${collection.data.payment_collection.id}/payment-sessions`,
+    { provider_id: SYSTEM_PROVIDER_ID },
+    { headers }
+  )
+  const completed = await api.post(`/store/carts/${cartId}/complete`, {}, { headers })
+  if (completed.data.type !== "order") {
+    throw new Error(`The gateway cart ${cartId} did not become an order.`)
+  }
+  return completed.data.order
+}
 
 medusaIntegrationTestRunner({
   testSuite: ({ api, getContainer }) => {
     describe("GET /store/payment-states", () => {
       let headers: Record<string, string>
-      let orderA: { id: string }
-      let orderB: { id: string }
+      let ctx: StoreContext
+      let orderA: { id: string; created_at: string }
+      let orderB: { id: string; created_at: string }
 
       const service = (): PaymentReceiptModuleService =>
         getContainer().resolve(PAYMENT_RECEIPT_MODULE)
@@ -52,7 +81,7 @@ medusaIntegrationTestRunner({
       beforeEach(async () => {
         const seed = await runSeed(getContainer())
         headers = { "x-publishable-api-key": seed.publishableKey }
-        const ctx = { api, headers, regionId: seed.regionId }
+        ctx = { api, headers, regionId: seed.regionId }
         orderA = await placeOrder(ctx, [["TOTE-DEFAULT", 1]])
         orderB = await placeOrder(ctx, [["TOTE-DEFAULT", 1]])
       })
@@ -71,6 +100,7 @@ medusaIntegrationTestRunner({
           order_id: orderB.id,
           provider_id: "pp_bank-transfer_bank-transfer",
           captured_at: null,
+          deadline_at: expect.any(String),
           receipts: [],
           note: null,
         })
@@ -78,6 +108,7 @@ medusaIntegrationTestRunner({
           order_id: orderA.id,
           provider_id: "pp_bank-transfer_bank-transfer",
           captured_at: null,
+          deadline_at: expect.any(String),
           receipts: [
             { id: expect.any(String), file_name: "a.png", created_at: expect.any(String) },
           ],
@@ -93,6 +124,20 @@ medusaIntegrationTestRunner({
         expect(state.note).toEqual({ note: "Rp 50.000 is missing", created_at: expect.any(String) })
         expect(state.captured_at).toEqual(expect.any(String))
         expect(new Date(state.captured_at).toISOString()).toBe(state.captured_at)
+      })
+
+      it("gives the deadline of a bank transfer order", async () => {
+        const [state] = await states(orderA.id)
+        expect(state.deadline_at).toBe(
+          new Date(new Date(orderA.created_at).getTime() + 24 * 60 * 60 * 1000).toISOString()
+        )
+      })
+
+      it("gives no deadline for an order of another provider", async () => {
+        const gatewayOrder = await placeGatewayOrder(ctx, getContainer())
+        const [state] = await states(gatewayOrder.id)
+        expect(state.provider_id).toBe(SYSTEM_PROVIDER_ID)
+        expect(state.deadline_at).toBeNull()
       })
 
       it("shows no file key, no URL and no session data", async () => {
