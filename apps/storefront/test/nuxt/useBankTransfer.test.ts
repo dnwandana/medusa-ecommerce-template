@@ -18,16 +18,11 @@ beforeEach(() => {
 })
 
 describe("useBankTransfer", () => {
-  it("gets the accounts and the contact from the Store API", async () => {
-    sdk.client.fetch.mockResolvedValue({
-      bank_accounts: [account],
-      contact: { email: null, whatsapp: null },
-    })
+  it("gets the accounts, the switch, and the deadline from the Store API", async () => {
+    const response = { bank_accounts: [account], enabled: true, deadline_hours: 24 }
+    sdk.client.fetch.mockResolvedValue(response)
 
-    expect(await useBankTransfer().getDetails()).toEqual({
-      bank_accounts: [account],
-      contact: { email: null, whatsapp: null },
-    })
+    expect(await useBankTransfer().getDetails()).toEqual(response)
     expect(sdk.client.fetch).toHaveBeenCalledWith("/store/bank-transfer")
   })
 })

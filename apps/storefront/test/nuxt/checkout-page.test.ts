@@ -151,7 +151,6 @@ const BANK_TRANSFER = "pp_bank-transfer_bank-transfer"
 // The answer of /store/bank-transfer with the defaults of the backend.
 const details = {
   bank_accounts: [],
-  contact: { email: null, whatsapp: null },
   enabled: true,
   deadline_hours: 24,
 }

@@ -9,7 +9,6 @@ export type BankAccount = {
 // customer has to pay. The checkout needs both values before an order exists.
 export type BankTransferDetails = {
   bank_accounts: BankAccount[]
-  contact: { email: string | null; whatsapp: string | null }
   enabled: boolean
   deadline_hours: number
 }
