@@ -1,6 +1,7 @@
 import { loadEnv, defineConfig } from "@medusajs/framework/utils"
 import { buildDatabaseDriverOptions } from "./src/config/database"
 import { buildModules } from "./src/config/modules"
+import { buildSessionOptions } from "./src/config/session"
 
 loadEnv(process.env.NODE_ENV || "development", process.cwd())
 
@@ -11,6 +12,7 @@ module.exports = defineConfig({
     // The session store uses this URL. The modules get their URL from buildModules.
     redisUrl: process.env.REDIS_URL || undefined,
     workerMode: (process.env.MEDUSA_WORKER_MODE || "shared") as "shared" | "worker" | "server",
+    sessionOptions: buildSessionOptions(process.env),
     http: {
       storeCors: process.env.STORE_CORS!,
       adminCors: process.env.ADMIN_CORS!,
